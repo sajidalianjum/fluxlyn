@@ -16,6 +16,8 @@ class SchemaService {
   // Cache for table columns
   final Map<String, List<ColumnInfo>> _columnsCache = {};
   final Set<String> _loadingTables = {};
+  // Cache for table names
+  final Map<String, List<String>> _tableNamesCache = {};
 
   /// Get columns for a specific table (lazy loading with caching)
   Future<List<ColumnInfo>> getColumns(
@@ -120,5 +122,24 @@ class SchemaService {
   bool isLoaded(String databaseName, String tableName) {
     final cacheKey = '$databaseName.$tableName';
     return _columnsCache.containsKey(cacheKey);
+  }
+
+  /// Get all table names for a database
+  List<String> getTableNames(String databaseName) {
+    return _tableNamesCache[databaseName] ?? [];
+  }
+
+  /// Set table names for a database
+  void setTableNames(String databaseName, List<String> tableNames) {
+    _tableNamesCache[databaseName] = tableNames;
+  }
+
+  /// Clear table names cache for a specific database
+  void clearTableNamesCache(String? databaseName) {
+    if (databaseName == null) {
+      _tableNamesCache.clear();
+    } else {
+      _tableNamesCache.remove(databaseName);
+    }
   }
 }

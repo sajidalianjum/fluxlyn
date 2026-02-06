@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
@@ -7,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/schema_service.dart';
+import '../../../../core/services/sql_context_analyzer.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../../queries/models/query_model.dart';
 import '../../../queries/presentation/pages/query_results_page.dart';
@@ -21,11 +23,14 @@ class QueryTab extends StatefulWidget {
 class _QueryTabState extends State<QueryTab> {
   late CodeController _controller;
   final _schemaService = SchemaService();
+  late SQLContextAnalyzer _sqlContextAnalyzer;
   final _uuid = const Uuid();
   bool _isExecuting = false;
   List<String> _autocompleteWords = [];
   String? _lastDatabase;
   final FocusNode _focusNode = FocusNode();
+  Timer? _autocompleteDebounce;
+  SQLContext _lastContext = SQLContext.none;
 
   // SQL Keywords for autocomplete
   final List<String> _sqlKeywords = [
@@ -104,6 +109,8 @@ class _QueryTabState extends State<QueryTab> {
   @override
   void initState() {
     super.initState();
+    _sqlContextAnalyzer = SQLContextAnalyzer(_schemaService);
+
     _controller = CodeController(
       language: sql,
       text: "-- Write your SQL query here\nSELECT * FROM ",
@@ -112,15 +119,23 @@ class _QueryTabState extends State<QueryTab> {
     // Setup autocomplete
     _setupAutocomplete();
 
-    // Preload schema info
+    // Add listener for context-aware autocomplete
+    _controller.addListener(_onTextChange);
+
+    // Preload schema info after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _preloadSchema();
+      final provider = Provider.of<DashboardProvider>(context, listen: false);
+      if (provider.tables.isNotEmpty) {
+        _preloadSchema();
+      }
     });
   }
 
   @override
   void dispose() {
     _focusNode.dispose();
+    _controller.removeListener(_onTextChange);
+    _autocompleteDebounce?.cancel();
     super.dispose();
   }
 
@@ -143,6 +158,68 @@ class _QueryTabState extends State<QueryTab> {
     _controller.autocompleter.setCustomWords(_autocompleteWords);
   }
 
+  void _onTextChange() {
+    // Cancel any pending autocomplete update
+    _autocompleteDebounce?.cancel();
+
+    // Debounce the update to avoid excessive calculations
+    _autocompleteDebounce = Timer(const Duration(milliseconds: 200), () {
+      _updateContextAwareAutocomplete();
+    });
+  }
+
+  Future<void> _updateContextAwareAutocomplete() async {
+    final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final database = provider.selectedDatabase;
+
+    if (database == null || !mounted) return;
+
+    final query = _controller.text;
+    final cursorPosition = _controller.selection.baseOffset;
+
+    // Get current word being typed
+    final textBeforeCursor = query.substring(0, cursorPosition);
+    final wordMatch = RegExp(r'\w+$').firstMatch(textBeforeCursor);
+    final currentWord = wordMatch?.group(0) ?? '';
+
+    // Get current SQL context
+    final sqlContext = _sqlContextAnalyzer.getContext(query, cursorPosition);
+
+    // Only update if context changed significantly
+    if (sqlContext == _lastContext && currentWord.isEmpty) return;
+
+    _lastContext = sqlContext;
+
+    // Get appropriate suggestions based on context
+    if (sqlContext == SQLContext.none) {
+      // Show only SQL keywords
+      setState(() {
+        _autocompleteWords = List.from(_sqlKeywords);
+        _controller.autocompleter.setCustomWords(_autocompleteWords);
+      });
+    } else {
+      // Show context-aware suggestions
+      final suggestions = await _sqlContextAnalyzer.getSuggestions(
+        sqlContext,
+        database,
+        query,
+        cursorPosition,
+      );
+
+      // Filter suggestions based on current word (case-insensitive)
+      final filteredSuggestions = await _sqlContextAnalyzer
+          .getFilteredSuggestions(suggestions, currentWord);
+
+      // Combine with SQL keywords for better UX
+      final allSuggestions = [..._sqlKeywords, ...filteredSuggestions];
+
+      setState(() {
+        _autocompleteWords = allSuggestions;
+        _controller.autocompleter.setCustomWords(_autocompleteWords);
+      });
+    }
+  }
+
   Future<void> _reloadSchemaOnDatabaseChange() async {
     final provider = Provider.of<DashboardProvider>(context, listen: false);
     final connection = provider.currentConnection;
@@ -151,25 +228,28 @@ class _QueryTabState extends State<QueryTab> {
     if (connection != null && database != null) {
       // Clear cache for previous database and load new one
       _schemaService.clearCache(database);
+      _schemaService.clearTableNamesCache(database);
+
+      // Wait for tables to be loaded, then cache them
+      final tables = provider.tables;
+      if (tables.isEmpty) {
+        // Tables not loaded yet, they'll be cached when loaded via didChangeDependencies
+        return;
+      }
+
+      // Cache table names in SchemaService
+      _schemaService.setTableNames(database, tables);
 
       // Reset autocomplete to only SQL keywords
       _autocompleteWords = List.from(_sqlKeywords);
       _controller.autocompleter.setCustomWords(_autocompleteWords);
 
-      // Add table names to autocomplete
-      final tables = provider.tables;
-      setState(() {
-        _autocompleteWords.addAll(tables);
-        _controller.autocompleter.setCustomWords(_autocompleteWords);
-      });
-
       // Preload columns for all tables in background
       await _schemaService.preloadColumns(connection, database, tables);
-      final columns = _schemaService.getAllColumnNames(database, null);
-      setState(() {
-        _autocompleteWords.addAll(columns);
-        _controller.autocompleter.setCustomWords(_autocompleteWords);
-      });
+
+      // Trigger context-aware autocomplete update
+      _lastContext = SQLContext.none;
+      _updateContextAwareAutocomplete();
     }
   }
 
@@ -179,22 +259,16 @@ class _QueryTabState extends State<QueryTab> {
     final database = provider.selectedDatabase;
 
     if (connection != null && database != null) {
-      // Add table names to autocomplete
+      // Cache table names in SchemaService
       final tables = provider.tables;
-      setState(() {
-        _autocompleteWords.addAll(tables);
-        _controller.autocompleter.setCustomWords(_autocompleteWords);
-      });
+      _schemaService.setTableNames(database, tables);
 
       // Preload columns for all tables in background
-      _schemaService.preloadColumns(connection, database, tables).then((_) {
-        // After preloading, add all column names
-        final columns = _schemaService.getAllColumnNames(database, null);
-        setState(() {
-          _autocompleteWords.addAll(columns);
-          _controller.autocompleter.setCustomWords(_autocompleteWords);
-        });
-      });
+      await _schemaService.preloadColumns(connection, database, tables);
+
+      // Trigger initial autocomplete update
+      _lastContext = SQLContext.none;
+      _updateContextAwareAutocomplete();
     }
   }
 
