@@ -492,6 +492,52 @@ class _QueryTabState extends State<QueryTab> {
     );
   }
 
+  void _showDatabaseSelector(DashboardProvider provider) async {
+    final databases = provider.databases;
+
+    if (databases.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No databases available')));
+      return;
+    }
+
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('Select Database'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: databases.length,
+            itemBuilder: (context, index) {
+              final db = databases[index];
+              return ListTile(
+                title: Text(db),
+                trailing: db == provider.selectedDatabase
+                    ? const Icon(Icons.check, color: Colors.green)
+                    : null,
+                onTap: () => Navigator.of(context).pop(db),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (selected != null) {
+      await provider.selectDatabase(selected);
+    }
+  }
+
   void _clearEditor() {
     showDialog(
       context: context,
@@ -572,6 +618,30 @@ class _QueryTabState extends State<QueryTab> {
               color: const Color(0xFF0F172A),
               child: Row(
                 children: [
+                  Consumer<DashboardProvider>(
+                    builder: (context, provider, _) {
+                      return OutlinedButton.icon(
+                        onPressed: () => _showDatabaseSelector(provider),
+                        icon: const Icon(Icons.storage, size: 18),
+                        label: Text(
+                          provider.selectedDatabase ?? 'Select Database',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Color(0xFF334155)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 8),
                   OutlinedButton.icon(
                     onPressed: _saveQuery,
                     icon: const Icon(Icons.save, size: 18),
