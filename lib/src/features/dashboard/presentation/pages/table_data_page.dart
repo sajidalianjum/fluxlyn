@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:data_table_2/data_table_2.dart';
+import 'package:provider/provider.dart';
+import '../../providers/dashboard_provider.dart';
+import '../dialogs/row_edit_dialog.dart';
+import '../dialogs/edit_confirmation_dialog.dart';
 
 class TableDataPage extends StatefulWidget {
   final String tableName;
@@ -11,17 +15,182 @@ class TableDataPage extends StatefulWidget {
 }
 
 class _TableDataPageState extends State<TableDataPage> {
-  // Mock Data for UI Matching (will hook up to provider later)
-  final List<Map<String, dynamic>> _rows = [
-    {'id': 10234, 'customer': 'Alexandria Montgomery', 'email': 'alex@example.com', 'status': 'ACTIVE'},
-    {'id': 10235, 'customer': 'Jordan Smith', 'email': 'jordan@code.io', 'status': 'ACTIVE'},
-    {'id': 10236, 'customer': 'Marcus T. Wright', 'email': 'marcus@wright.com', 'status': 'INACTIVE'},
-    {'id': 10237, 'customer': 'NULL', 'email': 'null@null.com', 'status': 'PENDING'},
-    {'id': 10238, 'customer': 'Sarah Jenkins', 'email': 'sarah@j.com', 'status': 'ACTIVE'},
-    {'id': 10239, 'customer': 'Elena Rodriquez', 'email': 'elena@r.com', 'status': 'ACTIVE'},
-  ];
-  
-  int _selectedRowIndex = 1; // Jordan Smith selected in screenshot
+  bool _isLoading = true;
+  String? _error;
+  List<String> _columns = [];
+  List<String> _binaryColumns = [];
+  List<String> _bitColumns = [];
+  List<Map<String, dynamic>> _rows = [];
+  String? _primaryKeyColumn;
+  bool _isEditable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final result = await provider.fetchTableData(widget.tableName);
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        if (result.hasError) {
+          _error = result.error;
+        } else {
+          _columns = result.columns;
+          _binaryColumns = result.binaryColumns;
+          _bitColumns = result.bitColumns;
+          _rows = result.rows;
+          _primaryKeyColumn = result.primaryKeyColumn;
+          _isEditable = result.isEditable;
+        }
+      });
+    }
+  }
+
+  void _openRowEditDialog(int rowIndex) {
+    if (rowIndex < 0 || rowIndex >= _rows.length) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => RowEditDialog(
+        tableName: widget.tableName,
+        columns: _columns,
+        row: Map<String, dynamic>.from(_rows[rowIndex]),
+        primaryKeyColumn: _primaryKeyColumn,
+        binaryColumns: _binaryColumns,
+        bitColumns: _bitColumns,
+        currentRowIndex: rowIndex,
+        totalRows: _rows.length,
+        onPrevious: () {
+          Navigator.of(context).pop();
+          if (rowIndex > 0) {
+            _openRowEditDialog(rowIndex - 1);
+          }
+        },
+        onNext: () {
+          Navigator.of(context).pop();
+          if (rowIndex < _rows.length - 1) {
+            _openRowEditDialog(rowIndex + 1);
+          }
+        },
+        onCancel: () {
+          Navigator.of(context).pop();
+        },
+        onSave: (changes) {
+          Navigator.of(context).pop();
+          _showConfirmationDialog(rowIndex, changes);
+        },
+      ),
+    );
+  }
+
+  void _showConfirmationDialog(int rowIndex, Map<String, dynamic> changes) {
+    if (_primaryKeyColumn == null) return;
+
+    final row = _rows[rowIndex];
+    final primaryKeyValue = row[_primaryKeyColumn!];
+
+    showDialog(
+      context: context,
+      builder: (context) => EditConfirmationDialog(
+        tableName: widget.tableName,
+        primaryKeyColumn: _primaryKeyColumn!,
+        primaryKeyValue: primaryKeyValue,
+        updates: changes,
+        onConfirm: () {
+          Navigator.of(context).pop();
+          _commitChanges(rowIndex, changes);
+        },
+        onCancel: () {
+          Navigator.of(context).pop();
+          // Reopen the edit dialog
+          _openRowEditDialog(rowIndex);
+        },
+      ),
+    );
+  }
+
+  Future<void> _commitChanges(
+    int rowIndex,
+    Map<String, dynamic> changes,
+  ) async {
+    if (_primaryKeyColumn == null) return;
+
+    final row = _rows[rowIndex];
+    final primaryKeyValue = row[_primaryKeyColumn!];
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final error = await provider.updateRow(
+      widget.tableName,
+      _primaryKeyColumn!,
+      primaryKeyValue,
+      changes,
+    );
+
+    if (mounted) {
+      if (error != null) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $error'), backgroundColor: Colors.red),
+        );
+        // Reopen edit dialog on error
+        _openRowEditDialog(rowIndex);
+      } else {
+        // Refresh data to show updated values
+        await _loadData();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Row updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildCellContent(dynamic value) {
+    // Show NULL indicator
+    if (value == null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.grey.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          'NULL',
+          style: TextStyle(
+            color: Colors.grey[500],
+            fontStyle: FontStyle.italic,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+
+    // Show value
+    final text = value.toString();
+    return Text(
+      text,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(color: Colors.white),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,118 +203,182 @@ class _TableDataPageState extends State<TableDataPage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Table: ${widget.tableName}', style: Theme.of(context).textTheme.titleMedium),
-            Text('PostgreSQL • 12.4ms', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+            Text(
+              'Table: ${widget.tableName}',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            if (_isEditable)
+              Text(
+                'Editable • PK: $_primaryKeyColumn • ${_rows.length} rows',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.green),
+              )
+            else if (_primaryKeyColumn == null && _rows.isNotEmpty)
+              Text(
+                'Read-Only • No Primary Key',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.orange),
+              ),
           ],
         ),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: _isLoading ? null : _loadData,
+            icon: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+          ),
           IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
         ],
       ),
-      body: Column(
-        children: [
-          // Toolbar (Filter & Sort)
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                 Expanded(
-                   child: _buildDropdownButton('Filter: All Rows'),
-                 ),
-                 const SizedBox(width: 12),
-                 Expanded(
-                   child: _buildDropdownButton('Sort: ID (DESC)', isBlue: true),
-                 ),
-              ],
-            ),
-          ),
-          
-          // Data Grid
-          Expanded(
-            child: DataTable2(
-               columnSpacing: 12,
-               horizontalMargin: 12,
-               minWidth: 600,
-               headingRowColor: WidgetStateColor.resolveWith((states) => const Color(0xFF1E293B)),
-               columns: const [
-                 DataColumn2(label: Text('#'), fixedWidth: 50),
-                 DataColumn2(label: Text('ID'), size: ColumnSize.S),
-                 DataColumn2(label: Text('CUSTOMER'), size: ColumnSize.L),
-                 DataColumn2(label: Text('EMAIL'), size: ColumnSize.L),
-                 DataColumn2(label: Text('STATUS'), size: ColumnSize.S),
-               ],
-               rows: List<DataRow>.generate(_rows.length, (index) {
-                 final row = _rows[index];
-                 final isSelected = index == _selectedRowIndex;
-                 return DataRow(
-                   selected: isSelected,
-                   onSelectChanged: (val) => setState(() => _selectedRowIndex = index),
-                   cells: [
-                     DataCell(Text('${index + 1}', style: TextStyle(color: Colors.grey.withValues(alpha: 0.5)))),
-                     DataCell(Row(children: [ 
-                        const Icon(Icons.tag, size: 14, color: Colors.blue), 
-                        const SizedBox(width: 4), 
-                        Text('${row['id']}') 
-                     ])),
-                     DataCell(Row(children: [
-                        const Icon(Icons.person, size: 14, color: Colors.green),
-                        const SizedBox(width: 4),
-                        Text(row['customer'])
-                     ])),
-                     DataCell(Text(row['email'])),
-                     DataCell(Text(row['status'], style: TextStyle(color: row['status'] == 'ACTIVE' ? Colors.green : Colors.grey))),
-                   ],
-                 );
-               }),
-            ),
-          ),
-          
-          // Footer / Pagination
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: const Color(0xFF0F172A),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Showing 1-50 of 1,240', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                Row(
-                  children: [
-                    IconButton(onPressed: () {}, icon: const Icon(Icons.chevron_left)),
-                    const SizedBox(width: 8),
-                    IconButton(onPressed: () {}, icon: const Icon(Icons.chevron_right)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add),
-      ),
+      body: _buildBody(),
     );
   }
 
-  Widget _buildDropdownButton(String text, {bool isBlue = false}) {
-     return Container(
-       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-       decoration: BoxDecoration(
-          color: isBlue ? Colors.blue.withValues(alpha: 0.1) : const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(8),
-          border: isBlue ? Border.all(color: Colors.blue.withValues(alpha: 0.3)) : null,
-       ),
-       height: 40,
-       child: Row(
-         children: [
-           Icon(Icons.filter_list, size: 16, color: isBlue ? Colors.blue : Colors.grey),
-           const SizedBox(width: 8),
-           Expanded(child: Text(text, style: TextStyle(color: isBlue ? Colors.blue : Colors.white))),
-           Icon(Icons.keyboard_arrow_down, size: 16, color: isBlue ? Colors.blue : Colors.grey),
-         ],
-       ),
-     );
+  Widget _buildBody() {
+    if (_isLoading && _rows.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              'Error loading data',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              style: TextStyle(color: Colors.grey[400]),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+
+    if (_rows.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.table_chart_outlined, color: Colors.grey, size: 48),
+            SizedBox(height: 16),
+            Text('No data found', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        // Instruction bar
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: const Color(0xFF0F172A),
+          child: Row(
+            children: [
+              Icon(Icons.touch_app, size: 16, color: Colors.grey[400]),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _isEditable
+                      ? 'Tap any row to edit'
+                      : 'Table is read-only (no primary key)',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Data Grid
+        Expanded(
+          child: DataTable2(
+            columnSpacing: 12,
+            horizontalMargin: 12,
+            minWidth: 600,
+            headingRowColor: WidgetStateColor.resolveWith(
+              (states) => const Color(0xFF1E293B),
+            ),
+            columns: _columns.map((col) {
+              final isPK = col == _primaryKeyColumn;
+              final isBinary = _binaryColumns.contains(col);
+              final isBit = _bitColumns.contains(col);
+              return DataColumn2(
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isPK)
+                      Icon(Icons.key, size: 14, color: Colors.yellow[700]),
+                    if (isPK) const SizedBox(width: 4),
+                    if (isBit)
+                      Icon(Icons.toggle_on, size: 14, color: Colors.blue[400]),
+                    if (isBit) const SizedBox(width: 4),
+                    if (isBinary)
+                      Icon(
+                        Icons.data_object,
+                        size: 14,
+                        color: Colors.grey[500],
+                      ),
+                    if (isBinary) const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        col.toUpperCase(),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                size: ColumnSize.M,
+              );
+            }).toList(),
+            rows: List<DataRow>.generate(_rows.length, (index) {
+              final row = _rows[index];
+
+              return DataRow(
+                cells: _columns.map((col) {
+                  return DataCell(
+                    GestureDetector(
+                      onTap: () => _openRowEditDialog(index),
+                      child: _buildCellContent(row[col]),
+                    ),
+                  );
+                }).toList(),
+              );
+            }),
+          ),
+        ),
+
+        // Footer
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: const Color(0xFF0F172A),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Showing ${_rows.length} rows',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
