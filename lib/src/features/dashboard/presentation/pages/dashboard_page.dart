@@ -14,23 +14,25 @@ class DashboardPage extends StatelessWidget {
 
     // Pages for Bottom Nav
     final List<Widget> pages = [
-       const SchemaTab(),
-       const QueryTab(),
-       const Center(child: Text('History (Coming Soon)')),
-       const Center(child: Text('Settings (Coming Soon)')),
+      const SchemaTab(),
+      const QueryTab(),
+      const Center(child: Text('History (Coming Soon)')),
+      const Center(child: Text('Settings (Coming Soon)')),
     ];
 
     return Scaffold(
-      // AppBar changes based on context, but keeping it simple for now as requested
-      // The individual tabs might want to own the AppBar actually, but shared is fine for shell
-      body: provider.isLoading 
-         ? const Center(child: CircularProgressIndicator())
-         : provider.error != null
-             ? Center(child: Text('Error: ${provider.error}', style: const TextStyle(color: Colors.red)))
-             : pages[provider.selectedTabIndex],
-      
+      body: provider.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : provider.error != null
+          ? Center(
+              child: Text(
+                'Error: ${provider.error}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            )
+          : pages[provider.selectedTabIndex],
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF0F172A), // Matches AppTheme
+        backgroundColor: const Color(0xFF0F172A),
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
@@ -40,7 +42,10 @@ class DashboardPage extends StatelessWidget {
           BottomNavigationBarItem(icon: Icon(Icons.dns), label: 'Databases'),
           BottomNavigationBarItem(icon: Icon(Icons.code), label: 'Editor'),
           BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
         ],
       ),
     );

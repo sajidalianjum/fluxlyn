@@ -15,7 +15,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ConnectionsProvider(storageService)),
+        Provider.value(value: storageService),
+        ChangeNotifierProvider(
+          create: (_) => ConnectionsProvider(storageService),
+        ),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
       ],
       child: MaterialApp(

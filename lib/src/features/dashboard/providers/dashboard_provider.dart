@@ -18,6 +18,7 @@ class DashboardProvider extends ChangeNotifier {
   int _selectedTabIndex = 0; // Bottom Nav Index
 
   ConnectionModel? get currentConnectionModel => _currentConnectionModel;
+  MySQLConnection? get currentConnection => _connection;
   List<String> get databases => _databases;
   String? get selectedDatabase => _selectedDatabase;
   List<String> get tables => _tables;
