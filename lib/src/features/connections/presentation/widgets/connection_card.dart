@@ -4,11 +4,13 @@ import '../../models/connection_model.dart';
 class ConnectionCard extends StatelessWidget {
   final ConnectionModel connection;
   final VoidCallback onTap;
+  final VoidCallback onEdit;
 
   const ConnectionCard({
     super.key,
     required this.connection,
     required this.onTap,
+    required this.onEdit,
   });
 
   @override
@@ -90,10 +92,22 @@ class ConnectionCard extends StatelessWidget {
                 ),
               ),
 
-              // Chevron
-              Icon(
-                Icons.chevron_right,
-                color: Colors.white.withValues(alpha: 0.3),
+              // Chevron & Edit
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit, size: 20),
+                    color: Colors.white.withValues(alpha: 0.3),
+                    tooltip: 'Edit Connection',
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.chevron_right,
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
+                ],
               ),
             ],
           ),

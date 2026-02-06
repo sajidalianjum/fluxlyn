@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/connections_provider.dart';
+import '../../models/connection_model.dart';
+import 'package:fluxlyn/src/features/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:fluxlyn/src/features/dashboard/providers/dashboard_provider.dart';
 import '../widgets/connection_card.dart';
-import '../dialogs/add_connection_dialog.dart';
+import '../dialogs/connection_dialog.dart';
 
 class ConnectionsPage extends StatelessWidget {
   const ConnectionsPage({super.key});
 
-  void _showAddDialog(BuildContext context) {
+  void _showConnectionDialog(BuildContext context, {ConnectionModel? connection}) {
     showDialog(
       context: context,
-      builder: (context) => AddConnectionDialog(
-        onAdd: (connection) {
-          context.read<ConnectionsProvider>().addConnection(connection);
+      builder: (context) => ConnectionDialog(
+        connection: connection,
+        onSave: (newConnection) {
+          final provider = context.read<ConnectionsProvider>();
+          if (connection == null) {
+            provider.addConnection(newConnection);
+          } else {
+            provider.updateConnection(newConnection);
+          }
         },
       ),
     );
@@ -46,12 +55,19 @@ class ConnectionsPage extends StatelessWidget {
                 Expanded(
                   child: provider.connections.isEmpty
                       ? Center(
-                          child: Text(
-                            'No connections yet.\nTap "+" to add one.',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Colors.grey,
-                            ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.dns_outlined, size: 64, color: Colors.grey.withValues(alpha: 0.2)),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No connections yet.\nTap "+" to add one.',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
                           ),
                         )
                       : ListView.builder(
@@ -60,56 +76,42 @@ class ConnectionsPage extends StatelessWidget {
                             final connection = provider.connections[index];
                             return ConnectionCard(
                               connection: connection,
-                              onTap: () {
-                                // TODO: Implement connection logic
+                              onTap: () async {
+                                final dashboardProvider = context.read<DashboardProvider>();
+                                // Show loading feedback
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Connecting to ${connection.name}...')),
+                                  SnackBar(
+                                    content: Text('Connecting to ${connection.name}...'),
+                                    duration: const Duration(seconds: 1),
+                                  ),
                                 );
+                                
+                                await dashboardProvider.connect(connection);
+                                
+                                if (context.mounted) {
+                                  if (dashboardProvider.error != null) {
+                                     ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Error: ${dashboardProvider.error}'), backgroundColor: Colors.red),
+                                     );
+                                  } else {
+                                     Navigator.of(context).push(
+                                        MaterialPageRoute(builder: (_) => const DashboardPage()),
+                                     );
+                                  }
+                                }
                               },
+                              onEdit: () => _showConnectionDialog(context, connection: connection),
                             );
                           },
                         ),
                 ),
-                
-                // Recently Disconnected (Mock)
-                const SizedBox(height: 24),
-                Text(
-                  'RECENTLY DISCONNECTED',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Hardcoded active/disconnected mock for UI match
-                Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  color: const Color(0xFF1E293B).withValues(alpha: 0.5), // Slightly dimmer
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: Container(
-                       width: 48,
-                       height: 48,
-                       decoration: BoxDecoration(
-                         color: Colors.grey.withValues(alpha: 0.1),
-                         borderRadius: BorderRadius.circular(8),
-                       ),
-                       child: const Icon(Icons.cloud_off, color: Colors.grey),
-                    ),
-                    title: const Text('Legacy Archive'),
-                    subtitle: const Text('archive.db.local'),
-                    trailing: const Icon(Icons.more_vert, color: Colors.grey),
-                  ),
-                ),
-                const SizedBox(height: 80), // Space for FAB or bottom elements
               ],
             ),
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddDialog(context),
+        onPressed: () => _showConnectionDialog(context),
         backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.add),
       ),

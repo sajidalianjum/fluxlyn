@@ -1,41 +1,40 @@
 import 'package:flutter/foundation.dart';
 import '../models/connection_model.dart';
+import '../../../core/services/storage_service.dart';
 
 class ConnectionsProvider extends ChangeNotifier {
-  final List<ConnectionModel> _connections = [
-    // Dummy data for initial UI matching
-    ConnectionModel(
-      name: 'Production DB',
-      host: 'db-mysql.host.com',
-      port: 3306,
-      type: ConnectionType.mysql,
-      isConnected: true,
-    ),
-    ConnectionModel(
-      name: 'Analytics Warehouse',
-      host: '192.168.1.50',
-      port: 5432,
-      type: ConnectionType.postgresql,
-      isConnected: true,
-    ),
-    ConnectionModel(
-      name: 'Staging Environment',
-      host: 'staging-pg.internal',
-      port: 5432,
-      type: ConnectionType.postgresql,
-      isConnected: false, // Orange/Yellow state in screenshot logic
-    ),
-  ];
+  final StorageService _storageService;
+  List<ConnectionModel> _connections = [];
+
+  ConnectionsProvider(this._storageService) {
+    _loadConnections();
+  }
 
   List<ConnectionModel> get connections => _connections;
 
-  void addConnection(ConnectionModel connection) {
-    _connections.add(connection);
+  void _loadConnections() {
+    _connections = _storageService.getAllConnections();
     notifyListeners();
   }
 
-  void removeConnection(String id) {
+  Future<void> addConnection(ConnectionModel connection) async {
+    _connections.add(connection);
+    await _storageService.saveConnection(connection);
+    notifyListeners();
+  }
+
+  Future<void> updateConnection(ConnectionModel connection) async {
+    final index = _connections.indexWhere((c) => c.id == connection.id);
+    if (index != -1) {
+      _connections[index] = connection;
+      await _storageService.saveConnection(connection);
+      notifyListeners();
+    }
+  }
+
+  Future<void> removeConnection(String id) async {
     _connections.removeWhere((c) => c.id == id);
+    await _storageService.deleteConnection(id);
     notifyListeners();
   }
 }
