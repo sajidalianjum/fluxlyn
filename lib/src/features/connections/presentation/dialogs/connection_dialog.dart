@@ -22,6 +22,7 @@ class _ConnectionDialogState extends State<ConnectionDialog> with SingleTickerPr
   late TextEditingController _portController;
   late TextEditingController _userController;
   late TextEditingController _passwordController;
+  late TextEditingController _databaseController;
   bool _sslEnabled = false;
 
   // SSH Vars
@@ -45,6 +46,7 @@ class _ConnectionDialogState extends State<ConnectionDialog> with SingleTickerPr
     _portController = TextEditingController(text: c?.port.toString() ?? '3306');
     _userController = TextEditingController(text: c?.username ?? '');
     _passwordController = TextEditingController(text: c?.password ?? '');
+    _databaseController = TextEditingController(text: c?.databaseName ?? '');
     _sslEnabled = c?.sslEnabled ?? false;
 
     _useSsh = c?.useSsh ?? false;
@@ -68,6 +70,7 @@ class _ConnectionDialogState extends State<ConnectionDialog> with SingleTickerPr
     _portController.dispose();
     _userController.dispose();
     _passwordController.dispose();
+    _databaseController.dispose();
     
     _sshHostController.dispose();
     _sshPortController.dispose();
@@ -97,6 +100,7 @@ class _ConnectionDialogState extends State<ConnectionDialog> with SingleTickerPr
         sshPassword: _sshAuthMethod == 'password' ? _sshPasswordController.text : null,
         sshPrivateKey: _sshAuthMethod == 'key' ? _sshKeyPathController.text : null,
         sshKeyPassword: _sshAuthMethod == 'key' ? _sshKeyPasswordController.text : null,
+        databaseName: _databaseController.text.isNotEmpty ? _databaseController.text : null,
       );
       
       widget.onSave(connection);
@@ -192,6 +196,11 @@ class _ConnectionDialogState extends State<ConnectionDialog> with SingleTickerPr
                               obscureText: true,
                             ),
                             const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _databaseController,
+                              decoration: const InputDecoration(labelText: 'Database (Optional)'),
+                            ),
+                            const SizedBox(height: 16),
                             SwitchListTile(
                               title: const Text('Enable SSL'),
                               value: _sslEnabled,
@@ -208,79 +217,79 @@ class _ConnectionDialogState extends State<ConnectionDialog> with SingleTickerPr
                          crossAxisAlignment: CrossAxisAlignment.start,
                          children: [
                            SwitchListTile(
-                              title: const Text('Use SSH Tunnel'),
-                              value: _useSsh,
-                              onChanged: (val) => setState(() => _useSsh = val),
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            if (_useSsh) ...[
-                               const SizedBox(height: 16),
-                               Row(
-                                  children: [
-                                    Expanded(flex: 3, child: TextFormField(
-                                      controller: _sshHostController,
-                                      decoration: const InputDecoration(labelText: 'SSH Host'),
-                                      validator: (value) => _useSsh && (value?.isEmpty ?? true) ? 'Required' : null,
-                                    )),
-                                    const SizedBox(width: 16),
-                                    Expanded(child: TextFormField(
-                                      controller: _sshPortController,
-                                      decoration: const InputDecoration(labelText: 'Port'),
-                                      keyboardType: TextInputType.number,
-                                    )),
-                                  ],
-                                ),
+                               title: const Text('Use SSH Tunnel'),
+                               value: _useSsh,
+                               onChanged: (val) => setState(() => _useSsh = val),
+                               contentPadding: EdgeInsets.zero,
+                             ),
+                             if (_useSsh) ...[
                                 const SizedBox(height: 16),
-                                TextFormField(
-                                  controller: _sshUserController,
-                                  decoration: const InputDecoration(labelText: 'SSH Username'),
-                                  validator: (value) => _useSsh && (value?.isEmpty ?? true) ? 'Required' : null,
-                                ),
-                                const SizedBox(height: 24),
-                                Text('Authentication Method', style: Theme.of(context).textTheme.titleSmall),
-                                const SizedBox(height: 8),
-                                SegmentedButton<String>(
-                                  segments: const [
-                                    ButtonSegment(value: 'password', label: Text('Password')),
-                                    ButtonSegment(value: 'key', label: Text('Private Key')),
-                                    // ButtonSegment(value: 'agent', label: Text('Agent')), // Scope creep for now
-                                  ],
-                                  selected: {_sshAuthMethod},
-                                  onSelectionChanged: (Set<String> newSelection) {
-                                    setState(() {
-                                      _sshAuthMethod = newSelection.first;
-                                    });
-                                  },
-                                ),
-                                const SizedBox(height: 16),
-                                
-                                if (_sshAuthMethod == 'password')
-                                  TextFormField(
-                                    controller: _sshPasswordController,
-                                    decoration: const InputDecoration(labelText: 'SSH Password'),
-                                    obscureText: true,
-                                    validator: (value) => _useSsh && (value?.isEmpty ?? true) ? 'Required' : null,
-                                  ),
-                                  
-                                if (_sshAuthMethod == 'key') ...[
-                                   Row(
-                                     children: [
-                                       Expanded(child: TextFormField(
-                                         controller: _sshKeyPathController,
-                                         decoration: const InputDecoration(labelText: 'Private Key Path'),
-                                         readOnly: false, // Allow manual edit too
-                                       )),
-                                       IconButton(onPressed: _pickKeyFile, icon: const Icon(Icons.folder_open)),
-                                     ],
-                                   ),
-                                   const SizedBox(height: 16),
+                                Row(
+                                   children: [
+                                     Expanded(flex: 3, child: TextFormField(
+                                       controller: _sshHostController,
+                                       decoration: const InputDecoration(labelText: 'SSH Host'),
+                                       validator: (value) => _useSsh && (value?.isEmpty ?? true) ? 'Required' : null,
+                                     )),
+                                     const SizedBox(width: 16),
+                                     Expanded(child: TextFormField(
+                                       controller: _sshPortController,
+                                       decoration: const InputDecoration(labelText: 'Port'),
+                                       keyboardType: TextInputType.number,
+                                     )),
+                                   ],
+                                 ),
+                                 const SizedBox(height: 16),
+                                 TextFormField(
+                                   controller: _sshUserController,
+                                   decoration: const InputDecoration(labelText: 'SSH Username'),
+                                   validator: (value) => _useSsh && (value?.isEmpty ?? true) ? 'Required' : null,
+                                 ),
+                                 const SizedBox(height: 24),
+                                 Text('Authentication Method', style: Theme.of(context).textTheme.titleSmall),
+                                 const SizedBox(height: 8),
+                                 SegmentedButton<String>(
+                                   segments: const [
+                                     ButtonSegment(value: 'password', label: Text('Password')),
+                                     ButtonSegment(value: 'key', label: Text('Private Key')),
+                                     // ButtonSegment(value: 'agent', label: Text('Agent')), // Scope creep for now
+                                   ],
+                                   selected: {_sshAuthMethod},
+                                   onSelectionChanged: (Set<String> newSelection) {
+                                     setState(() {
+                                       _sshAuthMethod = newSelection.first;
+                                     });
+                                   },
+                                 ),
+                                 const SizedBox(height: 16),
+                                 
+                                 if (_sshAuthMethod == 'password')
                                    TextFormField(
-                                     controller: _sshKeyPasswordController,
-                                     decoration: const InputDecoration(labelText: 'Key Passphrase (Optional)'),
+                                     controller: _sshPasswordController,
+                                     decoration: const InputDecoration(labelText: 'SSH Password'),
                                      obscureText: true,
+                                     validator: (value) => _useSsh && (value?.isEmpty ?? true) ? 'Required' : null,
                                    ),
-                                ],
-                            ],
+                                   
+                                 if (_sshAuthMethod == 'key') ...[
+                                    Row(
+                                      children: [
+                                        Expanded(child: TextFormField(
+                                          controller: _sshKeyPathController,
+                                          decoration: const InputDecoration(labelText: 'Private Key Path'),
+                                          readOnly: false, // Allow manual edit too
+                                        )),
+                                        IconButton(onPressed: _pickKeyFile, icon: const Icon(Icons.folder_open)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    TextFormField(
+                                      controller: _sshKeyPasswordController,
+                                      decoration: const InputDecoration(labelText: 'Key Passphrase (Optional)'),
+                                      obscureText: true,
+                                    ),
+                                 ],
+                             ],
                          ],
                        ),
                      ),

@@ -33,13 +33,14 @@ class ConnectionModelAdapter extends TypeAdapter<ConnectionModel> {
       sshPassword: fields[13] as String?,
       sshPrivateKey: fields[14] as String?,
       sshKeyPassword: fields[15] as String?,
+      databaseName: fields[16] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ConnectionModel obj) {
     writer
-      ..writeByte(16)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -71,7 +72,9 @@ class ConnectionModelAdapter extends TypeAdapter<ConnectionModel> {
       ..writeByte(14)
       ..write(obj.sshPrivateKey)
       ..writeByte(15)
-      ..write(obj.sshKeyPassword);
+      ..write(obj.sshKeyPassword)
+      ..writeByte(16)
+      ..write(obj.databaseName);
   }
 
   @override

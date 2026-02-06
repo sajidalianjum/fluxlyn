@@ -62,6 +62,9 @@ class ConnectionModel extends HiveObject {
   @HiveField(15)
   final String? sshKeyPassword;
 
+  @HiveField(16)
+  final String? databaseName;
+
   ConnectionModel({
     String? id,
     required this.name,
@@ -79,6 +82,7 @@ class ConnectionModel extends HiveObject {
     this.sshPassword,
     this.sshPrivateKey,
     this.sshKeyPassword,
+    this.databaseName,
   }) : id = id ?? const Uuid().v4();
 
   // Keep toJson for potential exports
@@ -95,6 +99,7 @@ class ConnectionModel extends HiveObject {
       'sshHost': sshHost,
       'sshPort': sshPort,
       'sshUsername': sshUsername,
+      'databaseName': databaseName,
     };
   }
 }

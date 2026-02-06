@@ -71,7 +71,7 @@ class DatabaseService {
       port: port,
       userName: config.username ?? '',
       password: config.password ?? '',
-      databaseName: '', // Optional for connection test
+      databaseName: config.databaseName ?? '', 
       secure: config.sslEnabled,
     );
 
@@ -151,7 +151,7 @@ class DatabaseService {
       port: port,
       userName: config.username ?? '',
       password: config.password ?? '',
-      databaseName: '',
+      databaseName: config.databaseName ?? '',
       secure: config.sslEnabled,
     );
      
@@ -182,5 +182,18 @@ class DatabaseService {
         tables.add(row.colAt(0) ?? '');
     }
     return tables;
+  }
+
+  Future<List<String>> getDatabases(MySQLConnection conn) async {
+    final result = await conn.execute('SHOW DATABASES');
+    final List<String> databases = [];
+    for (final row in result.rows) {
+        databases.add(row.colAt(0) ?? '');
+    }
+    return databases;
+  }
+
+  Future<void> useDatabase(MySQLConnection conn, String databaseName) async {
+      await conn.execute('USE `$databaseName`');
   }
 }
