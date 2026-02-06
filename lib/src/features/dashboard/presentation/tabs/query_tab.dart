@@ -24,6 +24,8 @@ class _QueryTabState extends State<QueryTab> {
   final _uuid = const Uuid();
   bool _isExecuting = false;
   List<String> _autocompleteWords = [];
+  String? _lastDatabase;
+  final FocusNode _focusNode = FocusNode();
 
   // SQL Keywords for autocomplete
   final List<String> _sqlKeywords = [
@@ -111,13 +113,64 @@ class _QueryTabState extends State<QueryTab> {
     _setupAutocomplete();
 
     // Preload schema info
-    _preloadSchema();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _preloadSchema();
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = Provider.of<DashboardProvider>(context, listen: true);
+    final currentDatabase = provider.selectedDatabase;
+
+    // Reload schema when database changes
+    if (_lastDatabase != currentDatabase) {
+      _lastDatabase = currentDatabase;
+      _reloadSchemaOnDatabaseChange();
+    }
   }
 
   void _setupAutocomplete() {
     // Start with SQL keywords
     _autocompleteWords = List.from(_sqlKeywords);
     _controller.autocompleter.setCustomWords(_autocompleteWords);
+  }
+
+  Future<void> _reloadSchemaOnDatabaseChange() async {
+    final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final connection = provider.currentConnection;
+    final database = provider.selectedDatabase;
+
+    if (connection != null && database != null) {
+      // Clear cache for previous database and load new one
+      _schemaService.clearCache(database);
+
+      // Reset autocomplete to only SQL keywords
+      _autocompleteWords = List.from(_sqlKeywords);
+      _controller.autocompleter.setCustomWords(_autocompleteWords);
+
+      // Add table names to autocomplete
+      final tables = provider.tables;
+      setState(() {
+        _autocompleteWords.addAll(tables);
+        _controller.autocompleter.setCustomWords(_autocompleteWords);
+      });
+
+      // Preload columns for all tables in background
+      await _schemaService.preloadColumns(connection, database, tables);
+      final columns = _schemaService.getAllColumnNames(database, null);
+      setState(() {
+        _autocompleteWords.addAll(columns);
+        _controller.autocompleter.setCustomWords(_autocompleteWords);
+      });
+    }
   }
 
   Future<void> _preloadSchema() async {
@@ -155,6 +208,10 @@ class _QueryTabState extends State<QueryTab> {
       ).showSnackBar(const SnackBar(content: Text('Please enter a query')));
       return;
     }
+
+    // Dismiss autocomplete dropdown
+    _focusNode.unfocus();
+    await Future.delayed(const Duration(milliseconds: 50));
 
     setState(() => _isExecuting = true);
 
@@ -685,6 +742,7 @@ class _QueryTabState extends State<QueryTab> {
                 data: CodeThemeData(styles: monokaiSublimeTheme),
                 child: CodeField(
                   controller: _controller,
+                  focusNode: _focusNode,
                   textStyle: const TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 14,
