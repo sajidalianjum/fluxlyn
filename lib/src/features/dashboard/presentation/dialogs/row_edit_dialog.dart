@@ -354,8 +354,10 @@ class _RowEditDialogState extends State<RowEditDialog> {
             ],
           ),
           const SizedBox(height: 4),
-          if (isBit && !isNull)
-            _buildBitDropdown(column)
+          if (isBit)
+            isNull
+                ? _buildBitNullPlaceholder(column)
+                : _buildBitDropdown(column)
           else
             GestureDetector(
               onLongPress: isReadOnly
@@ -369,25 +371,22 @@ class _RowEditDialogState extends State<RowEditDialog> {
                     },
               child: TextFormField(
                 controller: _controllers[column],
-                enabled: !isReadOnly && !isNull,
+                enabled: !isReadOnly,
                 readOnly: isReadOnly,
                 style: TextStyle(
-                  color: isReadOnly
-                      ? Colors.grey[500]
-                      : isNull
-                      ? Colors.grey[500]
-                      : Colors.white,
+                  color: isReadOnly ? Colors.grey[500] : Colors.white,
                   fontFamily: value is String && value.length > 50
                       ? 'monospace'
                       : null,
                 ),
                 maxLines: value is String && value.length > 100 ? 3 : 1,
+                onTap: !isReadOnly && isNull ? () => _unsetNull(column) : null,
                 decoration: InputDecoration(
                   hintText: isReadOnly
                       ? (isPK
                             ? 'Primary Key (read-only)'
                             : 'Binary data (read-only)')
-                      : (isNull ? 'NULL' : 'Enter value...'),
+                      : (isNull ? 'Click to enter value...' : 'Enter value...'),
                   hintStyle: TextStyle(color: Colors.grey[600]),
                   filled: true,
                   fillColor: const Color(0xFF1E293B),
@@ -429,10 +428,44 @@ class _RowEditDialogState extends State<RowEditDialog> {
                           tooltip: 'Set to NULL',
                         ),
                 ),
-                onChanged: (_) => _checkForChanges(),
+                onChanged: (text) {
+                  if (isNull && text.isNotEmpty) {
+                    _unsetNull(column);
+                  }
+                  _checkForChanges();
+                },
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBitNullPlaceholder(String column) {
+    return InkWell(
+      onTap: () => _unsetNull(column),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: const Color(0xFF1E293B),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+          suffixIcon: IconButton(
+            icon: Icon(Icons.edit, size: 16, color: Colors.grey[500]),
+            onPressed: () => _unsetNull(column),
+            tooltip: 'Select value',
+          ),
+        ),
+        child: Text(
+          'Click to select value...',
+          style: TextStyle(color: Colors.grey[600]),
+        ),
       ),
     );
   }

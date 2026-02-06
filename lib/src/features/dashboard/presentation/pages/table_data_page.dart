@@ -112,7 +112,6 @@ class _TableDataPageState extends State<TableDataPage> {
         },
         onCancel: () {
           Navigator.of(context).pop();
-          // Reopen the edit dialog
           _openRowEditDialog(rowIndex);
         },
       ),
@@ -148,10 +147,8 @@ class _TableDataPageState extends State<TableDataPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $error'), backgroundColor: Colors.red),
         );
-        // Reopen edit dialog on error
         _openRowEditDialog(rowIndex);
       } else {
-        // Refresh data to show updated values
         await _loadData();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -163,13 +160,43 @@ class _TableDataPageState extends State<TableDataPage> {
     }
   }
 
+  // Get the best columns to display on a card (ID + first 2-3 data columns)
+  List<String> _getCardDisplayColumns() {
+    final displayCols = <String>[];
+
+    // Always show primary key first if exists
+    if (_primaryKeyColumn != null && _columns.contains(_primaryKeyColumn!)) {
+      displayCols.add(_primaryKeyColumn!);
+    }
+
+    // Add up to 3 more non-binary columns
+    for (final col in _columns) {
+      if (displayCols.length >= 4) break;
+      if (displayCols.contains(col)) continue;
+      if (_binaryColumns.contains(col)) continue; // Skip binary in card preview
+      displayCols.add(col);
+    }
+
+    return displayCols;
+  }
+
+  // Get a title column (first non-PK string column)
+  String? _getTitleColumn() {
+    for (final col in _columns) {
+      if (col == _primaryKeyColumn) continue;
+      if (_binaryColumns.contains(col)) continue;
+      final firstValue = _rows.isNotEmpty ? _rows[0][col] : null;
+      if (firstValue is String) return col;
+    }
+    return null;
+  }
+
   Widget _buildCellContent(dynamic value) {
-    // Show NULL indicator
     if (value == null) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         decoration: BoxDecoration(
-          color: Colors.grey.withOpacity(0.2),
+          color: Colors.grey.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
@@ -183,7 +210,6 @@ class _TableDataPageState extends State<TableDataPage> {
       );
     }
 
-    // Show value
     final text = value.toString();
     return Text(
       text,
@@ -192,96 +218,157 @@ class _TableDataPageState extends State<TableDataPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Table: ${widget.tableName}',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            if (_isEditable)
-              Text(
-                'Editable • PK: $_primaryKeyColumn • ${_rows.length} rows',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.green),
-              )
-            else if (_primaryKeyColumn == null && _rows.isNotEmpty)
-              Text(
-                'Read-Only • No Primary Key',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.orange),
-              ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            onPressed: _isLoading ? null : _loadData,
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh),
+  Widget _buildCardView() {
+    final displayCols = _getCardDisplayColumns();
+    final titleCol = _getTitleColumn();
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _rows.length,
+      itemBuilder: (context, index) {
+        final row = _rows[index];
+        final title = titleCol != null ? row[titleCol]?.toString() : null;
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          color: const Color(0xFF1E293B),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
-        ],
-      ),
-      body: _buildBody(),
+          child: InkWell(
+            onTap: () => _openRowEditDialog(index),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title row (if we have a good title column)
+                  if (title != null && title.isNotEmpty) ...[
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, color: Color(0xFF334155)),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Display key fields
+                  ...displayCols.map((col) {
+                    final isPK = col == _primaryKeyColumn;
+                    final isBit = _bitColumns.contains(col);
+                    final value = row[col];
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Column name
+                          Container(
+                            constraints: const BoxConstraints(minWidth: 80),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isPK)
+                                  Icon(
+                                    Icons.key,
+                                    size: 12,
+                                    color: Colors.yellow[700],
+                                  ),
+                                if (isBit)
+                                  Icon(
+                                    Icons.toggle_on,
+                                    size: 12,
+                                    color: Colors.blue[400],
+                                  ),
+                                if (isPK || isBit) const SizedBox(width: 4),
+                                Text(
+                                  col,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[400],
+                                    fontWeight: isPK
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Value
+                          Expanded(child: _buildCardValue(value)),
+                        ],
+                      ),
+                    );
+                  }),
+
+                  // Edit hint
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Icon(Icons.edit, size: 14, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        _isEditable ? 'Tap to edit' : 'View details',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading && _rows.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 48),
-            const SizedBox(height: 16),
-            Text(
-              'Error loading data',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: TextStyle(color: Colors.grey[400]),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
-          ],
+  Widget _buildCardValue(dynamic value) {
+    if (value == null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          'NULL',
+          style: TextStyle(
+            color: Colors.grey[500],
+            fontStyle: FontStyle.italic,
+            fontSize: 12,
+          ),
         ),
       );
     }
 
-    if (_rows.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.table_chart_outlined, color: Colors.grey, size: 48),
-            SizedBox(height: 16),
-            Text('No data found', style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      );
-    }
+    final text = value.toString();
+    return Text(
+      text,
+      style: const TextStyle(fontSize: 14, color: Colors.white),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildTableView() {
+    // Calculate minimum width based on column count
+    final minColWidth = 120.0;
+    final calculatedMinWidth = (_columns.length * minColWidth).toDouble();
+    final actualMinWidth = calculatedMinWidth < 600
+        ? 600.0
+        : calculatedMinWidth;
 
     return Column(
       children: [
@@ -311,7 +398,7 @@ class _TableDataPageState extends State<TableDataPage> {
           child: DataTable2(
             columnSpacing: 12,
             horizontalMargin: 12,
-            minWidth: 600,
+            minWidth: actualMinWidth,
             headingRowColor: WidgetStateColor.resolveWith(
               (states) => const Color(0xFF1E293B),
             ),
@@ -379,6 +466,114 @@ class _TableDataPageState extends State<TableDataPage> {
           ),
         ),
       ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Table: ${widget.tableName}',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            if (_isEditable)
+              Text(
+                'Editable • PK: $_primaryKeyColumn • ${_rows.length} rows',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.green),
+              )
+            else if (_primaryKeyColumn == null && _rows.isNotEmpty)
+              Text(
+                'Read-Only • No Primary Key',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.orange),
+              ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            onPressed: _isLoading ? null : _loadData,
+            icon: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+          ),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
+        ],
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (_isLoading && _rows.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (_error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading data',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _error!,
+                    style: TextStyle(color: Colors.grey[400]),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _loadData,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (_rows.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.table_chart_outlined,
+                    color: Colors.grey,
+                    size: 48,
+                  ),
+                  SizedBox(height: 16),
+                  Text('No data found', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            );
+          }
+
+          // Responsive layout switch
+          if (constraints.maxWidth < 600) {
+            // Mobile: Card view
+            return _buildCardView();
+          } else {
+            // Desktop: Table view
+            return _buildTableView();
+          }
+        },
+      ),
     );
   }
 }
