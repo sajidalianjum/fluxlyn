@@ -286,19 +286,209 @@ class _QueryTabState extends State<QueryTab> {
     }
   }
 
-  void _insertKeyword(String keyword) {
-    final text = _controller.text;
-    final selection = _controller.selection;
+  void _saveQuery() async {
+    final query = _controller.text.trim();
+    if (query.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Cannot save empty query')));
+      return;
+    }
 
-    final newText =
-        text.substring(0, selection.start) +
-        keyword +
-        ' ' +
-        text.substring(selection.end);
+    final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final connectionModel = provider.currentConnectionModel;
 
-    _controller.text = newText;
-    _controller.selection = TextSelection.collapsed(
-      offset: selection.start + keyword.length + 1,
+    if (connectionModel == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No connection selected')));
+      return;
+    }
+
+    final titleController = TextEditingController();
+    final storageService = Provider.of<StorageService>(context, listen: false);
+
+    if (!mounted) return;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('Save Query'),
+        content: TextField(
+          controller: titleController,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Enter query title',
+            border: OutlineInputBorder(),
+          ),
+          style: const TextStyle(color: Colors.white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final title = titleController.text.trim();
+              if (title.isEmpty) return;
+              Navigator.of(context).pop(title);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      final now = DateTime.now();
+      final queryModel = QueryModel(
+        id: _uuid.v4(),
+        name: result,
+        query: query,
+        createdAt: now,
+        modifiedAt: now,
+        connectionId: connectionModel.id,
+      );
+
+      await storageService.saveQuery(queryModel);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Query saved successfully')),
+        );
+      }
+    }
+  }
+
+  void _loadQuery() async {
+    final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final storageService = Provider.of<StorageService>(context, listen: false);
+    final connectionModel = provider.currentConnectionModel;
+
+    if (connectionModel == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No connection selected')));
+      return;
+    }
+
+    final queries = storageService.getSavedQueries(connectionModel.id);
+
+    if (queries.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No saved queries')));
+      return;
+    }
+
+    final searchController = TextEditingController();
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.6,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Saved Queries',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: searchController,
+                  decoration: const InputDecoration(
+                    hintText: 'Search queries...',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                  onChanged: (value) => setModalState(() {}),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: queries.length,
+                    itemBuilder: (context, index) {
+                      final query = queries[index];
+                      final matchesSearch =
+                          searchController.text.isEmpty ||
+                          query.name.toLowerCase().contains(
+                            searchController.text.toLowerCase(),
+                          );
+
+                      if (!matchesSearch) return const SizedBox.shrink();
+
+                      return Card(
+                        color: const Color(0xFF0F172A),
+                        child: ListTile(
+                          title: Text(
+                            query.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                query.query.length > 60
+                                    ? '${query.query.substring(0, 60)}...'
+                                    : query.query,
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 11,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _formatDate(query.modifiedAt),
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () async {
+                              await storageService.deleteQuery(query.id);
+                              setModalState(() {});
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Query deleted'),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            setState(() {
+                              _controller.text = query.query;
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -380,22 +570,42 @@ class _QueryTabState extends State<QueryTab> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               color: const Color(0xFF0F172A),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildKeywordButton('SELECT'),
-                    _buildKeywordButton('FROM'),
-                    _buildKeywordButton('WHERE'),
-                    _buildKeywordButton('JOIN'),
-                    _buildKeywordButton('INSERT'),
-                    _buildKeywordButton('UPDATE'),
-                    _buildKeywordButton('DELETE'),
-                    _buildKeywordButton('CREATE'),
-                    _buildKeywordButton('ALTER'),
-                    _buildKeywordButton('DROP'),
-                  ],
-                ),
+              child: Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _saveQuery,
+                    icon: const Icon(Icons.save, size: 18),
+                    label: const Text('Save Query'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFF334155)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: _loadQuery,
+                    icon: const Icon(Icons.folder_open, size: 18),
+                    label: const Text('Load Query'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFF334155)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -456,22 +666,6 @@ class _QueryTabState extends State<QueryTab> {
               )
             : const Icon(Icons.play_arrow),
         label: Text(_isExecuting ? 'Running...' : 'Run Query'),
-      ),
-    );
-  }
-
-  Widget _buildKeywordButton(String text) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: OutlinedButton(
-        onPressed: () => _insertKeyword(text),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: Color(0xFF334155)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        ),
-        child: Text(text, style: const TextStyle(fontSize: 12)),
       ),
     );
   }
