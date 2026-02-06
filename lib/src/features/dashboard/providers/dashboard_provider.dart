@@ -166,9 +166,9 @@ class DashboardProvider extends ChangeNotifier {
       final bitColumns = <String>{};
       final allColumns = <String>[];
       for (final row in columnsResult.rows) {
-        final colName = row.colByName('Field');
+        final colName = row.colByName('Field')?.toString();
         final colType = row.colByName('Type')?.toString().toLowerCase() ?? '';
-        if (colName != null) {
+        if (colName != null && colName.isNotEmpty) {
           allColumns.add(colName);
           // Detect BIT columns separately
           if (colType.contains('bit')) {
@@ -183,9 +183,12 @@ class DashboardProvider extends ChangeNotifier {
 
       // Build SELECT query that handles binary columns safely
       // Convert binary columns to HEX to avoid UTF-8 decoding issues
+      // Convert BIT columns to unsigned integer
       final selectColumns = allColumns
           .map((col) {
-            if (binaryColumns.contains(col) || bitColumns.contains(col)) {
+            if (bitColumns.contains(col)) {
+              return 'CAST(`$col` AS UNSIGNED) AS `$col`';
+            } else if (binaryColumns.contains(col)) {
               return 'HEX(`$col`) AS `$col`';
             }
             return '`$col`';
@@ -210,27 +213,50 @@ class DashboardProvider extends ChangeNotifier {
         // Convert all rows to maps
         for (final row in result.rows) {
           final rowMap = Map<String, dynamic>.from(row.assoc());
-          // Handle BIT columns - convert hex to 0/1
+
+          // Handle BIT columns - convert to integer if needed
           for (final col in bitColumns) {
             if (rowMap[col] != null) {
-              final hexStr = rowMap[col].toString();
-              // Convert hex to integer (0 or 1)
-              try {
-                final intValue = int.parse(hexStr, radix: 16);
-                rowMap[col] = intValue;
-              } catch (e) {
-                rowMap[col] = hexStr == '00' ? 0 : 1;
+              final colValue = rowMap[col];
+              if (colValue is List<int>) {
+                // Extract integer from list
+                if (colValue.isEmpty) {
+                  rowMap[col] = 0;
+                } else {
+                  rowMap[col] = colValue[0];
+                }
+              } else if (colValue is! int) {
+                // Try to parse as int
+                rowMap[col] = int.tryParse(colValue.toString()) ?? 0;
               }
             }
           }
-          // Truncate hex values for binary columns
+
+          // Format binary columns as hex
           for (final col in binaryColumns) {
             if (rowMap[col] != null) {
               final colValue = rowMap[col];
-              final hexStr = colValue.toString();
-              if (hexStr.length > 16) {
+              String hexStr;
+
+              if (colValue is List<int>) {
+                // Convert bytes to hex string
+                hexStr = colValue
+                    .map((b) => b.toRadixString(16).padLeft(2, '0'))
+                    .join();
+              } else {
+                hexStr = colValue.toString();
+              }
+
+              // Remove any '0x' prefix if it exists from HEX() function
+              if (hexStr.startsWith('0x')) {
+                hexStr = hexStr.substring(2);
+              }
+
+              if (hexStr.isEmpty) {
+                rowMap[col] = '0x';
+              } else if (hexStr.length > 16) {
                 rowMap[col] =
-                    '${hexStr.substring(0, 16)}... (${hexStr.length ~/ 2} bytes)';
+                    '0x${hexStr.substring(0, 16)}... (${hexStr.length ~/ 2} bytes)';
               } else {
                 rowMap[col] = '0x$hexStr';
               }

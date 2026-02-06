@@ -191,7 +191,7 @@ class _TableDataPageState extends State<TableDataPage> {
     return null;
   }
 
-  Widget _buildCellContent(dynamic value) {
+  Widget _buildCellContent(dynamic value, {bool isBit = false}) {
     if (value == null) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -210,7 +210,22 @@ class _TableDataPageState extends State<TableDataPage> {
       );
     }
 
-    final text = value.toString();
+    String text;
+    if (isBit && value is List<int>) {
+      // Handle BIT columns that are returned as List<int>
+      text = value.isNotEmpty ? value.first.toString() : '0';
+    } else if (isBit &&
+        value is String &&
+        value.startsWith('[') &&
+        value.endsWith(']')) {
+      // Handle BIT columns that are string representations like "[0]" or "[1]"
+      final inner = value.substring(1, value.length - 1);
+      final intValue = int.tryParse(inner.trim());
+      text = (intValue ?? 0).toString();
+    } else {
+      text = value.toString();
+    }
+
     return Text(
       text,
       overflow: TextOverflow.ellipsis,
@@ -306,7 +321,7 @@ class _TableDataPageState extends State<TableDataPage> {
                           ),
                           const SizedBox(width: 8),
                           // Value
-                          Expanded(child: _buildCardValue(value)),
+                          Expanded(child: _buildCardValue(value, isBit: isBit)),
                         ],
                       ),
                     );
@@ -334,7 +349,7 @@ class _TableDataPageState extends State<TableDataPage> {
     );
   }
 
-  Widget _buildCardValue(dynamic value) {
+  Widget _buildCardValue(dynamic value, {bool isBit = false}) {
     if (value == null) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -353,7 +368,20 @@ class _TableDataPageState extends State<TableDataPage> {
       );
     }
 
-    final text = value.toString();
+    String text;
+    if (isBit && value is List<int>) {
+      text = value.isNotEmpty ? value.first.toString() : '0';
+    } else if (isBit &&
+        value is String &&
+        value.startsWith('[') &&
+        value.endsWith(']')) {
+      final inner = value.substring(1, value.length - 1);
+      final intValue = int.tryParse(inner.trim());
+      text = (intValue ?? 0).toString();
+    } else {
+      text = value.toString();
+    }
+
     return Text(
       text,
       style: const TextStyle(fontSize: 14, color: Colors.white),
@@ -439,10 +467,11 @@ class _TableDataPageState extends State<TableDataPage> {
 
               return DataRow(
                 cells: _columns.map((col) {
+                  final isBit = _bitColumns.contains(col);
                   return DataCell(
                     GestureDetector(
                       onTap: () => _openRowEditDialog(index),
-                      child: _buildCellContent(row[col]),
+                      child: _buildCellContent(row[col], isBit: isBit),
                     ),
                   );
                 }).toList(),

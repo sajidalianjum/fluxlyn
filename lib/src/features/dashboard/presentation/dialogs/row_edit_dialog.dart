@@ -70,7 +70,35 @@ class _RowEditDialogState extends State<RowEditDialog> {
         _controllers[col] = TextEditingController(text: '');
       } else {
         _isNull[col] = false;
-        _controllers[col] = TextEditingController(text: value.toString());
+        // Handle BIT columns - ensure they're integers
+        final isBitCol =
+            widget.bitColumns.contains(col) ||
+            widget.bitColumns.any((c) => c.toLowerCase() == col.toLowerCase());
+        // Detect by value pattern - if value is List<int> with single 0 or 1, treat as BIT
+        final isBitValue =
+            value is List<int> &&
+            value.length == 1 &&
+            (value[0] == 0 || value[0] == 1);
+        if (isBitCol || isBitValue) {
+          String textValue;
+          if (value is List<int>) {
+            textValue = value.isNotEmpty ? value.first.toString() : '0';
+          } else if (value is String &&
+              value.startsWith('[') &&
+              value.endsWith(']')) {
+            // Handle string representation like "[0]" or "[1]"
+            final inner = value.substring(1, value.length - 1);
+            final intValue = int.tryParse(inner.trim());
+            textValue = (intValue ?? 0).toString();
+          } else {
+            textValue = value.toString();
+          }
+          _controllers[col] = TextEditingController(text: textValue);
+          // Also update the original value to be an int for consistency
+          _originalValues[col] = int.tryParse(textValue) ?? 0;
+        } else {
+          _controllers[col] = TextEditingController(text: value.toString());
+        }
       }
     }
 
@@ -94,8 +122,13 @@ class _RowEditDialogState extends State<RowEditDialog> {
 
     for (final col in widget.columns) {
       // Skip primary key and binary columns
-      if (col == widget.primaryKeyColumn ||
-          widget.binaryColumns.contains(col)) {
+      final isPK =
+          col == widget.primaryKeyColumn ||
+          widget.primaryKeyColumn?.toLowerCase() == col.toLowerCase();
+      final isBinary =
+          widget.binaryColumns.contains(col) ||
+          widget.binaryColumns.any((c) => c.toLowerCase() == col.toLowerCase());
+      if (isPK || isBinary) {
         continue;
       }
 
@@ -130,8 +163,13 @@ class _RowEditDialogState extends State<RowEditDialog> {
 
     for (final col in widget.columns) {
       // Skip primary key and binary columns (but not BIT columns)
-      if (col == widget.primaryKeyColumn ||
-          widget.binaryColumns.contains(col)) {
+      final isPK =
+          col == widget.primaryKeyColumn ||
+          widget.primaryKeyColumn?.toLowerCase() == col.toLowerCase();
+      final isBinary =
+          widget.binaryColumns.contains(col) ||
+          widget.binaryColumns.any((c) => c.toLowerCase() == col.toLowerCase());
+      if (isPK || isBinary) {
         continue;
       }
 
@@ -160,7 +198,15 @@ class _RowEditDialogState extends State<RowEditDialog> {
     if (text.isEmpty) return null;
 
     // Handle BIT columns
-    if (widget.bitColumns.contains(column)) {
+    final isBitCol =
+        widget.bitColumns.contains(column) ||
+        widget.bitColumns.any((c) => c.toLowerCase() == column.toLowerCase());
+    // Also check if original value is a BIT pattern
+    final isBitValue =
+        originalValue is List<int> &&
+        originalValue.length == 1 &&
+        (originalValue[0] == 0 || originalValue[0] == 1);
+    if (isBitCol || isBitValue) {
       return int.tryParse(text) ?? (text == '1' ? 1 : 0);
     }
 
@@ -299,11 +345,21 @@ class _RowEditDialogState extends State<RowEditDialog> {
 
   Widget _buildField(String column) {
     final isPK = column == widget.primaryKeyColumn;
-    final isBinary = widget.binaryColumns.contains(column);
-    final isBit = widget.bitColumns.contains(column);
+    final isBinary =
+        widget.binaryColumns.contains(column) ||
+        widget.binaryColumns.any(
+          (c) => c.toLowerCase() == column.toLowerCase(),
+        );
+    final value = widget.row[column];
+    // Detect BIT columns: either in list OR value is List<int> with 0/1
+    final isBit =
+        widget.bitColumns.contains(column) ||
+        widget.bitColumns.any((c) => c.toLowerCase() == column.toLowerCase()) ||
+        (value is List<int> &&
+            value.length == 1 &&
+            (value[0] == 0 || value[0] == 1));
     final isReadOnly = isPK || isBinary;
     final isNull = _isNull[column] ?? false;
-    final value = widget.row[column];
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
