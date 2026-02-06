@@ -1,4 +1,4 @@
-import 'package:mysql_client/mysql_client.dart';
+import 'package:mysql_dart/mysql_dart.dart';
 
 class ColumnInfo {
   final String name;
@@ -51,9 +51,9 @@ class SchemaService {
 
       final columns = result.rows.map((row) {
         return ColumnInfo(
-          name: row.colByName('COLUMN_NAME') ?? '',
-          dataType: row.colByName('DATA_TYPE') ?? '',
-          isNullable: row.colByName('IS_NULLABLE') == 'YES',
+          name: row.colByName('COLUMN_NAME')?.toString() ?? '',
+          dataType: row.colByName('DATA_TYPE')?.toString() ?? '',
+          isNullable: row.colByName('IS_NULLABLE')?.toString() == 'YES',
         );
       }).toList();
 
@@ -78,8 +78,11 @@ class SchemaService {
     // Load in parallel
     await Future.wait(
       tablesToLoad.map(
-        (table) =>
-            getColumns(connection, databaseName, table).catchError((_) => []),
+        (table) => getColumns(
+          connection,
+          databaseName,
+          table,
+        ).catchError((_) => <ColumnInfo>[]),
       ),
     );
   }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mysql_client/mysql_client.dart';
+import 'package:mysql_dart/mysql_dart.dart';
 import '../../../core/services/database_service.dart';
 import '../../connections/models/connection_model.dart';
 import 'dart:async';
@@ -153,7 +153,7 @@ class DashboardProvider extends ChangeNotifier {
       );
       String? primaryKeyColumn;
       for (final row in pkResult.rows) {
-        primaryKeyColumn = row.colByName('Column_name');
+        primaryKeyColumn = row.colByName('Column_name')?.toString();
         break; // Take first PK column
       }
 
@@ -167,7 +167,7 @@ class DashboardProvider extends ChangeNotifier {
       final allColumns = <String>[];
       for (final row in columnsResult.rows) {
         final colName = row.colByName('Field');
-        final colType = row.colByName('Type')?.toLowerCase() ?? '';
+        final colType = row.colByName('Type')?.toString().toLowerCase() ?? '';
         if (colName != null) {
           allColumns.add(colName);
           // Detect BIT columns separately
@@ -226,7 +226,8 @@ class DashboardProvider extends ChangeNotifier {
           // Truncate hex values for binary columns
           for (final col in binaryColumns) {
             if (rowMap[col] != null) {
-              final hexStr = rowMap[col].toString();
+              final colValue = rowMap[col];
+              final hexStr = colValue.toString();
               if (hexStr.length > 16) {
                 rowMap[col] =
                     '${hexStr.substring(0, 16)}... (${hexStr.length ~/ 2} bytes)';
