@@ -25,16 +25,41 @@ class DashboardPage extends StatelessWidget {
         }
       },
       child: Scaffold(
-        body: provider.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : provider.error != null
-            ? Center(
-                child: Text(
-                  'Error: ${provider.error}',
-                  style: const TextStyle(color: Colors.red),
+        body: Stack(
+          children: [
+            IndexedStack(
+              index: provider.selectedTabIndex,
+              children: pages,
+            ),
+            if (provider.isLoading)
+              Container(
+                color: Colors.black.withOpacity(0.3),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+            if (provider.error != null && !provider.isLoading)
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.black87,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Error: ${provider.error}',
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => provider.connect(provider.currentConnectionModel!),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
                 ),
-              )
-            : pages[provider.selectedTabIndex],
+              ),
+          ],
+        ),
         bottomNavigationBar: BottomNavigationBar(
           backgroundColor: const Color(0xFF0F172A),
           selectedItemColor: Colors.blue,

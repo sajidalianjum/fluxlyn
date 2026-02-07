@@ -602,11 +602,17 @@ class _QueryTabState extends State<QueryTab> {
                               }
                             },
                           ),
-                          onTap: () {
+                          onTap: () async {
                             Navigator.of(context).pop();
                             setState(() {
                               _controller.text = query.query;
                             });
+
+                            // If no database is selected, load the database from the query
+                            if (provider.selectedDatabase == null &&
+                                query.databaseName != null) {
+                              await provider.selectDatabase(query.databaseName!);
+                            }
                           },
                         ),
                       );
@@ -938,11 +944,17 @@ class _QueryTabState extends State<QueryTab> {
                     subtitle: Text(
                       '${entry.executionTimeMs}ms • ${entry.rowCount} rows • ${_formatDate(entry.executedAt)}',
                     ),
-                    onTap: () {
+                    onTap: () async {
                       Navigator.of(context).pop();
                       setState(() {
                         _controller.text = entry.query;
                       });
+
+                      // If no database is selected, load the database from the history entry
+                      if (provider.selectedDatabase == null &&
+                          entry.databaseName != null) {
+                        await provider.selectDatabase(entry.databaseName!);
+                      }
                     },
                   );
                 },
