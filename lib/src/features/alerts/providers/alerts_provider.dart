@@ -1,18 +1,22 @@
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 import '../../../core/services/storage_service.dart';
+import '../../../core/services/database_service.dart';
+import '../../../core/services/alert_scheduler_service.dart';
 import '../models/alert_model.dart';
 import '../models/alert_history_model.dart';
 
 class AlertsProvider extends ChangeNotifier {
   final StorageService _storageService;
-  final Uuid _uuid = const Uuid();
+  final DatabaseService _databaseService;
+  AlertSchedulerService? _scheduler;
 
   List<AlertModel> _alerts = [];
   bool _isLoading = false;
   String? _error;
 
-  AlertsProvider(this._storageService) {
+  AlertsProvider(this._storageService) : _databaseService = DatabaseService() {
+    _scheduler = AlertSchedulerService(_storageService, _databaseService);
+    _scheduler?.start();
     loadAlerts();
   }
 
@@ -90,23 +94,16 @@ class AlertsProvider extends ChangeNotifier {
   }
 
   Future<AlertHistoryEntry> runAlert(AlertModel alert) async {
-    final now = DateTime.now();
-    final historyEntry = AlertHistoryEntry(
-      id: _uuid.v4(),
-      alertId: alert.id,
-      executedAt: now,
-      executionTimeMs: 0,
-      success: false,
-      connectionId: alert.connectionId,
-      databaseName: alert.databaseName,
-    );
+    if (_scheduler == null) {
+      throw Exception('AlertSchedulerService not initialized');
+    }
 
     try {
-      await _storageService.addToAlertHistory(historyEntry);
+      final historyEntry = await _scheduler!.runAlertNow(alert);
 
       final index = _alerts.indexWhere((a) => a.id == alert.id);
       if (index != -1) {
-        _alerts[index] = alert.copyWith(lastRunAt: now);
+        _alerts[index] = alert.copyWith(lastRunAt: historyEntry.executedAt);
       }
       notifyListeners();
 
@@ -134,5 +131,11 @@ class AlertsProvider extends ChangeNotifier {
 
   List<AlertModel> getAlertsByConnection(String connectionId) {
     return _alerts.where((a) => a.connectionId == connectionId).toList();
+  }
+
+  @override
+  void dispose() {
+    _scheduler?.stop();
+    super.dispose();
   }
 }

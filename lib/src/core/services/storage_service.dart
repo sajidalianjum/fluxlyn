@@ -99,6 +99,10 @@ class StorageService {
     return connectionsBox.values.toList();
   }
 
+  ConnectionModel? getConnectionById(String id) {
+    return connectionsBox.get(id);
+  }
+
   // Queries
   Box<QueryModel> get queriesBox => Hive.box<QueryModel>(_queriesBoxName);
 
