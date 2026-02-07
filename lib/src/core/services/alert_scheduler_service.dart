@@ -49,11 +49,21 @@ class AlertSchedulerService {
       final alerts = _storageService.getAllAlerts();
       final now = DateTime.now();
 
+      debugPrint('\n--- Checking alerts at ${now.toIso8601String()} ---');
+      debugPrint('Total alerts: ${alerts.length}');
+      debugPrint('Enabled alerts: ${alerts.where((a) => a.isEnabled).length}');
+
       for (final alert in alerts) {
-        if (!alert.isEnabled) continue;
+        if (!alert.isEnabled) {
+          debugPrint('Skipping disabled alert: ${alert.name}');
+          continue;
+        }
 
         if (_shouldRunAlert(alert, now)) {
+          debugPrint('Running alert: ${alert.name}');
           await _executeAlert(alert);
+        } else {
+          debugPrint('Alert not due: ${alert.name}');
         }
       }
     } catch (e) {
@@ -83,6 +93,13 @@ class AlertSchedulerService {
 
   Future<AlertHistoryEntry> _executeAlert(AlertModel alert) async {
     final startTime = DateTime.now();
+    debugPrint('\n========== EXECUTING ALERT ==========');
+    debugPrint('Alert Name: ${alert.name}');
+    debugPrint('Schedule: ${alert.getScheduleDisplay()}');
+    debugPrint('Query: ${alert.query}');
+    debugPrint('Threshold: ${alert.getThresholdDisplay()}');
+    debugPrint('===================================\n');
+
     final historyEntry = AlertHistoryEntry(
       id: _uuid.v4(),
       alertId: alert.id,
@@ -101,7 +118,23 @@ class AlertSchedulerService {
 
       final conn = await _databaseService.connect(connection);
 
+      if (alert.databaseName != null && alert.databaseName!.isNotEmpty) {
+        await _databaseService.useDatabase(conn, alert.databaseName!);
+        debugPrint('Using database: ${alert.databaseName}');
+      } else {
+        debugPrint('No database specified, using connection default');
+      }
+
       final result = await _databaseService.execute(conn, alert.query);
+
+      debugPrint('Query executed successfully');
+      debugPrint('Rows returned: ${result.rows.length}');
+
+      if (result.rows.isNotEmpty) {
+        debugPrint('First row data: ${result.rows.first.assoc()}');
+      } else {
+        debugPrint('No rows returned');
+      }
 
       final executionTime = DateTime.now().difference(startTime).inMilliseconds;
       bool thresholdTriggered = false;
@@ -117,7 +150,13 @@ class AlertSchedulerService {
         thresholdValue = thresholdResult['value'] as double?;
         previousValue = thresholdResult['previous'] as double?;
 
+        debugPrint('Threshold Check:');
+        debugPrint('  - Previous Value: $previousValue');
+        debugPrint('  - Current Value: $thresholdValue');
+        debugPrint('  - Threshold Triggered: $thresholdTriggered');
+
         if (thresholdTriggered) {
+          debugPrint('\n*** ALERT TRIGGERED ***');
           await _sendAlertNotification(alert, thresholdValue);
         }
       }
@@ -141,9 +180,15 @@ class AlertSchedulerService {
 
       await _databaseService.disconnect();
 
+      debugPrint('Alert execution completed successfully');
+      debugPrint('Execution time: ${executionTime}ms');
+      debugPrint('===================================\n');
+
       return finalHistoryEntry;
     } catch (e) {
       await _databaseService.disconnect();
+
+      debugPrint('ERROR executing alert: $e');
 
       final errorHistoryEntry = historyEntry.copyWith(
         success: false,
@@ -155,6 +200,8 @@ class AlertSchedulerService {
 
       final updatedAlert = alert.copyWith(lastRunAt: startTime);
       await _storageService.saveAlert(updatedAlert);
+
+      debugPrint('===================================\n');
 
       return errorHistoryEntry;
     }
@@ -237,10 +284,17 @@ class AlertSchedulerService {
         ? '$thresholdDisplay\nCurrent value: $currentValue'
         : thresholdDisplay;
 
+    debugPrint('Sending notification:');
+    debugPrint('  Title: Alert Triggered: ${alert.name}');
+    debugPrint('  Body: $body');
+    debugPrint('');
+
     await _notifications.showAlertNotification(
       title: 'Alert Triggered: ${alert.name}',
       body: body,
     );
+
+    debugPrint('Notification sent successfully');
   }
 
   Future<AlertHistoryEntry> runAlertNow(AlertModel alert) async {

@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/connections_provider.dart';
 import '../../models/connection_model.dart';
-import 'package:fluxlyn/src/features/dashboard/presentation/pages/dashboard_page.dart';
-import 'package:fluxlyn/src/features/dashboard/providers/dashboard_provider.dart';
-import 'package:fluxlyn/src/features/settings/presentation/dialogs/settings_dialog.dart';
-import 'package:fluxlyn/src/features/alerts/presentation/pages/alerts_page.dart';
-import '../widgets/connection_card.dart';
+import 'package:fluxlyn/src/features/alerts/presentation/dialogs/add_alert_wizard.dart';
+import 'package:fluxlyn/src/features/alerts/providers/alerts_provider.dart';
 import '../dialogs/connection_dialog.dart';
+import '../tabs/connections_tab.dart';
+import 'package:fluxlyn/src/features/alerts/presentation/tabs/alerts_tab.dart'
+    as alerts;
+import 'package:fluxlyn/src/features/settings/presentation/tabs/settings_tab.dart';
 
 class ConnectionsPage extends StatefulWidget {
   const ConnectionsPage({super.key});
@@ -17,33 +18,7 @@ class ConnectionsPage extends StatefulWidget {
 }
 
 class _ConnectionsPageState extends State<ConnectionsPage> {
-  bool _isSearching = false;
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-
-  void _toggleSearch() {
-    setState(() {
-      if (_isSearching) {
-        _isSearching = false;
-        _searchQuery = '';
-        _searchController.clear();
-      } else {
-        _isSearching = true;
-      }
-    });
-  }
-
-  List<ConnectionModel> _filterConnections(List<ConnectionModel> connections) {
-    if (_searchQuery.isEmpty) {
-      return connections;
-    }
-    final query = _searchQuery.toLowerCase();
-    return connections.where((connection) {
-      return connection.name.toLowerCase().contains(query) ||
-          connection.host.toLowerCase().contains(query) ||
-          (connection.username?.toLowerCase().contains(query) ?? false);
-    }).toList();
-  }
+  int _selectedTabIndex = 0;
 
   void _showConnectionDialog(
     BuildContext context, {
@@ -65,181 +40,131 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
     );
   }
 
-  void _showSettingsDialog(BuildContext context) {
-    showDialog(context: context, builder: (context) => const SettingsDialog());
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final List<Widget> tabs = [
+      const ConnectionsTab(),
+      const alerts.AlertsTab(),
+      const SettingsTab(),
+    ];
+
     return Scaffold(
       appBar: AppBar(
-        leading: _isSearching
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: _toggleSearch,
-              )
-            : null,
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Search connections...',
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  border: InputBorder.none,
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchQuery = '';
-                            });
-                          },
-                        )
-                      : null,
-                ),
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
-              )
-            : const Text('Connections'),
-        actions: [
-          if (!_isSearching)
-            IconButton(
-              onPressed: _toggleSearch,
-              icon: const Icon(Icons.search),
-            ),
-          IconButton(
-            onPressed: () => _showSettingsDialog(context),
-            icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
-          ),
-        ],
+        title: Text(_getAppBarTitle()),
+        actions: _getAppBarActions(),
       ),
-      body: Consumer<ConnectionsProvider>(
-        builder: (context, provider, child) {
-          final filteredConnections = _filterConnections(provider.connections);
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 24),
-                // Main List
-                Expanded(
-                  child: filteredConnections.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                _isSearching
-                                    ? Icons.search_off
-                                    : Icons.dns_outlined,
-                                size: 64,
-                                color: Colors.grey.withValues(alpha: 0.2),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                _isSearching
-                                    ? 'No connections found.'
-                                    : 'No connections yet.\nTap "+" to add one.',
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyLarge
-                                    ?.copyWith(color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: filteredConnections.length,
-                          itemBuilder: (context, index) {
-                            final connection = filteredConnections[index];
-                            return ConnectionCard(
-                              connection: connection,
-                              onTap: () async {
-                                final dashboardProvider = context
-                                    .read<DashboardProvider>();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Connecting to ${connection.name}...',
-                                    ),
-                                    duration: const Duration(seconds: 1),
-                                  ),
-                                );
-
-                                await dashboardProvider.connect(connection);
-
-                                if (context.mounted) {
-                                  if (dashboardProvider.error != null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Error: ${dashboardProvider.error}',
-                                        ),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  } else {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const DashboardPage(),
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                              onEdit: () => _showConnectionDialog(
-                                context,
-                                connection: connection,
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showConnectionDialog(context),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.add),
-      ),
+      body: IndexedStack(index: _selectedTabIndex, children: tabs),
+      floatingActionButton: _getFloatingActionButton(),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF0F172A),
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
-        currentIndex: 0,
+        currentIndex: _selectedTabIndex,
         onTap: (index) {
-          if (index == 3) {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const AlertsPage()));
-          }
+          setState(() {
+            _selectedTabIndex = index;
+          });
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dns), label: 'Connections'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.auto_graph),
-            label: 'Queries',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-          BottomNavigationBarItem(
             icon: Icon(Icons.notifications),
             label: 'Alerts',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget? _getFloatingActionButton() {
+    if (_selectedTabIndex == 0) {
+      return FloatingActionButton(
+        onPressed: () => _showConnectionDialog(context),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        child: const Icon(Icons.add),
+      );
+    } else if (_selectedTabIndex == 1) {
+      return FloatingActionButton(
+        onPressed: () => showDialog(
+          context: context,
+          builder: (context) => const AddAlertWizard(),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        child: const Icon(Icons.add),
+      );
+    }
+    return null;
+  }
+
+  String _getAppBarTitle() {
+    switch (_selectedTabIndex) {
+      case 0:
+        return 'Connections';
+      case 1:
+        return 'Alerts';
+      case 2:
+        return 'Settings';
+      default:
+        return 'Fluxlyn';
+    }
+  }
+
+  List<Widget> _getAppBarActions() {
+    switch (_selectedTabIndex) {
+      case 0:
+        return [];
+      case 1:
+        return [
+          Consumer<AlertsProvider>(
+            builder: (context, provider, _) {
+              if (provider.alerts.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return IconButton(
+                onPressed: () => _showClearAllDialog(context, provider),
+                icon: const Icon(Icons.delete_sweep),
+                tooltip: 'Clear All',
+              );
+            },
+          ),
+        ];
+      case 2:
+        return [];
+      default:
+        return [];
+    }
+  }
+
+  void _showClearAllDialog(BuildContext context, AlertsProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('Clear All Alerts'),
+        content: const Text('Are you sure you want to delete all alerts?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              for (final alert in provider.alerts) {
+                await provider.deleteAlert(alert.id);
+              }
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('All alerts deleted')),
+                );
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Clear All'),
           ),
         ],
       ),
