@@ -13,6 +13,7 @@ class SettingsDialog extends StatefulWidget {
 class _SettingsDialogState extends State<SettingsDialog> {
   late TextEditingController _apiKeyController;
   late TextEditingController _endpointController;
+  late TextEditingController _modelNameController;
   late AIProvider _selectedProvider;
   bool _lockDelete = false;
   bool _lockDrop = false;
@@ -25,6 +26,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     _lockDelete = settings.lockDelete;
     _lockDrop = settings.lockDrop;
     _apiKeyController = TextEditingController(text: settings.apiKey);
+    _modelNameController = TextEditingController(text: settings.modelName);
     _endpointController = TextEditingController(
       text: settings.endpoint.isNotEmpty
           ? settings.endpoint
@@ -36,6 +38,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
   void dispose() {
     _apiKeyController.dispose();
     _endpointController.dispose();
+    _modelNameController.dispose();
     super.dispose();
   }
 
@@ -74,6 +77,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
       provider: _selectedProvider,
       apiKey: _apiKeyController.text.trim(),
       endpoint: _endpointController.text.trim(),
+      modelName: _modelNameController.text.trim(),
     );
 
     if (mounted) {
@@ -178,6 +182,15 @@ class _SettingsDialogState extends State<SettingsDialog> {
                         helperText: 'Edit endpoint for any provider',
                       ),
                       keyboardType: TextInputType.url,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _modelNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Model Name',
+                        border: OutlineInputBorder(),
+                        helperText: 'e.g. gpt-4, claude-3-opus-20240229, etc.',
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

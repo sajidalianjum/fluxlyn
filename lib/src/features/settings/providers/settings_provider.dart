@@ -21,6 +21,7 @@ class SettingsProvider extends ChangeNotifier {
   AIProvider get provider => _settings.provider;
   String get apiKey => _settings.apiKey;
   String get endpoint => _settings.endpoint;
+  String get modelName => _settings.modelName;
 
   Future<void> loadSettings() async {
     _isLoading = true;
@@ -45,6 +46,7 @@ class SettingsProvider extends ChangeNotifier {
     AIProvider? provider,
     String? apiKey,
     String? endpoint,
+    String? modelName,
   }) async {
     _settings = _settings.copyWith(
       lockDelete: lockDelete,
@@ -52,6 +54,7 @@ class SettingsProvider extends ChangeNotifier {
       provider: provider,
       apiKey: apiKey,
       endpoint: endpoint,
+      modelName: modelName,
     );
     notifyListeners();
 

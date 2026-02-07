@@ -54,6 +54,7 @@ class AppSettings {
   final AIProvider provider;
   final String apiKey;
   final String endpoint;
+  final String modelName;
 
   AppSettings({
     required this.lockDelete,
@@ -61,6 +62,7 @@ class AppSettings {
     required this.provider,
     required this.apiKey,
     required this.endpoint,
+    required this.modelName,
   });
 
   factory AppSettings.defaultSettings() {
@@ -70,6 +72,7 @@ class AppSettings {
       provider: AIProvider.openai,
       apiKey: '',
       endpoint: AIProvider.openai.defaultEndpoint,
+      modelName: '',
     );
   }
 
@@ -80,6 +83,7 @@ class AppSettings {
       'provider': provider.name,
       'apiKey': apiKey,
       'endpoint': endpoint,
+      'modelName': modelName,
     };
   }
 
@@ -92,6 +96,7 @@ class AppSettings {
       endpoint:
           json['endpoint'] ??
           AIProvider.fromString(json['provider'] ?? 'openai').defaultEndpoint,
+      modelName: json['modelName'] ?? '',
     );
   }
 
@@ -101,6 +106,7 @@ class AppSettings {
     AIProvider? provider,
     String? apiKey,
     String? endpoint,
+    String? modelName,
   }) {
     return AppSettings(
       lockDelete: lockDelete ?? this.lockDelete,
@@ -108,6 +114,7 @@ class AppSettings {
       provider: provider ?? this.provider,
       apiKey: apiKey ?? this.apiKey,
       endpoint: endpoint ?? this.endpoint,
+      modelName: modelName ?? this.modelName,
     );
   }
 }

@@ -8,8 +8,10 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/schema_service.dart';
+import '../../../../core/services/ai_service.dart';
 import '../../../../core/services/sql_context_analyzer.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
+import '../../../settings/providers/settings_provider.dart';
 import '../../../queries/models/query_model.dart';
 import '../../../queries/presentation/pages/query_results_page.dart';
 
@@ -23,6 +25,7 @@ class QueryTab extends StatefulWidget {
 class _QueryTabState extends State<QueryTab> {
   late CodeController _controller;
   final _schemaService = SchemaService();
+  final _aiService = AIService();
   late SQLContextAnalyzer _sqlContextAnalyzer;
   final _uuid = const Uuid();
   bool _isExecuting = false;
@@ -641,7 +644,7 @@ class _QueryTabState extends State<QueryTab> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        title: const Text('Select Database'),
+        title: const Text('Select DB'),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -702,6 +705,138 @@ class _QueryTabState extends State<QueryTab> {
     );
   }
 
+  void _showAIQueryDialog() async {
+    final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final database = provider.selectedDatabase;
+    final connection = provider.currentConnection;
+
+    if (database == null || connection == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a database first'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (settingsProvider.apiKey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please set your AI API key in Settings'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final promptController = TextEditingController();
+    bool isGenerating = false;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E293B),
+            title: const Text('AI Query Assistant'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Describe what you want to query in natural language:',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: promptController,
+                  autofocus: true,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'e.g., Show all users who signed up last week',
+                    border: OutlineInputBorder(),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                  enabled: !isGenerating,
+                ),
+                if (isGenerating) ...[
+                  const SizedBox(height: 16),
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 8),
+                  const Text('Generating SQL...', style: TextStyle(fontSize: 12)),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isGenerating ? null : () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: isGenerating
+                    ? null
+                    : () async {
+                        final prompt = promptController.text.trim();
+                        if (prompt.isEmpty) return;
+
+                        setDialogState(() => isGenerating = true);
+
+                        try {
+                          // Gather schema
+                          final tables = provider.tables;
+                          final schemaBuffer = StringBuffer();
+
+                          for (final table in tables) {
+                            final columns = await _schemaService.getColumns(
+                              connection,
+                              database,
+                              table,
+                            );
+                            schemaBuffer.writeln('Table: $table');
+                            schemaBuffer.writeln(
+                              'Columns: ${columns.map((c) => "${c.name} (${c.dataType})").join(", ")}',
+                            );
+                            schemaBuffer.writeln();
+                          }
+
+                          final sql = await _aiService.generateSQL(
+                            prompt: prompt,
+                            schema: schemaBuffer.toString(),
+                            settings: settingsProvider.settings,
+                          );
+
+                          if (context.mounted) {
+                            Navigator.of(context).pop(sql);
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            setDialogState(() => isGenerating = false);
+                          }
+                        }
+                      },
+                child: const Text('Generate'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _controller.text = result;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -751,66 +886,86 @@ class _QueryTabState extends State<QueryTab> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               color: const Color(0xFF0F172A),
-              child: Row(
-                children: [
-                  Consumer<DashboardProvider>(
-                    builder: (context, provider, _) {
-                      return OutlinedButton.icon(
-                        onPressed: () => _showDatabaseSelector(provider),
-                        icon: const Icon(Icons.storage, size: 18),
-                        label: Text(
-                          provider.selectedDatabase ?? 'Select Database',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    Consumer<DashboardProvider>(
+                      builder: (context, provider, _) {
+                        return OutlinedButton.icon(
+                          onPressed: () => _showDatabaseSelector(provider),
+                          icon: const Icon(Icons.storage, size: 18),
+                          label: Text(
+                            provider.selectedDatabase ?? 'Select DB',
+                            style: const TextStyle(fontSize: 12),
                           ),
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Color(0xFF334155)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Color(0xFF334155)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                           ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _showAIQueryDialog,
+                      icon: const Icon(Icons.auto_awesome, size: 18, color: Colors.blue),
+                      label: const Text('AI Query'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: _saveQuery,
-                    icon: const Icon(Icons.save, size: 18),
-                    label: const Text('Save Query'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Color(0xFF334155)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF334155)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: _loadQuery,
-                    icon: const Icon(Icons.folder_open, size: 18),
-                    label: const Text('Load Query'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Color(0xFF334155)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _saveQuery,
+                      icon: const Icon(Icons.save, size: 18),
+                      label: const Text('Save Query'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF334155)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _loadQuery,
+                      icon: const Icon(Icons.folder_open, size: 18),
+                      label: const Text('Load Query'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF334155)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 
