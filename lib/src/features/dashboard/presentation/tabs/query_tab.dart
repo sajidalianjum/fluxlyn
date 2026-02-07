@@ -10,6 +10,7 @@ import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/schema_service.dart';
 import '../../../../core/services/ai_service.dart';
 import '../../../../core/services/sql_context_analyzer.dart';
+import '../../../../core/services/sql_formatter.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../../queries/models/query_model.dart';
@@ -705,6 +706,16 @@ class _QueryTabState extends State<QueryTab> {
     );
   }
 
+  void _formatSQL() {
+    final sql = _controller.text;
+    if (sql.isEmpty) return;
+
+    final formatted = SQLFormatter.format(sql);
+    setState(() {
+      _controller.text = formatted;
+    });
+  }
+
   void _showAIQueryDialog() async {
     final provider = Provider.of<DashboardProvider>(context, listen: false);
     final settingsProvider =
@@ -831,8 +842,9 @@ class _QueryTabState extends State<QueryTab> {
     );
 
     if (result != null && result.isNotEmpty) {
+      final formatted = SQLFormatter.format(result);
       setState(() {
-        _controller.text = result;
+        _controller.text = formatted;
       });
     }
   }
@@ -918,6 +930,23 @@ class _QueryTabState extends State<QueryTab> {
                       onPressed: _showAIQueryDialog,
                       icon: const Icon(Icons.auto_awesome, size: 18, color: Colors.blue),
                       label: const Text('AI Query'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF334155)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _formatSQL,
+                      icon: const Icon(Icons.format_align_left, size: 18, color: Colors.green),
+                      label: const Text('Format'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
