@@ -6,8 +6,11 @@ import '../../../connections/providers/connections_provider.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../../dashboard/presentation/widgets/query_editor_widget.dart';
 import '../../../settings/providers/settings_provider.dart';
+import '../../../queries/models/query_model.dart';
+import '../../../queries/presentation/widgets/query_results_widget.dart';
 import '../../../../core/services/schema_service.dart';
 import '../../../../core/services/ai_service.dart';
+import '../../../../core/services/storage_service.dart';
 import '../../models/alert_model.dart';
 import '../../providers/alerts_provider.dart';
 
@@ -34,6 +37,7 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
   double? _thresholdValue;
   bool _isConnecting = false;
   String? _connectionError;
+  int? _executionTimeMs;
 
   List<String>? _testColumns;
   List<Map<String, dynamic>>? _testResults;
@@ -233,16 +237,19 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
   Widget _buildQueryStep() {
     return QueryEditorWidget(
       initialQuery: _query,
-      showDatabaseSelector: false,
+      showDatabaseSelector: true,
       showAIQuery: true,
       showSaveQuery: false,
-      showLoadQuery: false,
+      showLoadQuery: true,
       showHistory: false,
-      onShowDatabaseSelector: () async {},
+      onShowDatabaseSelector: _showDatabaseSelector,
       onShowAIQueryDialog: _showAIQueryDialog,
       onExecuteQuery: (query) async {
+        final stopwatch = Stopwatch()..start();
         final dashboardProvider = context.read<DashboardProvider>();
         final result = await dashboardProvider.executeQuery(query);
+        stopwatch.stop();
+
         if (result == null) {
           throw Exception('Failed to execute query');
         }
@@ -272,13 +279,15 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
           _query = query;
           _testColumns = columns;
           _testResults = rows;
+          _executionTimeMs = stopwatch.elapsedMilliseconds;
+          _currentStep = 3;
         });
 
-        return rows;
+        return null;
       },
       onFormatSQL: null,
       onSaveQuery: null,
-      onLoadQuery: null,
+      onLoadQuery: _loadQuery,
       onShowHistory: null,
       onClear: () => setState(() => _query = ''),
     );
@@ -289,25 +298,12 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_testResults!.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 64),
-            SizedBox(height: 16),
-            Text(
-              'Query executed successfully',
-              style: TextStyle(color: Colors.green),
-            ),
-            SizedBox(height: 8),
-            Text('No rows returned', style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      );
-    }
-
-    final displayRows = _testResults!.take(10).toList();
+    final queryResult = QueryResult(
+      query: _query,
+      columns: _testColumns!,
+      rows: _testResults!,
+      executionTimeMs: _executionTimeMs ?? 0,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,66 +313,9 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        Text(
-          'Showing ${displayRows.length} of ${_testResults!.length} rows',
-          style: const TextStyle(color: Colors.grey),
-        ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: DataTable(
-                headingRowColor: WidgetStateColor.resolveWith(
-                  (states) => const Color(0xFF0F172A),
-                ),
-                columns: _testColumns!.map((col) {
-                  return DataColumn(
-                    label: Text(
-                      col,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  );
-                }).toList(),
-                rows: displayRows.map((row) {
-                  return DataRow(
-                    cells: _testColumns!.map((col) {
-                      final value = row[col];
-                      return DataCell(_buildCellContent(value));
-                    }).toList(),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ),
+        Expanded(child: QueryResultsWidget(result: queryResult)),
       ],
     );
-  }
-
-  Widget _buildCellContent(dynamic value) {
-    if (value == null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          'NULL',
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontStyle: FontStyle.italic,
-            fontSize: 12,
-          ),
-        ),
-      );
-    }
-    return Text(value.toString(), style: const TextStyle(color: Colors.white));
   }
 
   Widget _buildConfigureAlertStep() {
@@ -752,6 +691,11 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
   }
 
   Future<void> _handleNext() async {
+    if (_currentStep == 1 && _selectedDatabase != null) {
+      final dashboardProvider = context.read<DashboardProvider>();
+      await dashboardProvider.selectDatabase(_selectedDatabase!);
+    }
+
     setState(() {
       _currentStep++;
     });
@@ -933,6 +877,132 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
       setState(() {
         _query = result!;
       });
+    }
+  }
+
+  Future<void> _showDatabaseSelector() async {
+    final dashboardProvider = context.read<DashboardProvider>();
+    final databases = dashboardProvider.databases;
+
+    if (databases.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No databases available')));
+      }
+      return;
+    }
+
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('Select Database'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: databases.length,
+            itemBuilder: (context, index) {
+              final db = databases[index];
+              return ListTile(
+                title: Text(db),
+                trailing: db == dashboardProvider.selectedDatabase
+                    ? const Icon(Icons.check, color: Colors.green)
+                    : null,
+                onTap: () => Navigator.of(context).pop(db),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (selected != null && mounted) {
+      await dashboardProvider.selectDatabase(selected);
+    }
+  }
+
+  Future<void> _loadQuery() async {
+    final dashboardProvider = context.read<DashboardProvider>();
+    final storageService = context.read<StorageService>();
+    final connectionModel = dashboardProvider.currentConnectionModel;
+
+    if (connectionModel == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No connection selected')));
+      }
+      return;
+    }
+
+    final queries = storageService.getSavedQueries(connectionModel.id);
+
+    if (queries.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No saved queries available')),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    final selected = await showDialog<QueryModel>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('Saved Queries'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: queries.length,
+            itemBuilder: (context, index) {
+              final query = queries[index];
+              return ListTile(
+                title: Text(
+                  query.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  query.query.length > 60
+                      ? '${query.query.substring(0, 60)}...'
+                      : query.query,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () => Navigator.of(context).pop(query),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (selected != null && mounted) {
+      setState(() {
+        _query = selected.query;
+      });
+
+      if (selected.databaseName != null) {
+        await dashboardProvider.selectDatabase(selected.databaseName!);
+      }
     }
   }
 }

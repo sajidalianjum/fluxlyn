@@ -35,16 +35,16 @@ class StorageService {
     if (!Hive.isAdapterRegistered(3)) {
       Hive.registerAdapter(QueryHistoryEntryAdapter());
     }
-    if (!Hive.isAdapterRegistered(4)) {
+    if (!Hive.isAdapterRegistered(6)) {
       Hive.registerAdapter(AlertModelAdapter());
     }
-    if (!Hive.isAdapterRegistered(5)) {
+    if (!Hive.isAdapterRegistered(7)) {
       Hive.registerAdapter(AlertHistoryEntryAdapter());
     }
-    if (!Hive.isAdapterRegistered(6)) {
+    if (!Hive.isAdapterRegistered(4)) {
       Hive.registerAdapter(AlertScheduleAdapter());
     }
-    if (!Hive.isAdapterRegistered(7)) {
+    if (!Hive.isAdapterRegistered(5)) {
       Hive.registerAdapter(ThresholdOperatorAdapter());
     }
 
