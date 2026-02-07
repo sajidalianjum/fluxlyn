@@ -8,8 +8,41 @@ import 'package:fluxlyn/src/features/settings/presentation/dialogs/settings_dial
 import '../widgets/connection_card.dart';
 import '../dialogs/connection_dialog.dart';
 
-class ConnectionsPage extends StatelessWidget {
+class ConnectionsPage extends StatefulWidget {
   const ConnectionsPage({super.key});
+
+  @override
+  State<ConnectionsPage> createState() => _ConnectionsPageState();
+}
+
+class _ConnectionsPageState extends State<ConnectionsPage> {
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  void _toggleSearch() {
+    setState(() {
+      if (_isSearching) {
+        _isSearching = false;
+        _searchQuery = '';
+        _searchController.clear();
+      } else {
+        _isSearching = true;
+      }
+    });
+  }
+
+  List<ConnectionModel> _filterConnections(List<ConnectionModel> connections) {
+    if (_searchQuery.isEmpty) {
+      return connections;
+    }
+    final query = _searchQuery.toLowerCase();
+    return connections.where((connection) {
+      return connection.name.toLowerCase().contains(query) ||
+          connection.host.toLowerCase().contains(query) ||
+          (connection.username?.toLowerCase().contains(query) ?? false);
+    }).toList();
+  }
 
   void _showConnectionDialog(
     BuildContext context, {
@@ -36,15 +69,55 @@ class ConnectionsPage extends StatelessWidget {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Connections'),
+        leading: _isSearching
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: _toggleSearch,
+              )
+            : null,
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Search connections...',
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  border: InputBorder.none,
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                ),
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+              )
+            : const Text('Connections'),
         actions: [
-          IconButton(
-            onPressed: () {}, // Search - Future scope
-            icon: const Icon(Icons.search),
-          ),
+          if (!_isSearching)
+            IconButton(
+              onPressed: _toggleSearch,
+              icon: const Icon(Icons.search),
+            ),
           IconButton(
             onPressed: () => _showSettingsDialog(context),
             icon: const Icon(Icons.settings),
@@ -54,6 +127,7 @@ class ConnectionsPage extends StatelessWidget {
       ),
       body: Consumer<ConnectionsProvider>(
         builder: (context, provider, child) {
+          final filteredConnections = _filterConnections(provider.connections);
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Column(
@@ -62,19 +136,23 @@ class ConnectionsPage extends StatelessWidget {
                 const SizedBox(height: 24),
                 // Main List
                 Expanded(
-                  child: provider.connections.isEmpty
+                  child: filteredConnections.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                Icons.dns_outlined,
+                                _isSearching
+                                    ? Icons.search_off
+                                    : Icons.dns_outlined,
                                 size: 64,
                                 color: Colors.grey.withValues(alpha: 0.2),
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'No connections yet.\nTap "+" to add one.',
+                                _isSearching
+                                    ? 'No connections found.'
+                                    : 'No connections yet.\nTap "+" to add one.',
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.bodyLarge
                                     ?.copyWith(color: Colors.grey),
@@ -83,15 +161,14 @@ class ConnectionsPage extends StatelessWidget {
                           ),
                         )
                       : ListView.builder(
-                          itemCount: provider.connections.length,
+                          itemCount: filteredConnections.length,
                           itemBuilder: (context, index) {
-                            final connection = provider.connections[index];
+                            final connection = filteredConnections[index];
                             return ConnectionCard(
                               connection: connection,
                               onTap: () async {
                                 final dashboardProvider = context
                                     .read<DashboardProvider>();
-                                // Show loading feedback
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
@@ -140,8 +217,6 @@ class ConnectionsPage extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.add),
       ),
-      // Bottom Navigation Bar Placeholder to match screenshot style if needed,
-      // though the screenshot cuts off. Standard nav bar usually.
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF0F172A),
         selectedItemColor: Colors.blue,

@@ -298,7 +298,7 @@ class _RowEditDialogState extends State<RowEditDialog> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 child: Row(
                   children: [
                     Icon(
@@ -395,7 +395,7 @@ class _RowEditDialogState extends State<RowEditDialog> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.2),
+                    color: Colors.grey.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
