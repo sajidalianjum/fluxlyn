@@ -4,6 +4,7 @@ import 'core/theme/app_theme.dart';
 import 'features/connections/presentation/pages/connections_page.dart';
 import 'features/connections/providers/connections_provider.dart';
 import 'features/dashboard/providers/dashboard_provider.dart';
+import 'features/settings/providers/settings_provider.dart';
 import 'core/services/storage_service.dart';
 
 class MyApp extends StatelessWidget {
@@ -20,6 +21,7 @@ class MyApp extends StatelessWidget {
           create: (_) => ConnectionsProvider(storageService),
         ),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider(storageService)),
       ],
       child: MaterialApp(
         title: 'Fluxlyn',

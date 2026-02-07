@@ -3,11 +3,13 @@ import 'package:crypto/crypto.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../features/connections/models/connection_model.dart';
 import '../../features/queries/models/query_model.dart';
+import '../../core/models/settings_model.dart';
 
 class StorageService {
   static const String _connectionsBoxName = 'connections';
   static const String _queriesBoxName = 'queries';
   static const String _queryHistoryBoxName = 'query_history';
+  static const String _settingsBoxName = 'settings';
   // Note: This salt is stored in the binary. For extreme security,
   // a hardware-backed keychain is better. But this overcomes
   // sandbox entitlement issues while keeping data encrypted as requested.
@@ -44,6 +46,10 @@ class StorageService {
     );
     await Hive.openBox<QueryHistoryEntry>(
       _queryHistoryBoxName,
+      encryptionCipher: HiveAesCipher(encryptionKey),
+    );
+    await Hive.openBox(
+      _settingsBoxName,
       encryptionCipher: HiveAesCipher(encryptionKey),
     );
   }
@@ -130,6 +136,28 @@ class StorageService {
         .toList();
     for (final entry in entries) {
       await queryHistoryBox.delete(entry.id);
+    }
+  }
+
+  // Settings
+  Box get settingsBox => Hive.box(_settingsBoxName);
+
+  Future<void> saveSettings(AppSettings settings) async {
+    final settingsJson = settings.toJson();
+    await settingsBox.put('settings', jsonEncode(settingsJson));
+  }
+
+  AppSettings loadSettings() {
+    final settingsJson = settingsBox.get('settings');
+    if (settingsJson == null) {
+      return AppSettings.defaultSettings();
+    }
+    try {
+      return AppSettings.fromJson(
+        jsonDecode(settingsJson as String) as Map<String, dynamic>,
+      );
+    } catch (e) {
+      return AppSettings.defaultSettings();
     }
   }
 }
