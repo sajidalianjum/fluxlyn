@@ -10,6 +10,8 @@ enum AlertSchedule {
   daily,
   @HiveField(2)
   weekly,
+  @HiveField(3)
+  minutes,
 }
 
 @HiveType(typeId: 5)
@@ -26,6 +28,8 @@ enum ThresholdOperator {
   greaterOrEqual,
   @HiveField(5)
   lessOrEqual,
+  @HiveField(6)
+  changed,
 }
 
 @HiveType(typeId: 6)
@@ -55,24 +59,30 @@ class AlertModel extends HiveObject {
   final int? scheduleMinute;
 
   @HiveField(8)
-  final String? thresholdColumn;
+  final int? scheduleMinutes;
 
   @HiveField(9)
-  final ThresholdOperator? thresholdOperator;
+  final String? thresholdColumn;
 
   @HiveField(10)
-  final double? thresholdValue;
+  final ThresholdOperator? thresholdOperator;
 
   @HiveField(11)
-  final bool isEnabled;
+  final double? thresholdValue;
 
   @HiveField(12)
-  final DateTime createdAt;
+  final double? lastThresholdValue;
 
   @HiveField(13)
-  final DateTime modifiedAt;
+  final bool isEnabled;
 
   @HiveField(14)
+  final DateTime createdAt;
+
+  @HiveField(15)
+  final DateTime modifiedAt;
+
+  @HiveField(16)
   DateTime? lastRunAt;
 
   AlertModel({
@@ -84,9 +94,11 @@ class AlertModel extends HiveObject {
     this.databaseName,
     this.scheduleHour,
     this.scheduleMinute,
+    this.scheduleMinutes,
     this.thresholdColumn,
     this.thresholdOperator,
     this.thresholdValue,
+    this.lastThresholdValue,
     this.isEnabled = true,
     required this.createdAt,
     required this.modifiedAt,
@@ -102,9 +114,11 @@ class AlertModel extends HiveObject {
     String? databaseName,
     int? scheduleHour,
     int? scheduleMinute,
+    int? scheduleMinutes,
     String? thresholdColumn,
     ThresholdOperator? thresholdOperator,
     double? thresholdValue,
+    double? lastThresholdValue,
     bool? isEnabled,
     DateTime? createdAt,
     DateTime? modifiedAt,
@@ -119,9 +133,11 @@ class AlertModel extends HiveObject {
       databaseName: databaseName ?? this.databaseName,
       scheduleHour: scheduleHour ?? this.scheduleHour,
       scheduleMinute: scheduleMinute ?? this.scheduleMinute,
+      scheduleMinutes: scheduleMinutes ?? this.scheduleMinutes,
       thresholdColumn: thresholdColumn ?? this.thresholdColumn,
       thresholdOperator: thresholdOperator ?? this.thresholdOperator,
       thresholdValue: thresholdValue ?? this.thresholdValue,
+      lastThresholdValue: lastThresholdValue ?? this.lastThresholdValue,
       isEnabled: isEnabled ?? this.isEnabled,
       createdAt: createdAt ?? this.createdAt,
       modifiedAt: modifiedAt ?? this.modifiedAt,
@@ -133,6 +149,11 @@ class AlertModel extends HiveObject {
     switch (schedule) {
       case AlertSchedule.hourly:
         return 'Every hour';
+      case AlertSchedule.minutes:
+        if (scheduleMinutes != null) {
+          return 'Every $scheduleMinutes minute${scheduleMinutes == 1 ? '' : 's'}';
+        }
+        return 'Custom minutes';
       case AlertSchedule.daily:
         if (scheduleHour != null && scheduleMinute != null) {
           return 'Daily at ${scheduleHour!.toString().padLeft(2, '0')}:${scheduleMinute!.toString().padLeft(2, '0')}';
@@ -148,33 +169,43 @@ class AlertModel extends HiveObject {
 
   String getThresholdDisplay() {
     if (thresholdColumn == null ||
-        thresholdOperator == null ||
-        thresholdValue == null) {
+        thresholdOperator == null) {
       return 'No threshold';
     }
 
-    String operatorSymbol;
+    if (thresholdOperator == ThresholdOperator.changed) {
+      return '$thresholdColumn != Previous Value';
+    }
+
+    if (thresholdValue == null) {
+      return 'No threshold';
+    }
+
+    String opSymbol;
     switch (thresholdOperator!) {
       case ThresholdOperator.greaterThan:
-        operatorSymbol = '>';
+        opSymbol = '>';
         break;
       case ThresholdOperator.lessThan:
-        operatorSymbol = '<';
+        opSymbol = '<';
         break;
       case ThresholdOperator.equals:
-        operatorSymbol = '=';
+        opSymbol = '=';
         break;
       case ThresholdOperator.notEquals:
-        operatorSymbol = '!=';
+        opSymbol = '!=';
         break;
       case ThresholdOperator.greaterOrEqual:
-        operatorSymbol = '>=';
+        opSymbol = '>=';
         break;
       case ThresholdOperator.lessOrEqual:
-        operatorSymbol = '<=';
+        opSymbol = '<=';
+        break;
+      case ThresholdOperator.changed:
+        opSymbol = '!=';
         break;
     }
 
-    return '$thresholdColumn $operatorSymbol $thresholdValue';
+    return '$thresholdColumn $opSymbol $thresholdValue';
   }
 }

@@ -32,9 +32,12 @@ class AlertHistoryEntry extends HiveObject {
   final double? thresholdValue;
 
   @HiveField(9)
-  final String? connectionId;
+  final double? previousValue;
 
   @HiveField(10)
+  final String? connectionId;
+
+  @HiveField(11)
   final String? databaseName;
 
   AlertHistoryEntry({
@@ -47,6 +50,7 @@ class AlertHistoryEntry extends HiveObject {
     this.rowCount,
     this.thresholdTriggered = false,
     this.thresholdValue,
+    this.previousValue,
     this.connectionId,
     this.databaseName,
   });
@@ -61,6 +65,7 @@ class AlertHistoryEntry extends HiveObject {
     int? rowCount,
     bool? thresholdTriggered,
     double? thresholdValue,
+    double? previousValue,
     String? connectionId,
     String? databaseName,
   }) {
@@ -74,6 +79,7 @@ class AlertHistoryEntry extends HiveObject {
       rowCount: rowCount ?? this.rowCount,
       thresholdTriggered: thresholdTriggered ?? this.thresholdTriggered,
       thresholdValue: thresholdValue ?? this.thresholdValue,
+      previousValue: previousValue ?? this.previousValue,
       connectionId: connectionId ?? this.connectionId,
       databaseName: databaseName ?? this.databaseName,
     );

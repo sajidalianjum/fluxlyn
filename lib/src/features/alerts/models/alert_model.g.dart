@@ -25,20 +25,22 @@ class AlertModelAdapter extends TypeAdapter<AlertModel> {
       databaseName: fields[3] as String?,
       scheduleHour: fields[6] as int?,
       scheduleMinute: fields[7] as int?,
-      thresholdColumn: fields[8] as String?,
-      thresholdOperator: fields[9] as ThresholdOperator?,
-      thresholdValue: fields[10] as double?,
-      isEnabled: fields[11] as bool,
-      createdAt: fields[12] as DateTime,
-      modifiedAt: fields[13] as DateTime,
-      lastRunAt: fields[14] as DateTime?,
+      scheduleMinutes: fields[8] as int?,
+      thresholdColumn: fields[9] as String?,
+      thresholdOperator: fields[10] as ThresholdOperator?,
+      thresholdValue: fields[11] as double?,
+      lastThresholdValue: fields[12] as double?,
+      isEnabled: fields[13] as bool,
+      createdAt: fields[14] as DateTime,
+      modifiedAt: fields[15] as DateTime,
+      lastRunAt: fields[16] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, AlertModel obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -56,18 +58,22 @@ class AlertModelAdapter extends TypeAdapter<AlertModel> {
       ..writeByte(7)
       ..write(obj.scheduleMinute)
       ..writeByte(8)
-      ..write(obj.thresholdColumn)
+      ..write(obj.scheduleMinutes)
       ..writeByte(9)
-      ..write(obj.thresholdOperator)
+      ..write(obj.thresholdColumn)
       ..writeByte(10)
-      ..write(obj.thresholdValue)
+      ..write(obj.thresholdOperator)
       ..writeByte(11)
-      ..write(obj.isEnabled)
+      ..write(obj.thresholdValue)
       ..writeByte(12)
-      ..write(obj.createdAt)
+      ..write(obj.lastThresholdValue)
       ..writeByte(13)
-      ..write(obj.modifiedAt)
+      ..write(obj.isEnabled)
       ..writeByte(14)
+      ..write(obj.createdAt)
+      ..writeByte(15)
+      ..write(obj.modifiedAt)
+      ..writeByte(16)
       ..write(obj.lastRunAt);
   }
 
@@ -95,6 +101,8 @@ class AlertScheduleAdapter extends TypeAdapter<AlertSchedule> {
         return AlertSchedule.daily;
       case 2:
         return AlertSchedule.weekly;
+      case 3:
+        return AlertSchedule.minutes;
       default:
         return AlertSchedule.hourly;
     }
@@ -111,6 +119,9 @@ class AlertScheduleAdapter extends TypeAdapter<AlertSchedule> {
         break;
       case AlertSchedule.weekly:
         writer.writeByte(2);
+        break;
+      case AlertSchedule.minutes:
+        writer.writeByte(3);
         break;
     }
   }
@@ -145,6 +156,8 @@ class ThresholdOperatorAdapter extends TypeAdapter<ThresholdOperator> {
         return ThresholdOperator.greaterOrEqual;
       case 5:
         return ThresholdOperator.lessOrEqual;
+      case 6:
+        return ThresholdOperator.changed;
       default:
         return ThresholdOperator.greaterThan;
     }
@@ -170,6 +183,9 @@ class ThresholdOperatorAdapter extends TypeAdapter<ThresholdOperator> {
         break;
       case ThresholdOperator.lessOrEqual:
         writer.writeByte(5);
+        break;
+      case ThresholdOperator.changed:
+        writer.writeByte(6);
         break;
     }
   }

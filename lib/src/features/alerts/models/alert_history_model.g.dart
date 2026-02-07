@@ -26,15 +26,16 @@ class AlertHistoryEntryAdapter extends TypeAdapter<AlertHistoryEntry> {
       rowCount: fields[6] as int?,
       thresholdTriggered: fields[7] as bool,
       thresholdValue: fields[8] as double?,
-      connectionId: fields[9] as String?,
-      databaseName: fields[10] as String?,
+      previousValue: fields[9] as double?,
+      connectionId: fields[10] as String?,
+      databaseName: fields[11] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, AlertHistoryEntry obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -54,8 +55,10 @@ class AlertHistoryEntryAdapter extends TypeAdapter<AlertHistoryEntry> {
       ..writeByte(8)
       ..write(obj.thresholdValue)
       ..writeByte(9)
-      ..write(obj.connectionId)
+      ..write(obj.previousValue)
       ..writeByte(10)
+      ..write(obj.connectionId)
+      ..writeByte(11)
       ..write(obj.databaseName);
   }
 

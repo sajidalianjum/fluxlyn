@@ -32,6 +32,7 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
   AlertSchedule _schedule = AlertSchedule.daily;
   int? _scheduleHour;
   int? _scheduleMinute;
+  int? _scheduleMinutes;
   String? _thresholdColumn;
   ThresholdOperator? _thresholdOperator;
   double? _thresholdValue;
@@ -359,6 +360,11 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
                 label: Text('Weekly'),
                 icon: Icon(Icons.date_range),
               ),
+              ButtonSegment(
+                value: AlertSchedule.minutes,
+                label: Text('Minutes'),
+                icon: Icon(Icons.timer),
+              ),
             ],
             selected: {_schedule},
             onSelectionChanged: (Set<AlertSchedule> selection) {
@@ -370,52 +376,74 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
           const SizedBox(height: 16),
 
           if (_schedule != AlertSchedule.hourly) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    decoration: const InputDecoration(
-                      labelText: 'Hour',
-                      border: OutlineInputBorder(),
-                    ),
-                    initialValue: _scheduleHour,
-                    items: List.generate(24, (hour) {
-                      return DropdownMenuItem(
-                        value: hour,
-                        child: Text('${hour.toString().padLeft(2, '0')}:00'),
-                      );
-                    }),
-                    onChanged: (value) {
-                      setState(() {
-                        _scheduleHour = value;
-                      });
-                    },
-                  ),
+            if (_schedule == AlertSchedule.minutes)
+              DropdownButtonFormField<int>(
+                decoration: const InputDecoration(
+                  labelText: 'Interval (minutes)',
+                  border: OutlineInputBorder(),
+                  hintText: 'How often to run the query',
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    decoration: const InputDecoration(
-                      labelText: 'Minute',
-                      border: OutlineInputBorder(),
+                initialValue: _scheduleMinutes ?? 30,
+                items: const [5, 10, 15, 30, 45, 60, 90, 120].map((minutes) {
+                  return DropdownMenuItem(
+                    value: minutes,
+                    child: Text('Every $minutes minutes'),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _scheduleMinutes = value;
+                  });
+                },
+              ),
+            if (_schedule != AlertSchedule.minutes) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(
+                        labelText: 'Hour',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue: _scheduleHour,
+                      items: List.generate(24, (hour) {
+                        return DropdownMenuItem(
+                          value: hour,
+                          child: Text('${hour.toString().padLeft(2, '0')}:00'),
+                        );
+                      }),
+                      onChanged: (value) {
+                        setState(() {
+                          _scheduleHour = value;
+                        });
+                      },
                     ),
-                    initialValue: _scheduleMinute,
-                    items: List.generate(60, (minute) {
-                      return DropdownMenuItem(
-                        value: minute,
-                        child: Text(minute.toString().padLeft(2, '0')),
-                      );
-                    }),
-                    onChanged: (value) {
-                      setState(() {
-                        _scheduleMinute = value;
-                      });
-                    },
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(
+                        labelText: 'Minute',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue: _scheduleMinute,
+                      items: List.generate(60, (minute) {
+                        return DropdownMenuItem(
+                          value: minute,
+                          child: Text(minute.toString().padLeft(2, '0')),
+                        );
+                      }),
+                      onChanged: (value) {
+                        setState(() {
+                          _scheduleMinute = value;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
           ],
 
           const Text(
@@ -474,6 +502,10 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
                         value: ThresholdOperator.lessOrEqual,
                         child: Text('<= Less or equal'),
                       ),
+                      DropdownMenuItem(
+                        value: ThresholdOperator.changed,
+                        child: Text('!= Changed'),
+                      ),
                     ],
                     onChanged: (value) {
                       setState(() {
@@ -483,21 +515,22 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: TextField(
-                    decoration: const InputDecoration(
-                      labelText: 'Value',
-                      border: OutlineInputBorder(),
+                if (_thresholdOperator != ThresholdOperator.changed)
+                  Expanded(
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Value',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white),
+                      onChanged: (value) {
+                        setState(() {
+                          _thresholdValue = double.tryParse(value);
+                        });
+                      },
                     ),
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    onChanged: (value) {
-                      setState(() {
-                        _thresholdValue = double.tryParse(value);
-                      });
-                    },
                   ),
-                ),
               ],
             ),
           ] else
@@ -567,6 +600,11 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
     switch (_schedule) {
       case AlertSchedule.hourly:
         return 'Every hour';
+      case AlertSchedule.minutes:
+        if (_scheduleMinutes != null) {
+          return 'Every ${_scheduleMinutes} minute${_scheduleMinutes == 1 ? '' : 's'}';
+        }
+        return 'Custom minutes';
       case AlertSchedule.daily:
         if (_scheduleHour != null && _scheduleMinute != null) {
           return 'Daily at ${_scheduleHour!.toString().padLeft(2, '0')}:${_scheduleMinute!.toString().padLeft(2, '0')}';
@@ -581,9 +619,15 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
   }
 
   String _getThresholdDisplay() {
-    if (_thresholdColumn == null ||
-        _thresholdOperator == null ||
-        _thresholdValue == null) {
+    if (_thresholdColumn == null || _thresholdOperator == null) {
+      return 'No threshold';
+    }
+
+    if (_thresholdOperator == ThresholdOperator.changed) {
+      return '$_thresholdColumn != Previous Value';
+    }
+
+    if (_thresholdValue == null) {
       return 'No threshold';
     }
 
@@ -606,6 +650,9 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
         break;
       case ThresholdOperator.lessOrEqual:
         operatorSymbol = '<=';
+        break;
+      case ThresholdOperator.changed:
+        operatorSymbol = '≠';
         break;
     }
 
@@ -712,6 +759,7 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
       schedule: _schedule,
       scheduleHour: _scheduleHour,
       scheduleMinute: _scheduleMinute,
+      scheduleMinutes: _scheduleMinutes,
       thresholdColumn: _thresholdColumn,
       thresholdOperator: _thresholdOperator,
       thresholdValue: _thresholdValue,
