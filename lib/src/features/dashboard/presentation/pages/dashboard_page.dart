@@ -9,10 +9,8 @@ class DashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Watch provider to get current tab index and connection status
     final provider = context.watch<DashboardProvider>();
 
-    // Pages for Bottom Nav
     final List<Widget> pages = [
       const SchemaTab(),
       const QueryTab(),
@@ -20,33 +18,43 @@ class DashboardPage extends StatelessWidget {
       const Center(child: Text('Settings (Coming Soon)')),
     ];
 
-    return Scaffold(
-      body: provider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : provider.error != null
-          ? Center(
-              child: Text(
-                'Error: ${provider.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            )
-          : pages[provider.selectedTabIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF0F172A),
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        currentIndex: provider.selectedTabIndex,
-        onTap: (index) => provider.setTabIndex(index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dns), label: 'Databases'),
-          BottomNavigationBarItem(icon: Icon(Icons.code), label: 'Editor'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
+          await provider.disconnect();
+        }
+      },
+      child: Scaffold(
+        body: provider.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : provider.error != null
+            ? Center(
+                child: Text(
+                  'Error: ${provider.error}',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              )
+            : pages[provider.selectedTabIndex],
+        bottomNavigationBar: BottomNavigationBar(
+          backgroundColor: const Color(0xFF0F172A),
+          selectedItemColor: Colors.blue,
+          unselectedItemColor: Colors.grey,
+          type: BottomNavigationBarType.fixed,
+          currentIndex: provider.selectedTabIndex,
+          onTap: (index) => provider.setTabIndex(index),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.dns), label: 'Databases'),
+            BottomNavigationBarItem(icon: Icon(Icons.code), label: 'Editor'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.history),
+              label: 'History',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings),
+              label: 'Settings',
+            ),
+          ],
+        ),
       ),
     );
   }
