@@ -32,6 +32,8 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
   String? _thresholdColumn;
   ThresholdOperator? _thresholdOperator;
   double? _thresholdValue;
+  bool _isConnecting = false;
+  String? _connectionError;
 
   List<String>? _testColumns;
   List<Map<String, dynamic>>? _testResults;
@@ -112,14 +114,84 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
               subtitle: Text('${connection.host}:${connection.port}'),
               value: connection,
               groupValue: _selectedConnection,
-              onChanged: (value) {
-                setState(() {
-                  _selectedConnection = value;
-                  _selectedDatabase = null;
-                });
-              },
+              onChanged: _isConnecting
+                  ? null
+                  : (value) async {
+                      if (value == null) return;
+
+                      setState(() {
+                        _selectedConnection = value;
+                        _isConnecting = true;
+                        _connectionError = null;
+                        _selectedDatabase = null;
+                      });
+
+                      try {
+                        final dashboardProvider = context
+                            .read<DashboardProvider>();
+                        await dashboardProvider.connect(value);
+
+                        if (mounted && dashboardProvider.error != null) {
+                          setState(() {
+                            _connectionError = dashboardProvider.error;
+                            _isConnecting = false;
+                          });
+                        } else {
+                          setState(() {
+                            _isConnecting = false;
+                          });
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          setState(() {
+                            _connectionError = e.toString();
+                            _isConnecting = false;
+                          });
+                        }
+                      }
+                    },
             );
           }),
+        if (_isConnecting)
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 12),
+                Text('Connecting to database...'),
+              ],
+            ),
+          ),
+        if (_connectionError != null)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                border: Border.all(color: Colors.red),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error, color: Colors.red, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _connectionError!,
+                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -657,7 +729,9 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
   bool _canProceed() {
     switch (_currentStep) {
       case 0:
-        return _selectedConnection != null;
+        return _selectedConnection != null &&
+            !_isConnecting &&
+            _connectionError == null;
       case 1:
         return _selectedDatabase != null;
       case 2:
@@ -678,29 +752,9 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
   }
 
   Future<void> _handleNext() async {
-    if (_currentStep == 1) {
-      await _connectToDatabase();
-    }
-
     setState(() {
       _currentStep++;
     });
-  }
-
-  Future<void> _connectToDatabase() async {
-    if (_selectedConnection == null) return;
-
-    final dashboardProvider = context.read<DashboardProvider>();
-    await dashboardProvider.connect(_selectedConnection!);
-
-    if (dashboardProvider.error != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${dashboardProvider.error}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 
   Future<void> _handleSave() async {
