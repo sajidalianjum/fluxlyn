@@ -478,6 +478,7 @@ class _QueryTabState extends State<QueryTab> {
         createdAt: now,
         modifiedAt: now,
         connectionId: connectionModel.id,
+        databaseName: provider.selectedDatabase,
       );
 
       await storageService.saveQuery(queryModel);

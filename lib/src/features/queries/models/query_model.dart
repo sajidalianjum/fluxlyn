@@ -25,6 +25,9 @@ class QueryModel extends HiveObject {
   @HiveField(6)
   final String connectionId;
 
+  @HiveField(7)
+  final String? databaseName;
+
   QueryModel({
     required this.id,
     required this.name,
@@ -33,6 +36,7 @@ class QueryModel extends HiveObject {
     required this.modifiedAt,
     this.isFavorite = false,
     required this.connectionId,
+    this.databaseName,
   });
 
   QueryModel copyWith({
@@ -43,6 +47,7 @@ class QueryModel extends HiveObject {
     DateTime? modifiedAt,
     bool? isFavorite,
     String? connectionId,
+    String? databaseName,
   }) {
     return QueryModel(
       id: id ?? this.id,
@@ -52,6 +57,7 @@ class QueryModel extends HiveObject {
       modifiedAt: modifiedAt ?? this.modifiedAt,
       isFavorite: isFavorite ?? this.isFavorite,
       connectionId: connectionId ?? this.connectionId,
+      databaseName: databaseName ?? this.databaseName,
     );
   }
 }
