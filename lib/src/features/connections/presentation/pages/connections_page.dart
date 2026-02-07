@@ -5,6 +5,7 @@ import '../../models/connection_model.dart';
 import 'package:fluxlyn/src/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:fluxlyn/src/features/dashboard/providers/dashboard_provider.dart';
 import 'package:fluxlyn/src/features/settings/presentation/dialogs/settings_dialog.dart';
+import 'package:fluxlyn/src/features/alerts/presentation/pages/alerts_page.dart';
 import '../widgets/connection_card.dart';
 import '../dialogs/connection_dialog.dart';
 
@@ -222,6 +223,13 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         currentIndex: 0,
+        onTap: (index) {
+          if (index == 3) {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const AlertsPage()));
+          }
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dns), label: 'Connections'),
           BottomNavigationBarItem(

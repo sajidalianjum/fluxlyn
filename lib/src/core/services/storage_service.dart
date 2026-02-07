@@ -3,6 +3,8 @@ import 'package:crypto/crypto.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../features/connections/models/connection_model.dart';
 import '../../features/queries/models/query_model.dart';
+import '../../features/alerts/models/alert_model.dart';
+import '../../features/alerts/models/alert_history_model.dart';
 import '../../core/models/settings_model.dart';
 
 class StorageService {
@@ -10,6 +12,8 @@ class StorageService {
   static const String _queriesBoxName = 'queries';
   static const String _queryHistoryBoxName = 'query_history';
   static const String _settingsBoxName = 'settings';
+  static const String _alertsBoxName = 'alerts';
+  static const String _alertHistoryBoxName = 'alert_history';
   // Note: This salt is stored in the binary. For extreme security,
   // a hardware-backed keychain is better. But this overcomes
   // sandbox entitlement issues while keeping data encrypted as requested.
@@ -31,6 +35,18 @@ class StorageService {
     if (!Hive.isAdapterRegistered(3)) {
       Hive.registerAdapter(QueryHistoryEntryAdapter());
     }
+    if (!Hive.isAdapterRegistered(4)) {
+      Hive.registerAdapter(AlertModelAdapter());
+    }
+    if (!Hive.isAdapterRegistered(5)) {
+      Hive.registerAdapter(AlertHistoryEntryAdapter());
+    }
+    if (!Hive.isAdapterRegistered(6)) {
+      Hive.registerAdapter(AlertScheduleAdapter());
+    }
+    if (!Hive.isAdapterRegistered(7)) {
+      Hive.registerAdapter(ThresholdOperatorAdapter());
+    }
 
     // Derive Encryption Key (32 bytes for AES-256)
     final encryptionKey = _deriveEncryptionKey();
@@ -50,6 +66,14 @@ class StorageService {
     );
     await Hive.openBox(
       _settingsBoxName,
+      encryptionCipher: HiveAesCipher(encryptionKey),
+    );
+    await Hive.openBox<AlertModel>(
+      _alertsBoxName,
+      encryptionCipher: HiveAesCipher(encryptionKey),
+    );
+    await Hive.openBox<AlertHistoryEntry>(
+      _alertHistoryBoxName,
       encryptionCipher: HiveAesCipher(encryptionKey),
     );
   }
@@ -158,6 +182,62 @@ class StorageService {
       );
     } catch (e) {
       return AppSettings.defaultSettings();
+    }
+  }
+
+  // Alerts
+  Box<AlertModel> get alertsBox => Hive.box<AlertModel>(_alertsBoxName);
+
+  Future<void> saveAlert(AlertModel alert) async {
+    await alertsBox.put(alert.id, alert);
+  }
+
+  Future<void> deleteAlert(String id) async {
+    await alertsBox.delete(id);
+  }
+
+  List<AlertModel> getAllAlerts() {
+    return alertsBox.values.toList();
+  }
+
+  List<AlertModel> getAlertsByConnection(String connectionId) {
+    return alertsBox.values
+        .where((a) => a.connectionId == connectionId)
+        .toList();
+  }
+
+  // Alert History
+  Box<AlertHistoryEntry> get alertHistoryBox =>
+      Hive.box<AlertHistoryEntry>(_alertHistoryBoxName);
+
+  Future<void> addToAlertHistory(AlertHistoryEntry entry) async {
+    await alertHistoryBox.put(entry.id, entry);
+    // Keep only last 30 days of history
+    await _cleanupAlertHistory();
+  }
+
+  Future<void> _cleanupAlertHistory() async {
+    final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+    final entries = alertHistoryBox.values
+        .where((e) => e.executedAt.isBefore(thirtyDaysAgo))
+        .toList();
+
+    for (final entry in entries) {
+      await alertHistoryBox.delete(entry.id);
+    }
+  }
+
+  List<AlertHistoryEntry> getAlertHistory(String alertId) {
+    return alertHistoryBox.values.where((e) => e.alertId == alertId).toList()
+      ..sort((a, b) => b.executedAt.compareTo(a.executedAt));
+  }
+
+  Future<void> clearAlertHistory(String alertId) async {
+    final entries = alertHistoryBox.values
+        .where((e) => e.alertId == alertId)
+        .toList();
+    for (final entry in entries) {
+      await alertHistoryBox.delete(entry.id);
     }
   }
 }
