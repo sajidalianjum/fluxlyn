@@ -111,10 +111,7 @@ class _QueryTabState extends State<QueryTab> {
     super.initState();
     _sqlContextAnalyzer = SQLContextAnalyzer(_schemaService);
 
-    _controller = CodeController(
-      language: sql,
-      text: "-- Write your SQL query here\nSELECT * FROM ",
-    );
+    _controller = CodeController(language: sql, text: '');
 
     // Setup autocomplete
     _setupAutocomplete();
@@ -284,8 +281,8 @@ class _QueryTabState extends State<QueryTab> {
     }
 
     // Dismiss autocomplete dropdown
+    _controller.dismiss();
     _focusNode.unfocus();
-    await Future.delayed(const Duration(milliseconds: 50));
 
     setState(() => _isExecuting = true);
 
@@ -812,22 +809,27 @@ class _QueryTabState extends State<QueryTab> {
 
             // Editor
             Expanded(
-              child: CodeTheme(
-                data: CodeThemeData(styles: monokaiSublimeTheme),
-                child: CodeField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  textStyle: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 14,
+              child: GestureDetector(
+                onTap: () {
+                  _focusNode.requestFocus();
+                },
+                child: CodeTheme(
+                  data: CodeThemeData(styles: monokaiSublimeTheme),
+                  child: CodeField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    textStyle: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 14,
+                    ),
+                    gutterStyle: const GutterStyle(
+                      textStyle: TextStyle(color: Colors.grey),
+                      width: 48,
+                      margin: 0,
+                    ),
+                    cursorColor: Colors.blue,
+                    background: const Color(0xFF0F172A),
                   ),
-                  gutterStyle: const GutterStyle(
-                    textStyle: TextStyle(color: Colors.grey),
-                    width: 48,
-                    margin: 0,
-                  ),
-                  cursorColor: Colors.blue,
-                  background: const Color(0xFF0F172A),
                 ),
               ),
             ),
