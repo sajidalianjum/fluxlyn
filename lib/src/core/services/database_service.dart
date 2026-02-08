@@ -74,28 +74,45 @@ class DatabaseService {
             print(
               'SSH Tunnel: New connection received, creating forward channel to ${config.host}:${config.port}',
             );
-            final forward = await _sshClient!.forwardLocal(
-              config.host,
-              config.port,
-            );
-            print('SSH Tunnel: Forward channel created');
+            
+            print('SSH Tunnel: Attempting connection via netcat...');
+            final remoteHost = config.host == 'localhost' ? '127.0.0.1' : config.host;
+            final session = await _sshClient!.execute('nc $remoteHost ${config.port}');
+            print('SSH Tunnel: Netcat session started');
 
-            forward.stream.cast<List<int>>().listen(
-              (data) => socket.add(data),
-              onError: (e) => print('SSH Tunnel: Forward->Socket error: $e'),
-              onDone: () => print('SSH Tunnel: Forward->Socket closed'),
-            );
+            socket.setOption(SocketOption.tcpNoDelay, true);
 
-            socket.cast<List<int>>().listen(
-              (data) => forward.sink.add(data),
-              onError: (e) => print('SSH Tunnel: Socket->Forward error: $e'),
+            session.stdout.listen(
+              (data) {
+                socket.add(data);
+              },
               onDone: () {
-                print('SSH Tunnel: Socket->Forward closed');
-                forward.sink.close();
+                print('SSH Tunnel: Remote closed');
+                socket.close();
+              },
+              onError: (e) {
+                print('SSH Tunnel: Forward stream error: $e');
                 socket.close();
               },
             );
-            print('SSH Tunnel: Data piping established');
+
+            socket.listen(
+              (data) {
+                // print('SSH Tunnel: ${data.length} bytes local -> remote');
+                session.stdin.add(data);
+              },
+              onDone: () {
+                print('SSH Tunnel: Local closed');
+                session.stdin.close();
+              },
+              onError: (e) {
+                print('SSH Tunnel: Socket error: $e');
+                session.stdin.close();
+              },
+            );
+
+            await session.done;
+            print('SSH Tunnel: Netcat session closed');
           } catch (e) {
             print('SSH Tunnel: Forward error - $e');
             socket.close();
@@ -125,7 +142,7 @@ class DatabaseService {
     print('MySQL: Connection object created, attempting to connect...');
 
     try {
-      await conn.connect();
+      await conn.connect(timeoutMs: config.useSsh ? 30000 : 10000);
       print('MySQL: Connected successfully');
       await conn.close();
       print('MySQL: Connection closed');
@@ -198,28 +215,45 @@ class DatabaseService {
             print(
               'SSH Tunnel: New connection received, creating forward channel to ${config.host}:${config.port}',
             );
-            final forward = await _sshClient!.forwardLocal(
-              config.host,
-              config.port,
-            );
-            print('SSH Tunnel: Forward channel created');
+            
+            print('SSH Tunnel: Attempting connection via netcat...');
+            final remoteHost = config.host == 'localhost' ? '127.0.0.1' : config.host;
+            final session = await _sshClient!.execute('nc $remoteHost ${config.port}');
+            print('SSH Tunnel: Netcat session started');
 
-            forward.stream.cast<List<int>>().listen(
-              (data) => socket.add(data),
-              onError: (e) => print('SSH Tunnel: Forward->Socket error: $e'),
-              onDone: () => print('SSH Tunnel: Forward->Socket closed'),
-            );
+            socket.setOption(SocketOption.tcpNoDelay, true);
 
-            socket.cast<List<int>>().listen(
-              (data) => forward.sink.add(data),
-              onError: (e) => print('SSH Tunnel: Socket->Forward error: $e'),
+            session.stdout.listen(
+              (data) {
+                socket.add(data);
+              },
               onDone: () {
-                print('SSH Tunnel: Socket->Forward closed');
-                forward.sink.close();
+                print('SSH Tunnel: Remote closed');
+                socket.close();
+              },
+              onError: (e) {
+                print('SSH Tunnel: Forward stream error: $e');
                 socket.close();
               },
             );
-            print('SSH Tunnel: Data piping established');
+
+            socket.listen(
+              (data) {
+                // print('SSH Tunnel: ${data.length} bytes local -> remote');
+                session.stdin.add(data);
+              },
+              onDone: () {
+                print('SSH Tunnel: Local closed');
+                session.stdin.close();
+              },
+              onError: (e) {
+                print('SSH Tunnel: Socket error: $e');
+                session.stdin.close();
+              },
+            );
+
+            await session.done;
+            print('SSH Tunnel: Netcat session closed');
           } catch (e) {
             print('SSH Tunnel: Forward error - $e');
             socket.close();
@@ -249,7 +283,7 @@ class DatabaseService {
     print('MySQL: Connection object created, attempting to connect...');
 
     try {
-      await conn.connect();
+      await conn.connect(timeoutMs: config.useSsh ? 30000 : 10000);
       print('MySQL: Connected successfully');
       return conn;
     } catch (e) {
