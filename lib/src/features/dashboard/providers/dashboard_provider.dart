@@ -45,10 +45,10 @@ class DashboardProvider extends ChangeNotifier {
       _currentConnectionModel = config;
       _selectedDatabase = config.databaseName;
 
+      await refreshDatabases();
+
       if (_selectedDatabase != null && _selectedDatabase!.isNotEmpty) {
         await refreshTables();
-      } else {
-        await refreshDatabases();
       }
 
       // Navigate to Schema/Databases tab by default
@@ -122,7 +122,6 @@ class DashboardProvider extends ChangeNotifier {
   Future<void> clearDatabaseSelection() async {
     _selectedDatabase = null;
     _tables = [];
-    await refreshDatabases();
     notifyListeners();
   }
 
