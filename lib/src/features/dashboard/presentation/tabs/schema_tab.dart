@@ -56,9 +56,10 @@ class SchemaTab extends StatelessWidget {
           !isDbSelected, // Can pop if no database selected, otherwise intercept
       onPopInvokedWithResult: (didPop, result) {
         if (isDbSelected && !didPop) {
-          // When in tables view and back pressed, clear database selection
-          // but stay in the SchemaTab (don't pop the tab)
-          provider.clearDatabaseSelection();
+          // Defer to avoid race condition with ListView.builder
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            provider.clearDatabaseSelection();
+          });
         }
       },
       child: Scaffold(
