@@ -111,9 +111,6 @@ class _SettingsTabState extends State<SettingsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Settings', style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 24),
-
           Text(
             'Protection',
             style: theme.textTheme.titleMedium?.copyWith(

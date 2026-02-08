@@ -101,9 +101,7 @@ class SchemaTab extends StatelessWidget {
             ),
           ],
         ),
-        body: provider.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : isDbSelected
+        body: isDbSelected
             ? _buildTableList(context, provider)
             : _buildDatabaseList(context, provider),
       ),

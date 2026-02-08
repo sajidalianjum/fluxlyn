@@ -178,7 +178,8 @@ class _QueryTabState extends State<QueryTab> {
     final query = _controller.text;
     final cursorPosition = _controller.selection.baseOffset;
 
-    // Get current word being typed
+    if (cursorPosition < 0) return;
+
     final textBeforeCursor = query.substring(0, cursorPosition);
     final wordMatch = RegExp(r'\w+$').firstMatch(textBeforeCursor);
     final currentWord = wordMatch?.group(0) ?? '';
@@ -615,7 +616,9 @@ class _QueryTabState extends State<QueryTab> {
                             // If no database is selected, load the database from the query
                             if (provider.selectedDatabase == null &&
                                 query.databaseName != null) {
-                              await provider.selectDatabase(query.databaseName!);
+                              await provider.selectDatabase(
+                                query.databaseName!,
+                              );
                             }
                           },
                         ),
@@ -718,8 +721,10 @@ class _QueryTabState extends State<QueryTab> {
 
   void _showAIQueryDialog() async {
     final provider = Provider.of<DashboardProvider>(context, listen: false);
-    final settingsProvider =
-        Provider.of<SettingsProvider>(context, listen: false);
+    final settingsProvider = Provider.of<SettingsProvider>(
+      context,
+      listen: false,
+    );
     final database = provider.selectedDatabase;
     final connection = provider.currentConnection;
 
@@ -776,13 +781,18 @@ class _QueryTabState extends State<QueryTab> {
                   const SizedBox(height: 16),
                   const LinearProgressIndicator(),
                   const SizedBox(height: 8),
-                  const Text('Generating SQL...', style: TextStyle(fontSize: 12)),
+                  const Text(
+                    'Generating SQL...',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ],
               ],
             ),
             actions: [
               TextButton(
-                onPressed: isGenerating ? null : () => Navigator.of(context).pop(),
+                onPressed: isGenerating
+                    ? null
+                    : () => Navigator.of(context).pop(),
                 child: const Text('Cancel'),
               ),
               FilledButton(
@@ -928,7 +938,11 @@ class _QueryTabState extends State<QueryTab> {
                     const SizedBox(width: 8),
                     OutlinedButton.icon(
                       onPressed: _showAIQueryDialog,
-                      icon: const Icon(Icons.auto_awesome, size: 18, color: Colors.blue),
+                      icon: const Icon(
+                        Icons.auto_awesome,
+                        size: 18,
+                        color: Colors.blue,
+                      ),
                       label: const Text('AI Query'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
@@ -945,7 +959,11 @@ class _QueryTabState extends State<QueryTab> {
                     const SizedBox(width: 8),
                     OutlinedButton.icon(
                       onPressed: _formatSQL,
-                      icon: const Icon(Icons.format_align_left, size: 18, color: Colors.green),
+                      icon: const Icon(
+                        Icons.format_align_left,
+                        size: 18,
+                        color: Colors.green,
+                      ),
                       label: const Text('Format'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
