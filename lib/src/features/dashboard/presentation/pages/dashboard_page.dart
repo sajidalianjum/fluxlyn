@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../tabs/schema_tab.dart';
 import '../tabs/query_tab.dart';
+import 'package:fluxlyn/src/features/settings/presentation/tabs/settings_tab.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -15,7 +16,7 @@ class DashboardPage extends StatelessWidget {
       const SchemaTab(),
       const QueryTab(),
       const Center(child: Text('History (Coming Soon)')),
-      const Center(child: Text('Settings (Coming Soon)')),
+      const SettingsTab(),
     ];
 
     return PopScope(
@@ -27,10 +28,7 @@ class DashboardPage extends StatelessWidget {
       child: Scaffold(
         body: Stack(
           children: [
-            IndexedStack(
-              index: provider.selectedTabIndex,
-              children: pages,
-            ),
+            IndexedStack(index: provider.selectedTabIndex, children: pages),
             if (provider.isLoading)
               Container(
                 color: Colors.black.withValues(alpha: 0.3),
@@ -51,7 +49,8 @@ class DashboardPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: () => provider.connect(provider.currentConnectionModel!),
+                        onPressed: () =>
+                            provider.connect(provider.currentConnectionModel!),
                         child: const Text('Retry'),
                       ),
                     ],

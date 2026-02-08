@@ -1,21 +1,204 @@
 import 'package:flutter/material.dart';
-import 'package:fluxlyn/src/features/settings/presentation/dialogs/settings_dialog.dart';
+import 'package:provider/provider.dart';
+import '../../../../core/models/settings_model.dart';
+import '../../providers/settings_provider.dart';
 
-class SettingsTab extends StatelessWidget {
+class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
 
   @override
+  State<SettingsTab> createState() => _SettingsTabState();
+}
+
+class _SettingsTabState extends State<SettingsTab> {
+  late TextEditingController _apiKeyController;
+  late TextEditingController _endpointController;
+  late TextEditingController _modelNameController;
+  late AIProvider _selectedProvider;
+  bool _lockDelete = false;
+  bool _lockDrop = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final settings = context.read<SettingsProvider>().settings;
+    _selectedProvider = settings.provider;
+    _lockDelete = settings.lockDelete;
+    _lockDrop = settings.lockDrop;
+    _apiKeyController = TextEditingController(text: settings.apiKey);
+    _modelNameController = TextEditingController(text: settings.modelName);
+    _endpointController = TextEditingController(
+      text: settings.endpoint.isNotEmpty
+          ? settings.endpoint
+          : _selectedProvider.defaultEndpoint,
+    );
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    _endpointController.dispose();
+    _modelNameController.dispose();
+    super.dispose();
+  }
+
+  void _showSaveSuccess() {
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Settings saved')));
+    }
+  }
+
+  Future<void> _onProviderChanged(AIProvider? provider) async {
+    if (provider != null) {
+      setState(() {
+        _selectedProvider = provider;
+        if (_endpointController.text.isEmpty ||
+            _endpointController.text ==
+                context
+                    .read<SettingsProvider>()
+                    .settings
+                    .provider
+                    .defaultEndpoint) {
+          _endpointController.text = provider.defaultEndpoint;
+        }
+      });
+
+      await context.read<SettingsProvider>().updateSettings(
+        lockDelete: _lockDelete,
+        lockDrop: _lockDrop,
+        provider: _selectedProvider,
+        apiKey: _apiKeyController.text.trim(),
+        endpoint: _endpointController.text.trim(),
+        modelName: _modelNameController.text.trim(),
+      );
+
+      _showSaveSuccess();
+    }
+  }
+
+  Future<void> _onLockDeleteChanged(bool value) async {
+    setState(() => _lockDelete = value);
+    await context.read<SettingsProvider>().updateSettings(lockDelete: value);
+    _showSaveSuccess();
+  }
+
+  Future<void> _onLockDropChanged(bool value) async {
+    setState(() => _lockDrop = value);
+    await context.read<SettingsProvider>().updateSettings(lockDrop: value);
+    _showSaveSuccess();
+  }
+
+  Future<void> _saveCurrentSettings() async {
+    await context.read<SettingsProvider>().updateSettings(
+      lockDelete: _lockDelete,
+      lockDrop: _lockDrop,
+      provider: _selectedProvider,
+      apiKey: _apiKeyController.text.trim(),
+      endpoint: _endpointController.text.trim(),
+      modelName: _modelNameController.text.trim(),
+    );
+    _showSaveSuccess();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Center(
-      child: FilledButton.icon(
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) => const SettingsDialog(),
-          );
-        },
-        icon: const Icon(Icons.settings),
-        label: const Text('Open Settings'),
+    final theme = Theme.of(context);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Settings', style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 24),
+
+          Text(
+            'Protection',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SwitchListTile(
+            title: const Text('Lock for Delete'),
+            subtitle: const Text('Prevent accidental deletion of items'),
+            value: _lockDelete,
+            onChanged: _onLockDeleteChanged,
+            contentPadding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            title: const Text('Lock for Drop'),
+            subtitle: const Text('Prevent accidental dropping of items'),
+            value: _lockDrop,
+            onChanged: _onLockDropChanged,
+            contentPadding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 32),
+
+          Text(
+            'AI Configuration',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          InputDecorator(
+            decoration: const InputDecoration(
+              labelText: 'AI Provider',
+              border: OutlineInputBorder(),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<AIProvider>(
+                value: _selectedProvider,
+                isExpanded: true,
+                items: AIProvider.values.map((provider) {
+                  return DropdownMenuItem<AIProvider>(
+                    value: provider,
+                    child: Text(provider.displayName),
+                  );
+                }).toList(),
+                onChanged: _onProviderChanged,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _endpointController,
+            decoration: const InputDecoration(
+              labelText: 'API Endpoint',
+              border: OutlineInputBorder(),
+              helperText: 'Edit endpoint for any provider',
+            ),
+            keyboardType: TextInputType.url,
+            onFieldSubmitted: (_) => _saveCurrentSettings(),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _modelNameController,
+            decoration: const InputDecoration(
+              labelText: 'Model Name',
+              border: OutlineInputBorder(),
+              helperText: 'e.g. gpt-4, claude-3-opus-20240229, etc.',
+            ),
+            onFieldSubmitted: (_) => _saveCurrentSettings(),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _apiKeyController,
+            decoration: const InputDecoration(
+              labelText: 'API Key',
+              border: OutlineInputBorder(),
+              helperText: 'Your API key will be stored securely',
+            ),
+            obscureText: true,
+            enableSuggestions: false,
+            autocorrect: false,
+            onFieldSubmitted: (_) => _saveCurrentSettings(),
+          ),
+        ],
       ),
     );
   }
