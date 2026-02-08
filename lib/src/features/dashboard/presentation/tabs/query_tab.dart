@@ -160,20 +160,22 @@ class _QueryTabState extends State<QueryTab> {
   }
 
   void _onTextChange() {
-    // Cancel any pending autocomplete update
     _autocompleteDebounce?.cancel();
 
-    // Debounce the update to avoid excessive calculations
     _autocompleteDebounce = Timer(const Duration(milliseconds: 200), () {
-      _updateContextAwareAutocomplete();
+      if (mounted) {
+        _updateContextAwareAutocomplete();
+      }
     });
   }
 
   Future<void> _updateContextAwareAutocomplete() async {
+    if (!mounted) return;
+
     final provider = Provider.of<DashboardProvider>(context, listen: false);
     final database = provider.selectedDatabase;
 
-    if (database == null || !mounted) return;
+    if (database == null) return;
 
     final query = _controller.text;
     final cursorPosition = _controller.selection.baseOffset;
