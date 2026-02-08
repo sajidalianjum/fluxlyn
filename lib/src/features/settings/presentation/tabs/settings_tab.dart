@@ -106,97 +106,94 @@ class _SettingsTabState extends State<SettingsTab> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SingleChildScrollView(
+    return ListView(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Protection',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.primary,
-            ),
+      children: [
+        Text(
+          'Protection',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.primary,
           ),
-          const SizedBox(height: 16),
-          SwitchListTile(
-            title: const Text('Lock for Delete'),
-            subtitle: const Text('Prevent accidental deletion of items'),
-            value: _lockDelete,
-            onChanged: _onLockDeleteChanged,
-            contentPadding: EdgeInsets.zero,
-          ),
-          const SizedBox(height: 8),
-          SwitchListTile(
-            title: const Text('Lock for Drop'),
-            subtitle: const Text('Prevent accidental dropping of items'),
-            value: _lockDrop,
-            onChanged: _onLockDropChanged,
-            contentPadding: EdgeInsets.zero,
-          ),
-          const SizedBox(height: 32),
+        ),
+        const SizedBox(height: 16),
+        SwitchListTile(
+          title: const Text('Lock for Delete'),
+          subtitle: const Text('Prevent accidental deletion of items'),
+          value: _lockDelete,
+          onChanged: _onLockDeleteChanged,
+          contentPadding: EdgeInsets.zero,
+        ),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          title: const Text('Lock for Drop'),
+          subtitle: const Text('Prevent accidental dropping of items'),
+          value: _lockDrop,
+          onChanged: _onLockDropChanged,
+          contentPadding: EdgeInsets.zero,
+        ),
+        const SizedBox(height: 32),
 
-          Text(
-            'AI Configuration',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.primary,
+        Text(
+          'AI Configuration',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        InputDecorator(
+          decoration: const InputDecoration(
+            labelText: 'AI Provider',
+            border: OutlineInputBorder(),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<AIProvider>(
+              value: _selectedProvider,
+              isExpanded: true,
+              items: AIProvider.values.map((provider) {
+                return DropdownMenuItem<AIProvider>(
+                  value: provider,
+                  child: Text(provider.displayName),
+                );
+              }).toList(),
+              onChanged: _onProviderChanged,
             ),
           ),
-          const SizedBox(height: 16),
-          InputDecorator(
-            decoration: const InputDecoration(
-              labelText: 'AI Provider',
-              border: OutlineInputBorder(),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<AIProvider>(
-                value: _selectedProvider,
-                isExpanded: true,
-                items: AIProvider.values.map((provider) {
-                  return DropdownMenuItem<AIProvider>(
-                    value: provider,
-                    child: Text(provider.displayName),
-                  );
-                }).toList(),
-                onChanged: _onProviderChanged,
-              ),
-            ),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _endpointController,
+          decoration: const InputDecoration(
+            labelText: 'API Endpoint',
+            border: OutlineInputBorder(),
+            helperText: 'Edit endpoint for any provider',
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _endpointController,
-            decoration: const InputDecoration(
-              labelText: 'API Endpoint',
-              border: OutlineInputBorder(),
-              helperText: 'Edit endpoint for any provider',
-            ),
-            keyboardType: TextInputType.url,
-            onFieldSubmitted: (_) => _saveCurrentSettings(),
+          keyboardType: TextInputType.url,
+          onFieldSubmitted: (_) => _saveCurrentSettings(),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _modelNameController,
+          decoration: const InputDecoration(
+            labelText: 'Model Name',
+            border: OutlineInputBorder(),
+            helperText: 'e.g. gpt-4, claude-3-opus-20240229, etc.',
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _modelNameController,
-            decoration: const InputDecoration(
-              labelText: 'Model Name',
-              border: OutlineInputBorder(),
-              helperText: 'e.g. gpt-4, claude-3-opus-20240229, etc.',
-            ),
-            onFieldSubmitted: (_) => _saveCurrentSettings(),
+          onFieldSubmitted: (_) => _saveCurrentSettings(),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _apiKeyController,
+          decoration: const InputDecoration(
+            labelText: 'API Key',
+            border: OutlineInputBorder(),
+            helperText: 'Your API key will be stored securely',
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _apiKeyController,
-            decoration: const InputDecoration(
-              labelText: 'API Key',
-              border: OutlineInputBorder(),
-              helperText: 'Your API key will be stored securely',
-            ),
-            obscureText: true,
-            enableSuggestions: false,
-            autocorrect: false,
-            onFieldSubmitted: (_) => _saveCurrentSettings(),
-          ),
-        ],
-      ),
+          obscureText: true,
+          enableSuggestions: false,
+          autocorrect: false,
+          onFieldSubmitted: (_) => _saveCurrentSettings(),
+        ),
+      ],
     );
   }
 }
