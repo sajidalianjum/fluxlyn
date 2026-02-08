@@ -318,23 +318,20 @@ class _RowEditDialogState extends State<RowEditDialog> {
               ),
             // Form content
             Expanded(
-              child: SingleChildScrollView(
+              child: ListView(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Row Data', style: theme.textTheme.titleLarge),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Long press any field to set it to NULL',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
-                      ),
+                children: [
+                  Text('Row Data', style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Long press any field to set it to NULL',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
                     ),
-                    const SizedBox(height: 24),
-                    ...widget.columns.map((col) => _buildField(col)),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 24),
+                  ...widget.columns.map((col) => _buildField(col)),
+                ],
               ),
             ),
           ],

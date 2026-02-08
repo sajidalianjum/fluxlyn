@@ -176,32 +176,34 @@ class _QueryResultsPageState extends State<QueryResultsPage>
         Expanded(
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: SingleChildScrollView(
+            child: ListView(
               scrollDirection: Axis.vertical,
-              child: DataTable(
-                headingRowColor: WidgetStateColor.resolveWith(
-                  (states) => const Color(0xFF0F172A),
-                ),
-                columns: result.columns.map((col) {
-                  return DataColumn(
-                    label: Text(
-                      col,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontWeight: FontWeight.bold,
+              children: [
+                DataTable(
+                  headingRowColor: WidgetStateColor.resolveWith(
+                    (states) => const Color(0xFF0F172A),
+                  ),
+                  columns: result.columns.map((col) {
+                    return DataColumn(
+                      label: Text(
+                        col,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  );
-                }).toList(),
-                rows: pageRows.map((row) {
-                  return DataRow(
-                    cells: result.columns.map((col) {
-                      final value = row[col];
-                      return DataCell(_buildCellContent(value));
-                    }).toList(),
-                  );
-                }).toList(),
-              ),
+                    );
+                  }).toList(),
+                  rows: pageRows.map((row) {
+                    return DataRow(
+                      cells: result.columns.map((col) {
+                        final value = row[col];
+                        return DataCell(_buildCellContent(value));
+                      }).toList(),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
           ),
         ),

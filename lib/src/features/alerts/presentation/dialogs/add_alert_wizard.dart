@@ -320,273 +320,263 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
   }
 
   Widget _buildConfigureAlertStep() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Step 5: Configure Alert',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return ListView(
+      children: [
+        const Text(
+          'Step 5: Configure Alert',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 24),
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Alert Name',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.label),
           ),
-          const SizedBox(height: 24),
-
-          TextField(
-            decoration: const InputDecoration(
-              labelText: 'Alert Name',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.label),
+          style: const TextStyle(color: Colors.white),
+          onChanged: (value) {
+            setState(() {
+              _alertName = value;
+            });
+          },
+        ),
+        const SizedBox(height: 16),
+        const Text('Schedule', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        SegmentedButton<AlertSchedule>(
+          segments: const [
+            ButtonSegment(
+              value: AlertSchedule.hourly,
+              label: Text('Hourly'),
+              icon: Icon(Icons.access_time),
             ),
-            style: const TextStyle(color: Colors.white),
-            onChanged: (value) {
-              setState(() {
-                _alertName = value;
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-
-          const Text('Schedule', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          SegmentedButton<AlertSchedule>(
-            segments: const [
-              ButtonSegment(
-                value: AlertSchedule.hourly,
-                label: Text('Hourly'),
-                icon: Icon(Icons.access_time),
-              ),
-              ButtonSegment(
-                value: AlertSchedule.daily,
-                label: Text('Daily'),
-                icon: Icon(Icons.calendar_today),
-              ),
-              ButtonSegment(
-                value: AlertSchedule.weekly,
-                label: Text('Weekly'),
-                icon: Icon(Icons.date_range),
-              ),
-              ButtonSegment(
-                value: AlertSchedule.minutes,
-                label: Text('Minutes'),
-                icon: Icon(Icons.timer),
-              ),
-            ],
-            selected: {_schedule},
-            onSelectionChanged: (Set<AlertSchedule> selection) {
-              setState(() {
-                _schedule = selection.first;
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-
-          if (_schedule != AlertSchedule.hourly) ...[
-            if (_schedule == AlertSchedule.minutes)
-              DropdownButtonFormField<int>(
-                decoration: const InputDecoration(
-                  labelText: 'Interval (minutes)',
-                  border: OutlineInputBorder(),
-                  hintText: 'How often to run the query',
-                ),
-                initialValue: _scheduleMinutes ?? 30,
-                items: const [5, 10, 15, 30, 45, 60, 90, 120].map((minutes) {
-                  return DropdownMenuItem(
-                    value: minutes,
-                    child: Text('Every $minutes minutes'),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _scheduleMinutes = value;
-                  });
-                },
-              ),
-            if (_schedule != AlertSchedule.minutes) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      decoration: const InputDecoration(
-                        labelText: 'Hour',
-                        border: OutlineInputBorder(),
-                      ),
-                      initialValue: _scheduleHour,
-                      items: List.generate(24, (hour) {
-                        return DropdownMenuItem(
-                          value: hour,
-                          child: Text('${hour.toString().padLeft(2, '0')}:00'),
-                        );
-                      }),
-                      onChanged: (value) {
-                        setState(() {
-                          _scheduleHour = value;
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: DropdownButtonFormField<int>(
-                      decoration: const InputDecoration(
-                        labelText: 'Minute',
-                        border: OutlineInputBorder(),
-                      ),
-                      initialValue: _scheduleMinute,
-                      items: List.generate(60, (minute) {
-                        return DropdownMenuItem(
-                          value: minute,
-                          child: Text(minute.toString().padLeft(2, '0')),
-                        );
-                      }),
-                      onChanged: (value) {
-                        setState(() {
-                          _scheduleMinute = value;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
+            ButtonSegment(
+              value: AlertSchedule.daily,
+              label: Text('Daily'),
+              icon: Icon(Icons.calendar_today),
+            ),
+            ButtonSegment(
+              value: AlertSchedule.weekly,
+              label: Text('Weekly'),
+              icon: Icon(Icons.date_range),
+            ),
+            ButtonSegment(
+              value: AlertSchedule.minutes,
+              label: Text('Minutes'),
+              icon: Icon(Icons.timer),
+            ),
           ],
-
-          const Text(
-            'Threshold (Optional)',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          if (_testColumns != null && _testColumns!.isNotEmpty) ...[
-            DropdownButtonFormField<String>(
+          selected: {_schedule},
+          onSelectionChanged: (Set<AlertSchedule> selection) {
+            setState(() {
+              _schedule = selection.first;
+            });
+          },
+        ),
+        const SizedBox(height: 16),
+        if (_schedule != AlertSchedule.hourly) ...[
+          if (_schedule == AlertSchedule.minutes)
+            DropdownButtonFormField<int>(
               decoration: const InputDecoration(
-                labelText: 'Column to Check',
+                labelText: 'Interval (minutes)',
                 border: OutlineInputBorder(),
+                hintText: 'How often to run the query',
               ),
-              initialValue: _thresholdColumn,
-              items: _testColumns!.map((col) {
-                return DropdownMenuItem(value: col, child: Text(col));
+              initialValue: _scheduleMinutes ?? 30,
+              items: const [5, 10, 15, 30, 45, 60, 90, 120].map((minutes) {
+                return DropdownMenuItem(
+                  value: minutes,
+                  child: Text('Every $minutes minutes'),
+                );
               }).toList(),
               onChanged: (value) {
                 setState(() {
-                  _thresholdColumn = value;
+                  _scheduleMinutes = value;
                 });
               },
             ),
-            const SizedBox(height: 16),
+          if (_schedule != AlertSchedule.minutes) ...[
             Row(
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<ThresholdOperator>(
+                  child: DropdownButtonFormField<int>(
                     decoration: const InputDecoration(
-                      labelText: 'Operator',
+                      labelText: 'Hour',
                       border: OutlineInputBorder(),
                     ),
-                    value: _thresholdOperator,
-                    items: const [
-                      DropdownMenuItem(
-                        value: ThresholdOperator.greaterThan,
-                        child: Text('> Greater than'),
-                      ),
-                      DropdownMenuItem(
-                        value: ThresholdOperator.lessThan,
-                        child: Text('< Less than'),
-                      ),
-                      DropdownMenuItem(
-                        value: ThresholdOperator.equals,
-                        child: Text('= Equals'),
-                      ),
-                      DropdownMenuItem(
-                        value: ThresholdOperator.notEquals,
-                        child: Text('!= Not equals'),
-                      ),
-                      DropdownMenuItem(
-                        value: ThresholdOperator.greaterOrEqual,
-                        child: Text('>= Greater or equal'),
-                      ),
-                      DropdownMenuItem(
-                        value: ThresholdOperator.lessOrEqual,
-                        child: Text('<= Less or equal'),
-                      ),
-                      DropdownMenuItem(
-                        value: ThresholdOperator.changed,
-                        child: Text('!= Changed'),
-                      ),
-                    ],
+                    initialValue: _scheduleHour,
+                    items: List.generate(24, (hour) {
+                      return DropdownMenuItem(
+                        value: hour,
+                        child: Text('${hour.toString().padLeft(2, '0')}:00'),
+                      );
+                    }),
                     onChanged: (value) {
                       setState(() {
-                        _thresholdOperator = value;
+                        _scheduleHour = value;
                       });
                     },
                   ),
                 ),
                 const SizedBox(width: 16),
-                if (_thresholdOperator != ThresholdOperator.changed)
-                  Expanded(
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'Value',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
-                      onChanged: (value) {
-                        setState(() {
-                          _thresholdValue = double.tryParse(value);
-                        });
-                      },
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Minute',
+                      border: OutlineInputBorder(),
                     ),
+                    initialValue: _scheduleMinute,
+                    items: List.generate(60, (minute) {
+                      return DropdownMenuItem(
+                        value: minute,
+                        child: Text(minute.toString().padLeft(2, '0')),
+                      );
+                    }),
+                    onChanged: (value) {
+                      setState(() {
+                        _scheduleMinute = value;
+                      });
+                    },
                   ),
+                ),
               ],
             ),
-          ] else
-            const Text('Run query first to see available columns'),
+            const SizedBox(height: 16),
+          ],
         ],
-      ),
+        const Text(
+          'Threshold (Optional)',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        if (_testColumns != null && _testColumns!.isNotEmpty) ...[
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              labelText: 'Column to Check',
+              border: OutlineInputBorder(),
+            ),
+            initialValue: _thresholdColumn,
+            items: _testColumns!.map((col) {
+              return DropdownMenuItem(value: col, child: Text(col));
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _thresholdColumn = value;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<ThresholdOperator>(
+                  decoration: const InputDecoration(
+                    labelText: 'Operator',
+                    border: OutlineInputBorder(),
+                  ),
+                  value: _thresholdOperator,
+                  items: const [
+                    DropdownMenuItem(
+                      value: ThresholdOperator.greaterThan,
+                      child: Text('> Greater than'),
+                    ),
+                    DropdownMenuItem(
+                      value: ThresholdOperator.lessThan,
+                      child: Text('< Less than'),
+                    ),
+                    DropdownMenuItem(
+                      value: ThresholdOperator.equals,
+                      child: Text('= Equals'),
+                    ),
+                    DropdownMenuItem(
+                      value: ThresholdOperator.notEquals,
+                      child: Text('!= Not equals'),
+                    ),
+                    DropdownMenuItem(
+                      value: ThresholdOperator.greaterOrEqual,
+                      child: Text('>= Greater or equal'),
+                    ),
+                    DropdownMenuItem(
+                      value: ThresholdOperator.lessOrEqual,
+                      child: Text('<= Less or equal'),
+                    ),
+                    DropdownMenuItem(
+                      value: ThresholdOperator.changed,
+                      child: Text('!= Changed'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _thresholdOperator = value;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              if (_thresholdOperator != ThresholdOperator.changed)
+                Expanded(
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Value',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.white),
+                    onChanged: (value) {
+                      setState(() {
+                        _thresholdValue = double.tryParse(value);
+                      });
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ] else
+          const Text('Run query first to see available columns'),
+      ],
     );
   }
 
   Widget _buildReviewStep() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Step 6: Review & Save',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-          _buildReviewItem('Alert Name', _alertName),
+    return ListView(
+      children: [
+        const Text(
+          'Step 6: Review & Save',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 24),
+        _buildReviewItem('Alert Name', _alertName),
+        const SizedBox(height: 12),
+        _buildReviewItem(
+          'Connection',
+          _selectedConnection?.name ?? 'Not selected',
+        ),
+        const SizedBox(height: 12),
+        _buildReviewItem('Database', _selectedDatabase ?? 'Not selected'),
+        const SizedBox(height: 12),
+        _buildReviewItem('Schedule', _getScheduleDisplay()),
+        const SizedBox(height: 12),
+        if (_thresholdColumn != null) ...[
+          _buildReviewItem('Threshold', _getThresholdDisplay()),
           const SizedBox(height: 12),
-          _buildReviewItem(
-            'Connection',
-            _selectedConnection?.name ?? 'Not selected',
-          ),
-          const SizedBox(height: 12),
-          _buildReviewItem('Database', _selectedDatabase ?? 'Not selected'),
-          const SizedBox(height: 12),
-          _buildReviewItem('Schedule', _getScheduleDisplay()),
-          const SizedBox(height: 12),
-          if (_thresholdColumn != null) ...[
-            _buildReviewItem('Threshold', _getThresholdDisplay()),
-            const SizedBox(height: 12),
-          ],
-          const Text('Query:', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                _query,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-              ),
+        ],
+        const Text('Query:', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _query,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
