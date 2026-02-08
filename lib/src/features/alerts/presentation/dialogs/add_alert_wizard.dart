@@ -24,6 +24,7 @@ class AddAlertWizard extends StatefulWidget {
 class _AddAlertWizardState extends State<AddAlertWizard> {
   final _uuid = const Uuid();
   int _currentStep = 0;
+  DashboardProvider? _dashboardProvider;
 
   ConnectionModel? _selectedConnection;
   String? _selectedDatabase;
@@ -44,6 +45,12 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
   List<Map<String, dynamic>>? _testResults;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _dashboardProvider ??= context.read<DashboardProvider>();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: const Color(0xFF1E293B),
@@ -61,7 +68,10 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    _cleanupConnection();
+                    Navigator.of(context).pop();
+                  },
                   icon: const Icon(Icons.close),
                 ),
               ],
@@ -789,6 +799,7 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Alert created successfully')),
         );
+        _cleanupConnection();
         Navigator.of(context).pop();
       }
     } catch (e) {
@@ -1074,5 +1085,17 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
       return double.tryParse(value) ?? 0.0;
     }
     return 0.0;
+  }
+
+  void _cleanupConnection() {
+    if (_selectedConnection != null && _dashboardProvider != null) {
+      _dashboardProvider!.disconnect();
+    }
+  }
+
+  @override
+  void dispose() {
+    _cleanupConnection();
+    super.dispose();
   }
 }

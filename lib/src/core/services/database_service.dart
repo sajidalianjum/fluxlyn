@@ -88,7 +88,7 @@ class DatabaseService {
             try {
               print('SSH Tunnel: Attempting connection via netcat...');
               final session = await _sshClient!.execute(
-                'nc -w 10 $remoteHost ${config.port}',
+                'nc $remoteHost ${config.port}',
               );
 
               // We need to check if nc actually started or failed immediately (e.g. command not found)
@@ -267,7 +267,7 @@ class DatabaseService {
             try {
               print('SSH Tunnel: Attempting connection via netcat...');
               final session = await _sshClient!.execute(
-                'nc -w 10 $remoteHost ${config.port}',
+                'nc $remoteHost ${config.port}',
               );
 
               // We need to check if nc actually started or failed immediately (e.g. command not found)
