@@ -337,7 +337,11 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
               prefixIcon: Icon(Icons.label),
             ),
             style: const TextStyle(color: Colors.white),
-            onChanged: (value) => _alertName = value,
+            onChanged: (value) {
+              setState(() {
+                _alertName = value;
+              });
+            },
           ),
           const SizedBox(height: 16),
 
@@ -750,6 +754,18 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
 
   Future<void> _handleSave() async {
     final now = DateTime.now();
+
+    double? initialThresholdValue;
+    if (_thresholdColumn != null &&
+        _testResults != null &&
+        _testResults!.isNotEmpty) {
+      final firstRow = _testResults!.first;
+      final columnValue = firstRow[_thresholdColumn];
+      if (columnValue != null) {
+        initialThresholdValue = _parseDouble(columnValue);
+      }
+    }
+
     final alert = AlertModel(
       id: _uuid.v4(),
       name: _alertName,
@@ -763,6 +779,7 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
       thresholdColumn: _thresholdColumn,
       thresholdOperator: _thresholdOperator,
       thresholdValue: _thresholdValue,
+      lastThresholdValue: initialThresholdValue,
       isEnabled: true,
       createdAt: now,
       modifiedAt: now,
@@ -1052,5 +1069,14 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
         await dashboardProvider.selectDatabase(selected.databaseName!);
       }
     }
+  }
+
+  double _parseDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value) ?? 0.0;
+    }
+    return 0.0;
   }
 }
