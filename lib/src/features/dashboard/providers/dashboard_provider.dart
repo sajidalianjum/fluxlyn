@@ -4,6 +4,16 @@ import '../../../core/services/database_service.dart';
 import '../../connections/models/connection_model.dart';
 import 'dart:async';
 
+enum ConnectionStep {
+  initializing,
+  connectingSsh,
+  authenticatingSsh,
+  connectingDatabase,
+  loadingDatabases,
+  loadingTables,
+  completed,
+}
+
 class DashboardProvider extends ChangeNotifier {
   final DatabaseService _dbService = DatabaseService();
   ConnectionModel? _currentConnectionModel;
@@ -16,6 +26,7 @@ class DashboardProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   int _selectedTabIndex = 0; // Bottom Nav Index
+  ConnectionStep _connectionStep = ConnectionStep.initializing;
 
   ConnectionModel? get currentConnectionModel => _currentConnectionModel;
   MySQLConnection? get currentConnection => _connection;
@@ -25,6 +36,7 @@ class DashboardProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   int get selectedTabIndex => _selectedTabIndex;
+  ConnectionStep get connectionStep => _connectionStep;
 
   void setTabIndex(int index) {
     _selectedTabIndex = index;
@@ -34,6 +46,7 @@ class DashboardProvider extends ChangeNotifier {
   Future<void> connect(ConnectionModel config) async {
     _isLoading = true;
     _error = null;
+    _connectionStep = ConnectionStep.initializing;
     notifyListeners();
 
     try {
@@ -41,18 +54,28 @@ class DashboardProvider extends ChangeNotifier {
         await _dbService.disconnect();
       }
 
+      if (config.useSsh) {
+        _connectionStep = ConnectionStep.connectingSsh;
+        notifyListeners();
+      }
+
       _connection = await _dbService.connect(config);
       _currentConnectionModel = config;
       _selectedDatabase = config.databaseName;
 
+      _connectionStep = ConnectionStep.loadingDatabases;
+      notifyListeners();
       await refreshDatabases();
 
       if (_selectedDatabase != null && _selectedDatabase!.isNotEmpty) {
+        _connectionStep = ConnectionStep.loadingTables;
+        notifyListeners();
         await refreshTables();
       }
 
       // Navigate to Schema/Databases tab by default
       _selectedTabIndex = 0;
+      _connectionStep = ConnectionStep.completed;
     } catch (e) {
       String errorMessage = e.toString();
       if (errorMessage.contains('caching_sha2_password')) {
@@ -64,6 +87,7 @@ class DashboardProvider extends ChangeNotifier {
       }
       _error = errorMessage;
       _currentConnectionModel = null;
+      _connectionStep = ConnectionStep.initializing;
     } finally {
       _isLoading = false;
       notifyListeners();

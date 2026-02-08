@@ -35,85 +35,135 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
     );
   }
 
+  String _getConnectionMessage(ConnectionStep step) {
+    switch (step) {
+      case ConnectionStep.initializing:
+        return 'Initializing connection...';
+      case ConnectionStep.connectingSsh:
+        return 'Establishing SSH tunnel...';
+      case ConnectionStep.authenticatingSsh:
+        return 'Authenticating SSH...';
+      case ConnectionStep.connectingDatabase:
+        return 'Connecting to database...';
+      case ConnectionStep.loadingDatabases:
+        return 'Loading databases...';
+      case ConnectionStep.loadingTables:
+        return 'Loading tables...';
+      case ConnectionStep.completed:
+        return 'Connection established!';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ConnectionsProvider>(
       builder: (context, provider, child) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 24),
-              Expanded(
-                child: provider.connections.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.dns_outlined,
-                              size: 64,
-                              color: Colors.grey.withValues(alpha: 0.2),
+        return Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: provider.connections.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.dns_outlined,
+                                  size: 64,
+                                  color: Colors.grey.withValues(alpha: 0.2),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No connections yet.\nTap "+" to add one.',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(color: Colors.grey),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 16),
+                          )
+                        : ListView.builder(
+                            itemCount: provider.connections.length,
+                            itemBuilder: (context, index) {
+                              final connection = provider.connections[index];
+                              return ConnectionCard(
+                                connection: connection,
+                                onTap: () async {
+                                  final dashboardProvider = context
+                                      .read<DashboardProvider>();
+                                  await dashboardProvider.connect(connection);
+
+                                  if (context.mounted) {
+                                    if (dashboardProvider.error != null) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Error: ${dashboardProvider.error}',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    } else {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => const DashboardPage(),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                onEdit: () => _showConnectionDialog(
+                                  context,
+                                  connection: connection,
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            Consumer<DashboardProvider>(
+              builder: (context, dashboardProvider, child) {
+                if (dashboardProvider.isLoading) {
+                  return Container(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 24),
                             Text(
-                              'No connections yet.\nTap "+" to add one.',
+                              _getConnectionMessage(
+                                dashboardProvider.connectionStep,
+                              ),
+                              style: Theme.of(context).textTheme.titleMedium,
                               textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(color: Colors.grey),
                             ),
                           ],
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: provider.connections.length,
-                        itemBuilder: (context, index) {
-                          final connection = provider.connections[index];
-                          return ConnectionCard(
-                            connection: connection,
-                            onTap: () async {
-                              final dashboardProvider = context
-                                  .read<DashboardProvider>();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Connecting to ${connection.name}...',
-                                  ),
-                                ),
-                              );
-
-                              await dashboardProvider.connect(connection);
-
-                              if (context.mounted) {
-                                if (dashboardProvider.error != null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Error: ${dashboardProvider.error}',
-                                      ),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                } else {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const DashboardPage(),
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                            onEdit: () => _showConnectionDialog(
-                              context,
-                              connection: connection,
-                            ),
-                          );
-                        },
                       ),
-              ),
-            ],
-          ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
         );
       },
     );
