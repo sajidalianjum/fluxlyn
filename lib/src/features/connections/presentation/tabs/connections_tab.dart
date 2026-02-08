@@ -80,7 +80,6 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                                   content: Text(
                                     'Connecting to ${connection.name}...',
                                   ),
-                                  duration: const Duration(seconds: 1),
                                 ),
                               );
 

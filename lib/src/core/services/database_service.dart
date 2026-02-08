@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 import 'package:dartssh2/dartssh2.dart';
 import '../../features/connections/models/connection_model.dart';
+import '../../utils/ssh_helper.dart';
 
 class DatabaseService {
   SSHClient? _sshClient;
@@ -39,16 +41,20 @@ class DatabaseService {
         if (config.sshPrivateKey != null) {
           final keyText = config.sshPrivateKey!;
           if (keyText.startsWith('-----')) {
-            keys.addAll(SSHKeyPair.fromPem(keyText, config.sshKeyPassword));
+            final decryptedKeys = await compute(decryptSSHKeyPairs, [
+              keyText,
+              config.sshKeyPassword ?? '',
+            ]);
+            keys.addAll(decryptedKeys);
           } else {
             final file = File(keyText);
             if (file.existsSync()) {
-              keys.addAll(
-                SSHKeyPair.fromPem(
-                  file.readAsStringSync(),
-                  config.sshKeyPassword,
-                ),
-              );
+              final keyContent = await file.readAsString();
+              final decryptedKeys = await compute(decryptSSHKeyPairs, [
+                keyContent,
+                config.sshKeyPassword ?? '',
+              ]);
+              keys.addAll(decryptedKeys);
             }
           }
         }
@@ -74,19 +80,24 @@ class DatabaseService {
             print(
               'SSH Tunnel: New connection received, creating forward channel to ${config.host}:${config.port}',
             );
-            
-            final remoteHost = config.host == 'localhost' ? '127.0.0.1' : config.host;
-            
+
+            final remoteHost = config.host == 'localhost'
+                ? '127.0.0.1'
+                : config.host;
+
             try {
               print('SSH Tunnel: Attempting connection via netcat...');
-              final session = await _sshClient!.execute('nc -w 10 $remoteHost ${config.port}');
-              
+              final session = await _sshClient!.execute(
+                'nc -w 10 $remoteHost ${config.port}',
+              );
+
               // We need to check if nc actually started or failed immediately (e.g. command not found)
               // We'll give it a tiny bit of time to see if it closes with an error
               bool ncFailed = false;
               session.stderr.listen((data) {
                 final err = String.fromCharCodes(data).toLowerCase();
-                if (err.contains('not found') || err.contains('not recognized')) {
+                if (err.contains('not found') ||
+                    err.contains('not recognized')) {
                   ncFailed = true;
                 }
               });
@@ -115,9 +126,14 @@ class DatabaseService {
               await session.done;
               print('SSH Tunnel: Netcat session closed');
             } catch (e) {
-              print('SSH Tunnel: Netcat failed or not found ($e), falling back to direct-tcpip...');
-              
-              final forward = await _sshClient!.forwardLocal(remoteHost, config.port);
+              print(
+                'SSH Tunnel: Netcat failed or not found ($e), falling back to direct-tcpip...',
+              );
+
+              final forward = await _sshClient!.forwardLocal(
+                remoteHost,
+                config.port,
+              );
               print('SSH Tunnel: Direct forward channel created');
 
               socket.setOption(SocketOption.tcpNoDelay, true);
@@ -204,16 +220,20 @@ class DatabaseService {
         if (config.sshPrivateKey != null) {
           final keyText = config.sshPrivateKey!;
           if (keyText.startsWith('-----')) {
-            keys.addAll(SSHKeyPair.fromPem(keyText, config.sshKeyPassword));
+            final decryptedKeys = await compute(decryptSSHKeyPairs, [
+              keyText,
+              config.sshKeyPassword ?? '',
+            ]);
+            keys.addAll(decryptedKeys);
           } else {
             final file = File(keyText);
             if (file.existsSync()) {
-              keys.addAll(
-                SSHKeyPair.fromPem(
-                  file.readAsStringSync(),
-                  config.sshKeyPassword,
-                ),
-              );
+              final keyContent = await file.readAsString();
+              final decryptedKeys = await compute(decryptSSHKeyPairs, [
+                keyContent,
+                config.sshKeyPassword ?? '',
+              ]);
+              keys.addAll(decryptedKeys);
             }
           }
         }
@@ -239,19 +259,24 @@ class DatabaseService {
             print(
               'SSH Tunnel: New connection received, creating forward channel to ${config.host}:${config.port}',
             );
-            
-            final remoteHost = config.host == 'localhost' ? '127.0.0.1' : config.host;
-            
+
+            final remoteHost = config.host == 'localhost'
+                ? '127.0.0.1'
+                : config.host;
+
             try {
               print('SSH Tunnel: Attempting connection via netcat...');
-              final session = await _sshClient!.execute('nc -w 10 $remoteHost ${config.port}');
-              
+              final session = await _sshClient!.execute(
+                'nc -w 10 $remoteHost ${config.port}',
+              );
+
               // We need to check if nc actually started or failed immediately (e.g. command not found)
               // We'll give it a tiny bit of time to see if it closes with an error
               bool ncFailed = false;
               session.stderr.listen((data) {
                 final err = String.fromCharCodes(data).toLowerCase();
-                if (err.contains('not found') || err.contains('not recognized')) {
+                if (err.contains('not found') ||
+                    err.contains('not recognized')) {
                   ncFailed = true;
                 }
               });
@@ -280,9 +305,14 @@ class DatabaseService {
               await session.done;
               print('SSH Tunnel: Netcat session closed');
             } catch (e) {
-              print('SSH Tunnel: Netcat failed or not found ($e), falling back to direct-tcpip...');
-              
-              final forward = await _sshClient!.forwardLocal(remoteHost, config.port);
+              print(
+                'SSH Tunnel: Netcat failed or not found ($e), falling back to direct-tcpip...',
+              );
+
+              final forward = await _sshClient!.forwardLocal(
+                remoteHost,
+                config.port,
+              );
               print('SSH Tunnel: Direct forward channel created');
 
               socket.setOption(SocketOption.tcpNoDelay, true);
