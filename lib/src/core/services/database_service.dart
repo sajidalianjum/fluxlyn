@@ -75,44 +75,68 @@ class DatabaseService {
               'SSH Tunnel: New connection received, creating forward channel to ${config.host}:${config.port}',
             );
             
-            print('SSH Tunnel: Attempting connection via netcat...');
             final remoteHost = config.host == 'localhost' ? '127.0.0.1' : config.host;
-            final session = await _sshClient!.execute('nc $remoteHost ${config.port}');
-            print('SSH Tunnel: Netcat session started');
+            
+            try {
+              print('SSH Tunnel: Attempting connection via netcat...');
+              final session = await _sshClient!.execute('nc -w 10 $remoteHost ${config.port}');
+              
+              // We need to check if nc actually started or failed immediately (e.g. command not found)
+              // We'll give it a tiny bit of time to see if it closes with an error
+              bool ncFailed = false;
+              session.stderr.listen((data) {
+                final err = String.fromCharCodes(data).toLowerCase();
+                if (err.contains('not found') || err.contains('not recognized')) {
+                  ncFailed = true;
+                }
+              });
 
-            socket.setOption(SocketOption.tcpNoDelay, true);
+              await Future.delayed(const Duration(milliseconds: 200));
 
-            session.stdout.listen(
-              (data) {
-                socket.add(data);
-              },
-              onDone: () {
-                print('SSH Tunnel: Remote closed');
-                socket.close();
-              },
-              onError: (e) {
-                print('SSH Tunnel: Forward stream error: $e');
-                socket.close();
-              },
-            );
+              if (ncFailed) {
+                throw Exception('nc not found');
+              }
 
-            socket.listen(
-              (data) {
-                // print('SSH Tunnel: ${data.length} bytes local -> remote');
-                session.stdin.add(data);
-              },
-              onDone: () {
-                print('SSH Tunnel: Local closed');
-                session.stdin.close();
-              },
-              onError: (e) {
-                print('SSH Tunnel: Socket error: $e');
-                session.stdin.close();
-              },
-            );
+              print('SSH Tunnel: Netcat session started');
+              socket.setOption(SocketOption.tcpNoDelay, true);
 
-            await session.done;
-            print('SSH Tunnel: Netcat session closed');
+              session.stdout.listen(
+                (data) => socket.add(data),
+                onDone: () => socket.close(),
+                onError: (e) => socket.close(),
+              );
+
+              socket.listen(
+                (data) => session.stdin.add(data),
+                onDone: () => session.stdin.close(),
+                onError: (e) => session.stdin.close(),
+              );
+
+              await session.done;
+              print('SSH Tunnel: Netcat session closed');
+            } catch (e) {
+              print('SSH Tunnel: Netcat failed or not found ($e), falling back to direct-tcpip...');
+              
+              final forward = await _sshClient!.forwardLocal(remoteHost, config.port);
+              print('SSH Tunnel: Direct forward channel created');
+
+              socket.setOption(SocketOption.tcpNoDelay, true);
+
+              forward.stream.listen(
+                (data) => socket.add(data),
+                onDone: () => socket.close(),
+                onError: (e) => socket.close(),
+              );
+
+              socket.listen(
+                (data) => forward.sink.add(data),
+                onDone: () => forward.sink.close(),
+                onError: (e) => forward.sink.close(),
+              );
+
+              await forward.done;
+              print('SSH Tunnel: Direct forward channel closed');
+            }
           } catch (e) {
             print('SSH Tunnel: Forward error - $e');
             socket.close();
@@ -216,44 +240,68 @@ class DatabaseService {
               'SSH Tunnel: New connection received, creating forward channel to ${config.host}:${config.port}',
             );
             
-            print('SSH Tunnel: Attempting connection via netcat...');
             final remoteHost = config.host == 'localhost' ? '127.0.0.1' : config.host;
-            final session = await _sshClient!.execute('nc $remoteHost ${config.port}');
-            print('SSH Tunnel: Netcat session started');
+            
+            try {
+              print('SSH Tunnel: Attempting connection via netcat...');
+              final session = await _sshClient!.execute('nc -w 10 $remoteHost ${config.port}');
+              
+              // We need to check if nc actually started or failed immediately (e.g. command not found)
+              // We'll give it a tiny bit of time to see if it closes with an error
+              bool ncFailed = false;
+              session.stderr.listen((data) {
+                final err = String.fromCharCodes(data).toLowerCase();
+                if (err.contains('not found') || err.contains('not recognized')) {
+                  ncFailed = true;
+                }
+              });
 
-            socket.setOption(SocketOption.tcpNoDelay, true);
+              await Future.delayed(const Duration(milliseconds: 200));
 
-            session.stdout.listen(
-              (data) {
-                socket.add(data);
-              },
-              onDone: () {
-                print('SSH Tunnel: Remote closed');
-                socket.close();
-              },
-              onError: (e) {
-                print('SSH Tunnel: Forward stream error: $e');
-                socket.close();
-              },
-            );
+              if (ncFailed) {
+                throw Exception('nc not found');
+              }
 
-            socket.listen(
-              (data) {
-                // print('SSH Tunnel: ${data.length} bytes local -> remote');
-                session.stdin.add(data);
-              },
-              onDone: () {
-                print('SSH Tunnel: Local closed');
-                session.stdin.close();
-              },
-              onError: (e) {
-                print('SSH Tunnel: Socket error: $e');
-                session.stdin.close();
-              },
-            );
+              print('SSH Tunnel: Netcat session started');
+              socket.setOption(SocketOption.tcpNoDelay, true);
 
-            await session.done;
-            print('SSH Tunnel: Netcat session closed');
+              session.stdout.listen(
+                (data) => socket.add(data),
+                onDone: () => socket.close(),
+                onError: (e) => socket.close(),
+              );
+
+              socket.listen(
+                (data) => session.stdin.add(data),
+                onDone: () => session.stdin.close(),
+                onError: (e) => session.stdin.close(),
+              );
+
+              await session.done;
+              print('SSH Tunnel: Netcat session closed');
+            } catch (e) {
+              print('SSH Tunnel: Netcat failed or not found ($e), falling back to direct-tcpip...');
+              
+              final forward = await _sshClient!.forwardLocal(remoteHost, config.port);
+              print('SSH Tunnel: Direct forward channel created');
+
+              socket.setOption(SocketOption.tcpNoDelay, true);
+
+              forward.stream.listen(
+                (data) => socket.add(data),
+                onDone: () => socket.close(),
+                onError: (e) => socket.close(),
+              );
+
+              socket.listen(
+                (data) => forward.sink.add(data),
+                onDone: () => forward.sink.close(),
+                onError: (e) => forward.sink.close(),
+              );
+
+              await forward.done;
+              print('SSH Tunnel: Direct forward channel closed');
+            }
           } catch (e) {
             print('SSH Tunnel: Forward error - $e');
             socket.close();
