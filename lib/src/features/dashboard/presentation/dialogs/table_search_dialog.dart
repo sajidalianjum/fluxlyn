@@ -76,9 +76,12 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Search & Filter',
-                  style: Theme.of(context).textTheme.titleLarge,
+                Flexible(
+                  child: Text(
+                    'Search & Filter',
+                    style: Theme.of(context).textTheme.titleLarge,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -101,6 +104,7 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: _searchColumn,
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Column',
                         border: OutlineInputBorder(),
@@ -114,7 +118,7 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
                         ...widget.columns.map((col) {
                           return DropdownMenuItem<String>(
                             value: col,
-                            child: Text(col),
+                            child: Text(col, overflow: TextOverflow.ellipsis),
                           );
                         }),
                       ],
@@ -142,6 +146,7 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: _sortColumn,
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Column',
                         border: OutlineInputBorder(),
@@ -155,7 +160,7 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
                         ...widget.columns.map((col) {
                           return DropdownMenuItem<String>(
                             value: col,
-                            child: Text(col),
+                            child: Text(col, overflow: TextOverflow.ellipsis),
                           );
                         }),
                       ],
@@ -192,21 +197,61 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
             ),
             const SizedBox(height: 24),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(onPressed: _handleReset, child: const Text('Reset')),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _handleApply,
-                  child: const Text('Apply'),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 350;
+
+                return isWide
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: _handleReset,
+                            child: const Text('Reset'),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton(
+                            onPressed: _handleApply,
+                            child: const Text('Apply'),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: TextButton(
+                              onPressed: _handleReset,
+                              child: const Text('Reset'),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('Cancel'),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: FilledButton(
+                                  onPressed: _handleApply,
+                                  child: const Text('Apply'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+              },
             ),
           ],
         ),
