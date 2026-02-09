@@ -4,7 +4,6 @@ import '../../../../core/widgets/data_table2_widget.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../models/table_search_result.dart';
 import '../dialogs/row_edit_dialog.dart';
-import '../dialogs/edit_confirmation_dialog.dart';
 import '../dialogs/table_search_dialog.dart';
 
 class TableDataPage extends StatefulWidget {
@@ -133,6 +132,11 @@ class _TableDataPageState extends State<TableDataPage> {
   void _openRowEditDialog(int rowIndex) {
     if (rowIndex < 0 || rowIndex >= _rows.length) return;
 
+    final row = _rows[rowIndex];
+    final primaryKeyValue = _primaryKeyColumn != null
+        ? row[_primaryKeyColumn!]
+        : null;
+
     showDialog(
       context: context,
       builder: (context) => RowEditDialog(
@@ -140,6 +144,7 @@ class _TableDataPageState extends State<TableDataPage> {
         columns: _columns,
         row: Map<String, dynamic>.from(_rows[rowIndex]),
         primaryKeyColumn: _primaryKeyColumn,
+        primaryKeyValue: primaryKeyValue,
         binaryColumns: _binaryColumns,
         bitColumns: _bitColumns,
         enumColumns: _enumColumns,
@@ -163,32 +168,7 @@ class _TableDataPageState extends State<TableDataPage> {
         },
         onSave: (changes) {
           Navigator.of(context).pop();
-          _showConfirmationDialog(rowIndex, changes);
-        },
-      ),
-    );
-  }
-
-  void _showConfirmationDialog(int rowIndex, Map<String, dynamic> changes) {
-    if (_primaryKeyColumn == null) return;
-
-    final row = _rows[rowIndex];
-    final primaryKeyValue = row[_primaryKeyColumn!];
-
-    showDialog(
-      context: context,
-      builder: (context) => EditConfirmationDialog(
-        tableName: widget.tableName,
-        primaryKeyColumn: _primaryKeyColumn!,
-        primaryKeyValue: primaryKeyValue,
-        updates: changes,
-        onConfirm: () {
-          Navigator.of(context).pop();
           _commitChanges(rowIndex, changes);
-        },
-        onCancel: () {
-          Navigator.of(context).pop();
-          _openRowEditDialog(rowIndex);
         },
       ),
     );

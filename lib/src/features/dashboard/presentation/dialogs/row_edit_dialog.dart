@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'edit_confirmation_dialog.dart';
 
 class RowEditDialog extends StatefulWidget {
   final String tableName;
   final List<String> columns;
   final Map<String, dynamic> row;
   final String? primaryKeyColumn;
+  final dynamic primaryKeyValue;
   final List<String> binaryColumns;
   final List<String> bitColumns;
   final Map<String, List<String>> enumColumns;
@@ -22,6 +24,7 @@ class RowEditDialog extends StatefulWidget {
     required this.columns,
     required this.row,
     this.primaryKeyColumn,
+    this.primaryKeyValue,
     this.binaryColumns = const [],
     this.bitColumns = const [],
     this.enumColumns = const {},
@@ -334,33 +337,40 @@ class _RowEditDialogState extends State<RowEditDialog> {
             ],
           ),
           actions: [
-            // Previous/Next navigation
-            if (widget.totalRows > 1) ...[
-              IconButton(
-                onPressed: widget.currentRowIndex > 0
-                    ? widget.onPrevious
-                    : null,
-                icon: const Icon(Icons.arrow_back_ios),
-                tooltip: 'Previous Row',
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  if (widget.totalRows > 1) ...[
+                    IconButton(
+                      onPressed: widget.currentRowIndex > 0
+                          ? widget.onPrevious
+                          : null,
+                      icon: const Icon(Icons.arrow_back_ios),
+                      tooltip: 'Previous Row',
+                    ),
+                    IconButton(
+                      onPressed: widget.currentRowIndex < widget.totalRows - 1
+                          ? widget.onNext
+                          : null,
+                      icon: const Icon(Icons.arrow_forward_ios),
+                      tooltip: 'Next Row',
+                    ),
+                    const SizedBox(width: 16),
+                  ],
+                  TextButton(
+                    onPressed: widget.onCancel,
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _hasChanges && canEdit ? _saveChanges : null,
+                    child: const Text('Save'),
+                  ),
+                  const SizedBox(width: 16),
+                ],
               ),
-              IconButton(
-                onPressed: widget.currentRowIndex < widget.totalRows - 1
-                    ? widget.onNext
-                    : null,
-                icon: const Icon(Icons.arrow_forward_ios),
-                tooltip: 'Next Row',
-              ),
-              const SizedBox(width: 16),
-            ],
-            // Cancel button
-            TextButton(onPressed: widget.onCancel, child: const Text('Cancel')),
-            const SizedBox(width: 8),
-            // Save button
-            FilledButton(
-              onPressed: _hasChanges && canEdit ? _saveChanges : null,
-              child: const Text('Save Changes'),
             ),
-            const SizedBox(width: 16),
           ],
         ),
         body: Column(
@@ -852,7 +862,24 @@ class _RowEditDialogState extends State<RowEditDialog> {
 
   void _saveChanges() {
     final changes = _collectChanges();
-    if (changes.isNotEmpty) {
+    if (changes.isNotEmpty && widget.primaryKeyColumn != null) {
+      showDialog(
+        context: context,
+        builder: (context) => EditConfirmationDialog(
+          tableName: widget.tableName,
+          primaryKeyColumn: widget.primaryKeyColumn!,
+          primaryKeyValue: widget.primaryKeyValue,
+          updates: changes,
+          onConfirm: () {
+            Navigator.of(context).pop();
+            widget.onSave(changes);
+          },
+          onCancel: () {
+            Navigator.of(context).pop();
+          },
+        ),
+      );
+    } else if (changes.isNotEmpty) {
       widget.onSave(changes);
     }
   }
