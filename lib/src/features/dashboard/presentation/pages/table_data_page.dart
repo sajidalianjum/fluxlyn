@@ -202,15 +202,13 @@ class _TableDataPageState extends State<TableDataPage> {
   String _getFilterLabel() {
     final parts = <String>[];
     if (_searchResult!.hasFilters) {
-      parts.add(
-        'Filtered by ${_searchResult!.searchColumn}: ${_searchResult!.searchText}',
-      );
+      parts.add('${_searchResult!.searchColumn}');
     }
     if (_searchResult!.hasSort) {
       final direction = _searchResult!.sortDirection == SortDirection.asc
-          ? 'ASC'
-          : 'DESC';
-      parts.add('Sorted by ${_searchResult!.sortColumn} $direction');
+          ? '↑'
+          : '↓';
+      parts.add('${_searchResult!.sortColumn}$direction');
     }
     return parts.join(' • ');
   }
@@ -279,61 +277,19 @@ class _TableDataPageState extends State<TableDataPage> {
               'Table: ${widget.tableName}',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            Row(
-              children: [
-                if (_isEditable)
-                  Text(
-                    'Editable • PK: $_primaryKeyColumn • ${_rows.length} rows',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.green),
-                  )
-                else if (_primaryKeyColumn == null && _rows.isNotEmpty)
-                  Text(
-                    'Read-Only • No Primary Key',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.orange),
-                  ),
-                if (_searchResult != null &&
-                    (_searchResult!.hasFilters || _searchResult!.hasSort)) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: Colors.blue.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _getFilterLabel(),
-                          style: const TextStyle(
-                            color: Colors.blue,
-                            fontSize: 10,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        InkWell(
-                          onTap: _clearFilters,
-                          child: const Icon(
-                            Icons.close,
-                            size: 12,
-                            color: Colors.blue,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
+            Tooltip(
+              message: _isEditable
+                  ? 'Primary Key: $_primaryKeyColumn • ${_rows.length} rows'
+                  : 'Read-Only • No Primary Key',
+              child: Text(
+                _isEditable
+                    ? 'PK: $_primaryKeyColumn • ${_rows.length} rows'
+                    : 'Read-Only • No PK',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _isEditable ? Colors.green : Colors.orange,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -355,6 +311,73 @@ class _TableDataPageState extends State<TableDataPage> {
           ),
           IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
         ],
+        bottom:
+            _searchResult != null &&
+                (_searchResult!.hasFilters || _searchResult!.hasSort)
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(40),
+                child: Container(
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0F172A),
+                    border: Border(
+                      top: BorderSide(color: Colors.grey, width: 0.5),
+                    ),
+                  ),
+                  width: double.infinity,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.blue.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _getFilterLabel(),
+                                style: const TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              InkWell(
+                                onTap: _clearFilters,
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 14,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            : null,
       ),
       body: Builder(
         builder: (context) {
