@@ -13,6 +13,7 @@ class SchemaTab extends StatefulWidget {
 class _SchemaTabState extends State<SchemaTab> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+  bool _needsSearchReset = false;
 
   @override
   void dispose() {
@@ -25,6 +26,21 @@ class _SchemaTabState extends State<SchemaTab> {
     final provider = context.watch<DashboardProvider>();
     final connectionName = provider.currentConnectionModel?.name ?? 'Database';
     final isDbSelected = provider.selectedDatabase != null;
+
+    if (isDbSelected && _needsSearchReset) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _isSearching = false;
+            _searchController.clear();
+            _needsSearchReset = false;
+          });
+        }
+      });
+    }
+    if (!isDbSelected) {
+      _needsSearchReset = true;
+    }
 
     return PopScope(
       canPop: !isDbSelected,
