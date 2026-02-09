@@ -883,7 +883,6 @@ class _QueryTabState extends State<QueryTab> {
                 Navigator.of(context).pop();
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Disconnect'),
           ),
         ],

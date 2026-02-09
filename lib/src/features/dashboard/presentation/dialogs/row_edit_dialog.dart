@@ -7,6 +7,8 @@ class RowEditDialog extends StatefulWidget {
   final String? primaryKeyColumn;
   final List<String> binaryColumns;
   final List<String> bitColumns;
+  final Map<String, List<String>> enumColumns;
+  final Map<String, List<String>> setColumns;
   final int currentRowIndex;
   final int totalRows;
   final VoidCallback onPrevious;
@@ -22,6 +24,8 @@ class RowEditDialog extends StatefulWidget {
     this.primaryKeyColumn,
     this.binaryColumns = const [],
     this.bitColumns = const [],
+    this.enumColumns = const {},
+    this.setColumns = const {},
     required this.currentRowIndex,
     required this.totalRows,
     required this.onPrevious,
@@ -38,6 +42,7 @@ class _RowEditDialogState extends State<RowEditDialog> {
   late Map<String, TextEditingController> _controllers;
   late Map<String, bool> _isNull;
   late Map<String, dynamic> _originalValues;
+  late Map<String, Set<String>> _setSelectedValues;
   bool _hasChanges = false;
 
   @override
@@ -60,6 +65,7 @@ class _RowEditDialogState extends State<RowEditDialog> {
     _controllers = {};
     _isNull = {};
     _originalValues = {};
+    _setSelectedValues = {};
 
     for (final col in widget.columns) {
       final value = widget.row[col];
@@ -68,6 +74,9 @@ class _RowEditDialogState extends State<RowEditDialog> {
       if (value == null) {
         _isNull[col] = true;
         _controllers[col] = TextEditingController(text: '');
+        if (widget.setColumns.containsKey(col)) {
+          _setSelectedValues[col] = {};
+        }
       } else {
         _isNull[col] = false;
         // Handle BIT columns - ensure they're integers
@@ -96,6 +105,22 @@ class _RowEditDialogState extends State<RowEditDialog> {
           _controllers[col] = TextEditingController(text: textValue);
           // Also update the original value to be an int for consistency
           _originalValues[col] = int.tryParse(textValue) ?? 0;
+        } else if (widget.setColumns.containsKey(col)) {
+          // Handle SET columns - parse comma-separated values
+          final setValues = widget.setColumns[col]!;
+          _controllers[col] = TextEditingController(text: value.toString());
+          if (value is String && value.isNotEmpty) {
+            final selectedValues = value
+                .split(',')
+                .map((v) => v.trim())
+                .toSet();
+            // Only include values that are valid for this SET column
+            _setSelectedValues[col] = selectedValues
+                .where((v) => setValues.contains(v))
+                .toSet();
+          } else {
+            _setSelectedValues[col] = {};
+          }
         } else {
           _controllers[col] = TextEditingController(text: value.toString());
         }
@@ -134,21 +159,42 @@ class _RowEditDialogState extends State<RowEditDialog> {
 
       final originalValue = _originalValues[col];
       final isNowNull = _isNull[col] ?? false;
-      final textValue = _controllers[col]?.text ?? '';
 
-      if (originalValue == null && !isNowNull) {
-        // Was NULL, now has value
-        hasChanges = true;
-        break;
-      } else if (originalValue != null && isNowNull) {
-        // Had value, now NULL
-        hasChanges = true;
-        break;
-      } else if (originalValue != null && !isNowNull) {
-        // Both have values, check if changed
-        if (originalValue.toString() != textValue) {
+      if (widget.setColumns.containsKey(col)) {
+        // Handle SET columns specially
+        if (originalValue == null &&
+            !isNowNull &&
+            _setSelectedValues[col]!.isNotEmpty) {
           hasChanges = true;
           break;
+        } else if (originalValue != null && isNowNull) {
+          hasChanges = true;
+          break;
+        } else if (originalValue != null && !isNowNull) {
+          final originalSetValues = originalValue is String
+              ? originalValue.split(',').map((v) => v.trim()).toSet()
+              : <String>{};
+          if (!_setEquals(originalSetValues, _setSelectedValues[col]!)) {
+            hasChanges = true;
+            break;
+          }
+        }
+      } else {
+        final textValue = _controllers[col]?.text ?? '';
+        if (originalValue == null && !isNowNull) {
+          // Was NULL, now has value
+          hasChanges = true;
+          break;
+        } else if (originalValue != null && isNowNull) {
+          // Had value, now NULL
+          hasChanges = true;
+          break;
+        } else if (originalValue != null && !isNowNull) {
+          // Both have values, check if changed
+          if (originalValue.toString() != textValue) {
+            hasChanges = true;
+            break;
+          }
         }
       }
     }
@@ -156,6 +202,11 @@ class _RowEditDialogState extends State<RowEditDialog> {
     setState(() {
       _hasChanges = hasChanges;
     });
+  }
+
+  bool _setEquals(Set<String> a, Set<String> b) {
+    if (a.length != b.length) return false;
+    return a.every((element) => b.contains(element));
   }
 
   Map<String, dynamic> _collectChanges() {
@@ -175,18 +226,39 @@ class _RowEditDialogState extends State<RowEditDialog> {
 
       final originalValue = _originalValues[col];
       final isNowNull = _isNull[col] ?? false;
-      final textValue = _controllers[col]?.text ?? '';
 
-      if (originalValue == null && !isNowNull) {
-        // Was NULL, now has value
-        changes[col] = _convertValue(textValue, originalValue, col);
-      } else if (originalValue != null && isNowNull) {
-        // Had value, now NULL
-        changes[col] = null;
-      } else if (originalValue != null && !isNowNull) {
-        // Both have values, check if changed
-        if (originalValue.toString() != textValue) {
+      if (widget.setColumns.containsKey(col)) {
+        // Handle SET columns
+        if (originalValue == null &&
+            !isNowNull &&
+            _setSelectedValues[col]!.isNotEmpty) {
+          // Was NULL, now has value
+          changes[col] = _setSelectedValues[col]!.join(',');
+        } else if (originalValue != null && isNowNull) {
+          // Had value, now NULL
+          changes[col] = null;
+        } else if (originalValue != null && !isNowNull) {
+          // Both have values, check if changed
+          final originalSetValues = originalValue is String
+              ? originalValue.split(',').map((v) => v.trim()).toSet()
+              : <String>{};
+          if (!_setEquals(originalSetValues, _setSelectedValues[col]!)) {
+            changes[col] = _setSelectedValues[col]!.join(',');
+          }
+        }
+      } else {
+        final textValue = _controllers[col]?.text ?? '';
+        if (originalValue == null && !isNowNull) {
+          // Was NULL, now has value
           changes[col] = _convertValue(textValue, originalValue, col);
+        } else if (originalValue != null && isNowNull) {
+          // Had value, now NULL
+          changes[col] = null;
+        } else if (originalValue != null && !isNowNull) {
+          // Both have values, check if changed
+          if (originalValue.toString() != textValue) {
+            changes[col] = _convertValue(textValue, originalValue, col);
+          }
         }
       }
     }
@@ -347,6 +419,8 @@ class _RowEditDialogState extends State<RowEditDialog> {
         widget.binaryColumns.any(
           (c) => c.toLowerCase() == column.toLowerCase(),
         );
+    final isEnum = widget.enumColumns.containsKey(column);
+    final isSet = widget.setColumns.containsKey(column);
     final value = widget.row[column];
     // Detect BIT columns: either in list OR value is List<int> with 0/1
     final isBit =
@@ -384,6 +458,14 @@ class _RowEditDialogState extends State<RowEditDialog> {
                 const SizedBox(width: 4),
                 Icon(Icons.toggle_on, size: 14, color: Colors.blue[400]),
               ],
+              if (isEnum) ...[
+                const SizedBox(width: 4),
+                Icon(Icons.list, size: 14, color: Colors.purple[400]),
+              ],
+              if (isSet) ...[
+                const SizedBox(width: 4),
+                Icon(Icons.check_box, size: 14, color: Colors.green[400]),
+              ],
               const Spacer(),
               if (isNull)
                 Container(
@@ -411,6 +493,14 @@ class _RowEditDialogState extends State<RowEditDialog> {
             isNull
                 ? _buildBitNullPlaceholder(column)
                 : _buildBitDropdown(column)
+          else if (isEnum)
+            isNull
+                ? _buildEnumNullPlaceholder(column)
+                : _buildEnumDropdown(column)
+          else if (isSet)
+            isNull
+                ? _buildSetNullPlaceholder(column)
+                : _buildSetMultiSelect(column)
           else
             GestureDetector(
               onLongPress: isReadOnly
@@ -562,6 +652,174 @@ class _RowEditDialogState extends State<RowEditDialog> {
           _checkForChanges();
         }
       },
+    );
+  }
+
+  Widget _buildEnumNullPlaceholder(String column) {
+    return InkWell(
+      onTap: () => _unsetNull(column),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: const Color(0xFF1E293B),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+          suffixIcon: IconButton(
+            icon: Icon(Icons.edit, size: 16, color: Colors.grey[500]),
+            onPressed: () => _unsetNull(column),
+            tooltip: 'Select value',
+          ),
+        ),
+        child: Text(
+          'Click to select value...',
+          style: TextStyle(color: Colors.grey[600]),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEnumDropdown(String column) {
+    final currentValue = _controllers[column]?.text ?? '';
+    final enumValues = widget.enumColumns[column]!;
+
+    return DropdownButtonFormField<String>(
+      value: enumValues.contains(currentValue) ? currentValue : null,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: const Color(0xFF1E293B),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.blue, width: 1),
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(Icons.delete_outline, size: 16, color: Colors.grey[500]),
+          onPressed: () => _showSetNullDialog(column),
+          tooltip: 'Set to NULL',
+        ),
+      ),
+      dropdownColor: const Color(0xFF1E293B),
+      style: const TextStyle(color: Colors.white),
+      hint: const Text('Select a value', style: TextStyle(color: Colors.grey)),
+      items: enumValues
+          .map((value) => DropdownMenuItem(value: value, child: Text(value)))
+          .toList(),
+      onChanged: (newValue) {
+        if (newValue != null) {
+          _controllers[column]?.text = newValue;
+          _checkForChanges();
+        }
+      },
+    );
+  }
+
+  Widget _buildSetNullPlaceholder(String column) {
+    return InkWell(
+      onTap: () => _unsetNull(column),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: const Color(0xFF1E293B),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+          suffixIcon: IconButton(
+            icon: Icon(Icons.edit, size: 16, color: Colors.grey[500]),
+            onPressed: () => _unsetNull(column),
+            tooltip: 'Select values',
+          ),
+        ),
+        child: Text(
+          'Click to select values...',
+          style: TextStyle(color: Colors.grey[600]),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSetMultiSelect(String column) {
+    final setValues = widget.setColumns[column]!;
+    final selectedValues = _setSelectedValues[column]!;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[800]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: setValues.map((value) {
+              final isSelected = selectedValues.contains(value);
+              return FilterChip(
+                label: Text(value),
+                selected: isSelected,
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _setSelectedValues[column]!.add(value);
+                    } else {
+                      _setSelectedValues[column]!.remove(value);
+                    }
+                    _checkForChanges();
+                  });
+                },
+                checkmarkColor: Colors.white,
+                selectedColor: Colors.green.withValues(alpha: 0.3),
+                backgroundColor: Colors.grey[800],
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : Colors.grey[400],
+                ),
+                side: BorderSide.none,
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (selectedValues.isNotEmpty)
+                IconButton(
+                  icon: Icon(
+                    Icons.delete_outline,
+                    size: 16,
+                    color: Colors.grey[500],
+                  ),
+                  onPressed: () => _showSetNullDialog(column),
+                  tooltip: 'Set to NULL',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

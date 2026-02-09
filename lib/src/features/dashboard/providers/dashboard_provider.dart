@@ -1,9 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 import '../../../core/services/database_service.dart';
 import '../../connections/models/connection_model.dart';
 import '../models/table_search_result.dart';
-import 'dart:async';
 
 enum ConnectionStep {
   initializing,
@@ -189,14 +190,16 @@ class DashboardProvider extends ChangeNotifier {
       );
       final binaryColumns = <String>{};
       final bitColumns = <String>{};
-      final allColumns = <String>[];
+      final enumColumns = <String, List<String>>{};
+      final setColumns = <String, List<String>>{};
+      final allColumns = <String>{};
       for (final row in columnsResult.rows) {
         final colName = row.colByName('Field')?.toString();
         final colTypeRaw = row.colByName('Type');
 
         String colType = '';
         if (colTypeRaw is List<int>) {
-          colType = String.fromCharCodes(colTypeRaw).toLowerCase();
+          colType = utf8.decode(colTypeRaw).toLowerCase();
         } else if (colTypeRaw != null) {
           colType = colTypeRaw.toString().toLowerCase();
         }
@@ -206,6 +209,10 @@ class DashboardProvider extends ChangeNotifier {
           // Detect BIT columns separately (must be exact 'bit' or start with 'bit(')
           if (colType == 'bit' || colType.startsWith('bit(')) {
             bitColumns.add(colName);
+          } else if (colType.startsWith('enum(')) {
+            enumColumns[colName] = _parseEnumSetValues(colType);
+          } else if (colType.startsWith('set(')) {
+            setColumns[colName] = _parseEnumSetValues(colType);
           } else if (colType.contains('blob') ||
               colType.contains('binary') ||
               colType.contains('varbinary')) {
@@ -308,6 +315,8 @@ class DashboardProvider extends ChangeNotifier {
         primaryKeyColumn: primaryKeyColumn,
         binaryColumns: binaryColumns.toList(),
         bitColumns: bitColumns.toList(),
+        enumColumns: enumColumns,
+        setColumns: setColumns,
         offset: offset,
         limit: limit,
         hasNextPage: hasNextPage,
@@ -334,7 +343,9 @@ class DashboardProvider extends ChangeNotifier {
       String? primaryKeyColumn;
       final binaryColumns = <String>{};
       final bitColumns = <String>{};
-      final allColumns = <String>[];
+      final enumColumns = <String, List<String>>{};
+      final setColumns = <String, List<String>>{};
+      final allColumns = <String>{};
 
       final pkResult = await _dbService.execute(
         _connection!,
@@ -355,7 +366,7 @@ class DashboardProvider extends ChangeNotifier {
 
         String colType = '';
         if (colTypeRaw is List<int>) {
-          colType = String.fromCharCodes(colTypeRaw).toLowerCase();
+          colType = utf8.decode(colTypeRaw).toLowerCase();
         } else if (colTypeRaw != null) {
           colType = colTypeRaw.toString().toLowerCase();
         }
@@ -364,6 +375,10 @@ class DashboardProvider extends ChangeNotifier {
           allColumns.add(colName);
           if (colType == 'bit' || colType.startsWith('bit(')) {
             bitColumns.add(colName);
+          } else if (colType.startsWith('enum(')) {
+            enumColumns[colName] = _parseEnumSetValues(colType);
+          } else if (colType.startsWith('set(')) {
+            setColumns[colName] = _parseEnumSetValues(colType);
           } else if (colType.contains('blob') ||
               colType.contains('binary') ||
               colType.contains('varbinary')) {
@@ -470,6 +485,8 @@ class DashboardProvider extends ChangeNotifier {
         primaryKeyColumn: primaryKeyColumn,
         binaryColumns: binaryColumns.toList(),
         bitColumns: bitColumns.toList(),
+        enumColumns: enumColumns,
+        setColumns: setColumns,
         offset: offset,
         limit: limit,
         hasNextPage: hasNextPage,
@@ -535,6 +552,8 @@ class TableDataResult {
   final String? primaryKeyColumn;
   final List<String> binaryColumns;
   final List<String> bitColumns;
+  final Map<String, List<String>> enumColumns;
+  final Map<String, List<String>> setColumns;
   final String? error;
   final int offset;
   final int limit;
@@ -546,6 +565,8 @@ class TableDataResult {
     this.primaryKeyColumn,
     this.binaryColumns = const [],
     this.bitColumns = const [],
+    this.enumColumns = const {},
+    this.setColumns = const {},
     this.error,
     this.offset = 0,
     this.limit = 100,
@@ -554,4 +575,40 @@ class TableDataResult {
 
   bool get hasError => error != null;
   bool get isEditable => primaryKeyColumn != null && rows.isNotEmpty;
+}
+
+List<String> _parseEnumSetValues(String typeString) {
+  if (!typeString.contains('(') || !typeString.contains(')')) {
+    return [];
+  }
+
+  final startIndex = typeString.indexOf('(');
+  final endIndex = typeString.lastIndexOf(')');
+  final valuesPart = typeString.substring(startIndex + 1, endIndex);
+
+  final values = <String>[];
+  final buffer = StringBuffer();
+  bool inQuotes = false;
+  bool escapeNext = false;
+
+  for (final char in valuesPart.runes) {
+    final ch = String.fromCharCode(char);
+
+    if (escapeNext) {
+      buffer.write(ch);
+      escapeNext = false;
+    } else if (ch == '\\') {
+      escapeNext = true;
+    } else if (ch == "'") {
+      inQuotes = !inQuotes;
+    } else if (ch == ',' && !inQuotes) {
+      values.add(buffer.toString());
+      buffer.clear();
+    } else {
+      buffer.write(ch);
+    }
+  }
+
+  values.add(buffer.toString());
+  return values;
 }

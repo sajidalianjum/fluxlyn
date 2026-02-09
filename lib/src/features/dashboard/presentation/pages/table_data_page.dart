@@ -22,6 +22,8 @@ class _TableDataPageState extends State<TableDataPage> {
   List<String> _columns = [];
   List<String> _binaryColumns = [];
   List<String> _bitColumns = [];
+  Map<String, List<String>> _enumColumns = {};
+  Map<String, List<String>> _setColumns = {};
   List<Map<String, dynamic>> _rows = [];
   String? _primaryKeyColumn;
   bool _isEditable = false;
@@ -76,6 +78,8 @@ class _TableDataPageState extends State<TableDataPage> {
           _columns = result.columns;
           _binaryColumns = result.binaryColumns;
           _bitColumns = result.bitColumns;
+          _enumColumns = result.enumColumns;
+          _setColumns = result.setColumns;
           _rows = result.rows;
           _primaryKeyColumn = result.primaryKeyColumn;
           _isEditable = result.isEditable;
@@ -138,6 +142,8 @@ class _TableDataPageState extends State<TableDataPage> {
         primaryKeyColumn: _primaryKeyColumn,
         binaryColumns: _binaryColumns,
         bitColumns: _bitColumns,
+        enumColumns: _enumColumns,
+        setColumns: _setColumns,
         currentRowIndex: rowIndex,
         totalRows: _rows.length,
         onPrevious: () {

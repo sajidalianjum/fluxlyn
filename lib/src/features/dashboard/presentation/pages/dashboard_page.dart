@@ -96,7 +96,6 @@ class DashboardPage extends StatelessWidget {
                 Navigator.of(context).pop();
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Disconnect'),
           ),
         ],
