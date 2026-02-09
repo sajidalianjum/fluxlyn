@@ -3,24 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/widgets/data_table2_widget.dart';
 import '../../../dashboard/presentation/dialogs/row_edit_dialog.dart';
-
-class QueryResult {
-  final String query;
-  final List<String> columns;
-  final List<Map<String, dynamic>> rows;
-  final int executionTimeMs;
-  final bool success;
-  final String? errorMessage;
-
-  QueryResult({
-    required this.query,
-    required this.columns,
-    required this.rows,
-    required this.executionTimeMs,
-    this.success = true,
-    this.errorMessage,
-  });
-}
+import '../../models/query_result.dart';
 
 class QueryResultsWidget extends StatefulWidget {
   final QueryResult result;
@@ -41,8 +24,10 @@ class _QueryResultsWidgetState extends State<QueryResultsWidget> {
         columns: widget.result.columns,
         row: row,
         primaryKeyColumn: null,
-        binaryColumns: const [],
-        bitColumns: const [],
+        binaryColumns: widget.result.binaryColumns,
+        bitColumns: widget.result.bitColumns,
+        enumColumns: widget.result.enumColumns,
+        setColumns: widget.result.setColumns,
         currentRowIndex: rowIndex,
         totalRows: widget.result.rows.length,
         onPrevious: () {
@@ -153,7 +138,11 @@ class _QueryResultsWidgetState extends State<QueryResultsWidget> {
     }
 
     final dataTableColumns = widget.result.columns.map((col) {
-      return DataTableColumn(name: col);
+      return DataTableColumn(
+        name: col,
+        isBinary: widget.result.binaryColumns.contains(col),
+        isBit: widget.result.bitColumns.contains(col),
+      );
     }).toList();
 
     return DataTable2Widget(

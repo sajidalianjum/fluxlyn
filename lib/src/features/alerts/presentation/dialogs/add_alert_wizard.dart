@@ -7,6 +7,7 @@ import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../../dashboard/presentation/widgets/query_editor_widget.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../../queries/models/query_model.dart';
+import '../../../queries/models/query_result.dart';
 import '../../../queries/presentation/widgets/query_results_widget.dart';
 import '../../../../core/services/schema_service.dart';
 import '../../../../core/services/ai_service.dart';
@@ -314,6 +315,10 @@ class _AddAlertWizardState extends State<AddAlertWizard> {
       columns: _testColumns!,
       rows: _testResults!,
       executionTimeMs: _executionTimeMs ?? 0,
+      binaryColumns: const [],
+      bitColumns: const [],
+      enumColumns: const {},
+      setColumns: const {},
     );
 
     return Column(

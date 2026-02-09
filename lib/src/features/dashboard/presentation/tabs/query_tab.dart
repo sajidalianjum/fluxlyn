@@ -12,9 +12,11 @@ import '../../../../core/services/ai_service.dart';
 import '../../../../core/services/sql_context_analyzer.dart';
 import '../../../../core/services/sql_formatter.dart';
 import '../../../../core/services/query_protection_service.dart';
+import '../../../../core/services/column_type_detector.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../../queries/models/query_model.dart';
+import '../../../queries/models/query_result.dart';
 import '../../../queries/presentation/pages/query_results_page.dart';
 
 class QueryTab extends StatefulWidget {
@@ -350,27 +352,44 @@ class _QueryTabState extends State<QueryTab> {
             throw Exception('Failed to execute query');
           }
 
-          // Parse results with safe binary handling
           final columns = result.rows.isNotEmpty
               ? result.rows.first.assoc().keys.toList()
               : <String>[];
 
+          final connection = provider.currentConnection;
+          final database = provider.selectedDatabase;
+
+          final columnTypes = await ColumnTypeDetector.detectTypes(
+            query: singleQuery,
+            resultColumns: columns,
+            connection: connection!,
+            databaseName: database,
+          );
+
+          final binaryColumns = <String>[];
+          final bitColumns = <String>[];
+          final enumColumns = <String, List<String>>{};
+          final setColumns = <String, List<String>>{};
+
+          for (final entry in columnTypes.entries) {
+            final info = entry.value;
+            if (info.isBinary) {
+              binaryColumns.add(entry.key);
+            } else if (info.isBit) {
+              bitColumns.add(entry.key);
+            } else if (info.isEnum) {
+              enumColumns[entry.key] = info.enumValues;
+            } else if (info.isSet) {
+              setColumns[entry.key] = info.setValues;
+            }
+          }
+
           final rows = result.rows.map((row) {
             final rowMap = <String, dynamic>{};
             for (final col in columns) {
-              try {
-                final value = row.colByName(col);
-                // Handle potential binary data
-                if (value != null) {
-                  // Try to convert to string safely
-                  rowMap[col] = value.toString();
-                } else {
-                  rowMap[col] = null;
-                }
-              } catch (e) {
-                // If conversion fails, show as binary
-                rowMap[col] = '<binary>';
-              }
+              final value = row.colByName(col);
+              final info = columnTypes[col];
+              rowMap[col] = ColumnTypeDetector.formatValue(value, info);
             }
             return rowMap;
           }).toList();
@@ -382,6 +401,10 @@ class _QueryTabState extends State<QueryTab> {
               rows: rows,
               executionTimeMs: stopwatch.elapsedMilliseconds,
               success: true,
+              binaryColumns: binaryColumns,
+              bitColumns: bitColumns,
+              enumColumns: enumColumns,
+              setColumns: setColumns,
             ),
           );
 
