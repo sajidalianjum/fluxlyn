@@ -15,16 +15,16 @@ class _SettingsTabState extends State<SettingsTab> {
   late TextEditingController _endpointController;
   late TextEditingController _modelNameController;
   late AIProvider _selectedProvider;
-  bool _lockDelete = false;
-  bool _lockDrop = false;
+  bool _lock = false;
+  bool _readOnlyMode = false;
 
   @override
   void initState() {
     super.initState();
     final settings = context.read<SettingsProvider>().settings;
     _selectedProvider = settings.provider;
-    _lockDelete = settings.lockDelete;
-    _lockDrop = settings.lockDrop;
+    _lock = settings.lock;
+    _readOnlyMode = settings.readOnlyMode;
     _apiKeyController = TextEditingController(text: settings.apiKey);
     _modelNameController = TextEditingController(text: settings.modelName);
     _endpointController = TextEditingController(
@@ -40,14 +40,6 @@ class _SettingsTabState extends State<SettingsTab> {
     _endpointController.dispose();
     _modelNameController.dispose();
     super.dispose();
-  }
-
-  void _showSaveSuccess() {
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Settings saved')));
-    }
   }
 
   Future<void> _onProviderChanged(AIProvider? provider) async {
@@ -66,40 +58,35 @@ class _SettingsTabState extends State<SettingsTab> {
       });
 
       await context.read<SettingsProvider>().updateSettings(
-        lockDelete: _lockDelete,
-        lockDrop: _lockDrop,
+        lock: _lock,
+        readOnlyMode: _readOnlyMode,
         provider: _selectedProvider,
         apiKey: _apiKeyController.text.trim(),
         endpoint: _endpointController.text.trim(),
         modelName: _modelNameController.text.trim(),
       );
-
-      _showSaveSuccess();
     }
   }
 
-  Future<void> _onLockDeleteChanged(bool value) async {
-    setState(() => _lockDelete = value);
-    await context.read<SettingsProvider>().updateSettings(lockDelete: value);
-    _showSaveSuccess();
+  Future<void> _onReadOnlyModeChanged(bool value) async {
+    setState(() => _readOnlyMode = value);
+    await context.read<SettingsProvider>().updateSettings(readOnlyMode: value);
   }
 
-  Future<void> _onLockDropChanged(bool value) async {
-    setState(() => _lockDrop = value);
-    await context.read<SettingsProvider>().updateSettings(lockDrop: value);
-    _showSaveSuccess();
+  Future<void> _onLockChanged(bool value) async {
+    setState(() => _lock = value);
+    await context.read<SettingsProvider>().updateSettings(lock: value);
   }
 
   Future<void> _saveCurrentSettings() async {
     await context.read<SettingsProvider>().updateSettings(
-      lockDelete: _lockDelete,
-      lockDrop: _lockDrop,
+      lock: _lock,
+      readOnlyMode: _readOnlyMode,
       provider: _selectedProvider,
       apiKey: _apiKeyController.text.trim(),
       endpoint: _endpointController.text.trim(),
       modelName: _modelNameController.text.trim(),
     );
-    _showSaveSuccess();
   }
 
   @override
@@ -117,18 +104,20 @@ class _SettingsTabState extends State<SettingsTab> {
         ),
         const SizedBox(height: 16),
         SwitchListTile(
-          title: const Text('Lock for Delete'),
-          subtitle: const Text('Prevent accidental deletion of items'),
-          value: _lockDelete,
-          onChanged: _onLockDeleteChanged,
+          title: const Text('Read-Only Mode'),
+          subtitle: const Text('Prevent all write operations'),
+          value: _readOnlyMode,
+          onChanged: _onReadOnlyModeChanged,
           contentPadding: EdgeInsets.zero,
         ),
         const SizedBox(height: 8),
         SwitchListTile(
-          title: const Text('Lock for Drop'),
-          subtitle: const Text('Prevent accidental dropping of items'),
-          value: _lockDrop,
-          onChanged: _onLockDropChanged,
+          title: const Text('Lock for Destructive Operations'),
+          subtitle: const Text(
+            'Prevent accidental deletion or dropping of items',
+          ),
+          value: _lock,
+          onChanged: _readOnlyMode ? null : _onLockChanged,
           contentPadding: EdgeInsets.zero,
         ),
         const SizedBox(height: 32),

@@ -49,16 +49,16 @@ enum AIProvider {
 }
 
 class AppSettings {
-  final bool lockDelete;
-  final bool lockDrop;
+  final bool lock;
+  final bool readOnlyMode;
   final AIProvider provider;
   final String apiKey;
   final String endpoint;
   final String modelName;
 
   AppSettings({
-    required this.lockDelete,
-    required this.lockDrop,
+    required this.lock,
+    required this.readOnlyMode,
     required this.provider,
     required this.apiKey,
     required this.endpoint,
@@ -67,8 +67,8 @@ class AppSettings {
 
   factory AppSettings.defaultSettings() {
     return AppSettings(
-      lockDelete: true,
-      lockDrop: true,
+      lock: true,
+      readOnlyMode: true,
       provider: AIProvider.openai,
       apiKey: '',
       endpoint: AIProvider.openai.defaultEndpoint,
@@ -78,8 +78,8 @@ class AppSettings {
 
   Map<String, dynamic> toJson() {
     return {
-      'lockDelete': lockDelete,
-      'lockDrop': lockDrop,
+      'lock': lock,
+      'readOnlyMode': readOnlyMode,
       'provider': provider.name,
       'apiKey': apiKey,
       'endpoint': endpoint,
@@ -88,9 +88,12 @@ class AppSettings {
   }
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
+    final lockDelete = json['lockDelete'] ?? true;
+    final lockDrop = json['lockDrop'] ?? true;
+
     return AppSettings(
-      lockDelete: json['lockDelete'] ?? true,
-      lockDrop: json['lockDrop'] ?? true,
+      lock: json['lock'] ?? (lockDelete || lockDrop),
+      readOnlyMode: json['readOnlyMode'] ?? false,
       provider: AIProvider.fromString(json['provider'] ?? 'openai'),
       apiKey: json['apiKey'] ?? '',
       endpoint:
@@ -101,16 +104,16 @@ class AppSettings {
   }
 
   AppSettings copyWith({
-    bool? lockDelete,
-    bool? lockDrop,
+    bool? lock,
+    bool? readOnlyMode,
     AIProvider? provider,
     String? apiKey,
     String? endpoint,
     String? modelName,
   }) {
     return AppSettings(
-      lockDelete: lockDelete ?? this.lockDelete,
-      lockDrop: lockDrop ?? this.lockDrop,
+      lock: lock ?? this.lock,
+      readOnlyMode: readOnlyMode ?? this.readOnlyMode,
       provider: provider ?? this.provider,
       apiKey: apiKey ?? this.apiKey,
       endpoint: endpoint ?? this.endpoint,

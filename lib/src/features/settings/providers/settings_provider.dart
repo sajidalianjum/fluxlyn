@@ -16,8 +16,8 @@ class SettingsProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  bool get lockDelete => _settings.lockDelete;
-  bool get lockDrop => _settings.lockDrop;
+  bool get lock => _settings.lock;
+  bool get readOnlyMode => _settings.readOnlyMode;
   AIProvider get provider => _settings.provider;
   String get apiKey => _settings.apiKey;
   String get endpoint => _settings.endpoint;
@@ -41,16 +41,16 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   Future<void> updateSettings({
-    bool? lockDelete,
-    bool? lockDrop,
+    bool? lock,
+    bool? readOnlyMode,
     AIProvider? provider,
     String? apiKey,
     String? endpoint,
     String? modelName,
   }) async {
     _settings = _settings.copyWith(
-      lockDelete: lockDelete,
-      lockDrop: lockDrop,
+      lock: lock,
+      readOnlyMode: readOnlyMode,
       provider: provider,
       apiKey: apiKey,
       endpoint: endpoint,

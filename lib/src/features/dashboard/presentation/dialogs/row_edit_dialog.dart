@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'edit_confirmation_dialog.dart';
+import '../../../../core/services/query_protection_service.dart';
+import '../../../settings/providers/settings_provider.dart';
 
 class RowEditDialog extends StatefulWidget {
   final String tableName;
@@ -861,6 +864,24 @@ class _RowEditDialogState extends State<RowEditDialog> {
   }
 
   void _saveChanges() {
+    // Check query protection settings
+    final settingsProvider = context.read<SettingsProvider>();
+    final settings = settingsProvider.settings;
+    final protectionError = QueryProtectionService.checkEditOperation(
+      settings.readOnlyMode,
+      settings.lock,
+    );
+
+    if (protectionError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(protectionError),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     final changes = _collectChanges();
     if (changes.isNotEmpty && widget.primaryKeyColumn != null) {
       showDialog(

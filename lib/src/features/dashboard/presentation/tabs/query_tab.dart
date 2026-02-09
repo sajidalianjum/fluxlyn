@@ -11,6 +11,7 @@ import '../../../../core/services/schema_service.dart';
 import '../../../../core/services/ai_service.dart';
 import '../../../../core/services/sql_context_analyzer.dart';
 import '../../../../core/services/sql_formatter.dart';
+import '../../../../core/services/query_protection_service.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../../queries/models/query_model.dart';
@@ -311,6 +312,30 @@ class _QueryTabState extends State<QueryTab> {
           .map((q) => q.trim())
           .where((q) => q.isNotEmpty)
           .toList();
+
+      // Check query protection settings
+      final settingsProvider = context.read<SettingsProvider>();
+      final settings = settingsProvider.settings;
+
+      for (final singleQuery in queries) {
+        final protectionError = QueryProtectionService.checkQuery(
+          singleQuery,
+          settings.readOnlyMode,
+          settings.lock,
+        );
+        if (protectionError != null) {
+          setState(() => _isExecuting = false);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(protectionError),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          return;
+        }
+      }
 
       final results = <QueryResult>[];
 
