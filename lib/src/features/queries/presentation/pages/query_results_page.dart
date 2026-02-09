@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/widgets/data_table2_widget.dart';
 
 class QueryResult {
   final String query;
@@ -32,14 +33,11 @@ class QueryResultsPage extends StatefulWidget {
 class _QueryResultsPageState extends State<QueryResultsPage>
     with TickerProviderStateMixin {
   late TabController _tabController;
-  int _rowsPerPage = 50;
-  final List<int> _currentPage = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: widget.results.length, vsync: this);
-    _currentPage.addAll(List.filled(widget.results.length, 0));
   }
 
   @override
@@ -51,17 +49,14 @@ class _QueryResultsPageState extends State<QueryResultsPage>
   void _exportToCsv(QueryResult result) {
     final buffer = StringBuffer();
 
-    // Header
     buffer.writeln(result.columns.join(','));
 
-    // Rows
     for (final row in result.rows) {
       final values = result.columns
           .map((col) {
             final value = row[col];
             if (value == null) return '';
             final stringValue = value.toString();
-            // Escape if contains comma or quote
             if (stringValue.contains(',') || stringValue.contains('"')) {
               return '"${stringValue.replaceAll('"', '""')}"';
             }
@@ -71,7 +66,6 @@ class _QueryResultsPageState extends State<QueryResultsPage>
       buffer.writeln(values);
     }
 
-    // Copy to clipboard or share
     Clipboard.setData(ClipboardData(text: buffer.toString()));
     ScaffoldMessenger.of(
       context,
@@ -86,7 +80,7 @@ class _QueryResultsPageState extends State<QueryResultsPage>
     ).showSnackBar(const SnackBar(content: Text('JSON copied to clipboard')));
   }
 
-  Widget _buildResultView(QueryResult result, int resultIndex) {
+  Widget _buildResultView(QueryResult result) {
     if (!result.success) {
       return Center(
         child: Column(
@@ -132,152 +126,43 @@ class _QueryResultsPageState extends State<QueryResultsPage>
       );
     }
 
-    final totalRows = result.rows.length;
-    final totalPages = (totalRows / _rowsPerPage).ceil();
-    final currentPageIndex = _currentPage[resultIndex];
-    final startIndex = currentPageIndex * _rowsPerPage;
-    final endIndex = (startIndex + _rowsPerPage).clamp(0, totalRows);
-    final pageRows = result.rows.sublist(startIndex, endIndex);
+    final dataTableColumns = result.columns.map((col) {
+      return DataTableColumn(name: col);
+    }).toList();
 
-    return Column(
-      children: [
-        // Results info bar
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: const Color(0xFF1E293B),
-          child: Row(
-            children: [
-              Text(
-                '${result.rows.length} rows',
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                '${result.executionTimeMs}ms',
-                style: const TextStyle(color: Colors.green, fontSize: 12),
-              ),
-              const Spacer(),
-              // Export buttons
-              IconButton(
-                onPressed: () => _exportToCsv(result),
-                icon: const Icon(Icons.table_chart, size: 18),
-                tooltip: 'Export CSV',
-              ),
-              IconButton(
-                onPressed: () => _exportToJson(result),
-                icon: const Icon(Icons.code, size: 18),
-                tooltip: 'Export JSON',
-              ),
-            ],
-          ),
-        ),
-
-        // Data table
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: ListView(
-              scrollDirection: Axis.vertical,
-              children: [
-                DataTable(
-                  headingRowColor: WidgetStateColor.resolveWith(
-                    (states) => const Color(0xFF0F172A),
-                  ),
-                  columns: result.columns.map((col) {
-                    return DataColumn(
-                      label: Text(
-                        col,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  rows: pageRows.map((row) {
-                    return DataRow(
-                      cells: result.columns.map((col) {
-                        final value = row[col];
-                        return DataCell(_buildCellContent(value));
-                      }).toList(),
-                    );
-                  }).toList(),
-                ),
-              ],
+    return DataTable2Widget(
+      columns: dataTableColumns,
+      rows: result.rows,
+      showPagination: true,
+      header: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        color: const Color(0xFF1E293B),
+        child: Row(
+          children: [
+            Text(
+              '${result.rows.length} rows',
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
-          ),
-        ),
-
-        // Pagination controls
-        if (totalPages > 1)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: const Color(0xFF1E293B),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: currentPageIndex > 0
-                      ? () => setState(() => _currentPage[resultIndex]--)
-                      : null,
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                Text(
-                  'Page ${currentPageIndex + 1} of $totalPages',
-                  style: const TextStyle(color: Colors.white),
-                ),
-                IconButton(
-                  onPressed: currentPageIndex < totalPages - 1
-                      ? () => setState(() => _currentPage[resultIndex]++)
-                      : null,
-                  icon: const Icon(Icons.chevron_right),
-                ),
-                const SizedBox(width: 16),
-                DropdownButton<int>(
-                  value: _rowsPerPage,
-                  dropdownColor: const Color(0xFF1E293B),
-                  style: const TextStyle(color: Colors.white),
-                  items: [10, 25, 50, 100].map((value) {
-                    return DropdownMenuItem(
-                      value: value,
-                      child: Text('$value rows'),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _rowsPerPage = value;
-                        _currentPage[resultIndex] = 0;
-                      });
-                    }
-                  },
-                ),
-              ],
+            const SizedBox(width: 16),
+            Text(
+              '${result.executionTimeMs}ms',
+              style: const TextStyle(color: Colors.green, fontSize: 12),
             ),
-          ),
-      ],
+            const Spacer(),
+            IconButton(
+              onPressed: () => _exportToCsv(result),
+              icon: const Icon(Icons.table_chart, size: 18),
+              tooltip: 'Export CSV',
+            ),
+            IconButton(
+              onPressed: () => _exportToJson(result),
+              icon: const Icon(Icons.code, size: 18),
+              tooltip: 'Export JSON',
+            ),
+          ],
+        ),
+      ),
     );
-  }
-
-  Widget _buildCellContent(dynamic value) {
-    if (value == null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          'NULL',
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontStyle: FontStyle.italic,
-            fontSize: 12,
-          ),
-        ),
-      );
-    }
-    return Text(value.toString(), style: const TextStyle(color: Colors.white));
   }
 
   @override
@@ -317,11 +202,13 @@ class _QueryResultsPageState extends State<QueryResultsPage>
       body: widget.results.length > 1
           ? TabBarView(
               controller: _tabController,
-              children: widget.results.asMap().entries.map((entry) {
-                return _buildResultView(entry.value, entry.key);
-              }).toList(),
+              children: widget.results
+                  .asMap()
+                  .entries
+                  .map((entry) => _buildResultView(entry.value))
+                  .toList(),
             )
-          : _buildResultView(widget.results.first, 0),
+          : _buildResultView(widget.results.first),
     );
   }
 }

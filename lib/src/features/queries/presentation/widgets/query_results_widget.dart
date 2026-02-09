@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/widgets/data_table2_widget.dart';
 
 class QueryResult {
   final String query;
@@ -30,9 +31,6 @@ class QueryResultsWidget extends StatefulWidget {
 }
 
 class _QueryResultsWidgetState extends State<QueryResultsWidget> {
-  int _rowsPerPage = 50;
-  int _currentPage = 0;
-
   void _exportToCsv() {
     final buffer = StringBuffer();
 
@@ -69,27 +67,6 @@ class _QueryResultsWidgetState extends State<QueryResultsWidget> {
         context,
       ).showSnackBar(const SnackBar(content: Text('JSON copied to clipboard')));
     }
-  }
-
-  Widget _buildCellContent(dynamic value) {
-    if (value == null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          'NULL',
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontStyle: FontStyle.italic,
-            fontSize: 12,
-          ),
-        ),
-      );
-    }
-    return Text(value.toString(), style: const TextStyle(color: Colors.white));
   }
 
   @override
@@ -139,123 +116,42 @@ class _QueryResultsWidgetState extends State<QueryResultsWidget> {
       );
     }
 
-    final totalRows = widget.result.rows.length;
-    final totalPages = (totalRows / _rowsPerPage).ceil();
-    final startIndex = _currentPage * _rowsPerPage;
-    final endIndex = (startIndex + _rowsPerPage).clamp(0, totalRows);
-    final pageRows = widget.result.rows.sublist(startIndex, endIndex);
+    final dataTableColumns = widget.result.columns.map((col) {
+      return DataTableColumn(name: col);
+    }).toList();
 
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: const Color(0xFF1E293B),
-          child: Row(
-            children: [
-              Text(
-                '${widget.result.rows.length} rows',
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                '${widget.result.executionTimeMs}ms',
-                style: const TextStyle(color: Colors.green, fontSize: 12),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: _exportToCsv,
-                icon: const Icon(Icons.table_chart, size: 18),
-                tooltip: 'Export CSV',
-              ),
-              IconButton(
-                onPressed: _exportToJson,
-                icon: const Icon(Icons.code, size: 18),
-                tooltip: 'Export JSON',
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: ListView(
-              scrollDirection: Axis.vertical,
-              children: [
-                DataTable(
-                  headingRowColor: WidgetStateColor.resolveWith(
-                    (states) => const Color(0xFF0F172A),
-                  ),
-                  columns: widget.result.columns.map((col) {
-                    return DataColumn(
-                      label: Text(
-                        col,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  rows: pageRows.map((row) {
-                    return DataRow(
-                      cells: widget.result.columns.map((col) {
-                        final value = row[col];
-                        return DataCell(_buildCellContent(value));
-                      }).toList(),
-                    );
-                  }).toList(),
-                ),
-              ],
+    return DataTable2Widget(
+      columns: dataTableColumns,
+      rows: widget.result.rows,
+      showPagination: true,
+      header: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        color: const Color(0xFF1E293B),
+        child: Row(
+          children: [
+            Text(
+              '${widget.result.rows.length} rows',
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
-          ),
-        ),
-        if (totalPages > 1)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: const Color(0xFF1E293B),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: _currentPage > 0
-                      ? () => setState(() => _currentPage--)
-                      : null,
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                Text(
-                  'Page ${_currentPage + 1} of $totalPages',
-                  style: const TextStyle(color: Colors.white),
-                ),
-                IconButton(
-                  onPressed: _currentPage < totalPages - 1
-                      ? () => setState(() => _currentPage++)
-                      : null,
-                  icon: const Icon(Icons.chevron_right),
-                ),
-                const SizedBox(width: 16),
-                DropdownButton<int>(
-                  value: _rowsPerPage,
-                  dropdownColor: const Color(0xFF1E293B),
-                  style: const TextStyle(color: Colors.white),
-                  items: const [10, 25, 50, 100].map((value) {
-                    return DropdownMenuItem(
-                      value: value,
-                      child: Text('$value rows'),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _rowsPerPage = value;
-                        _currentPage = 0;
-                      });
-                    }
-                  },
-                ),
-              ],
+            const SizedBox(width: 16),
+            Text(
+              '${widget.result.executionTimeMs}ms',
+              style: const TextStyle(color: Colors.green, fontSize: 12),
             ),
-          ),
-      ],
+            const Spacer(),
+            IconButton(
+              onPressed: _exportToCsv,
+              icon: const Icon(Icons.table_chart, size: 18),
+              tooltip: 'Export CSV',
+            ),
+            IconButton(
+              onPressed: _exportToJson,
+              icon: const Icon(Icons.code, size: 18),
+              tooltip: 'Export JSON',
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

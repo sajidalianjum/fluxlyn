@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:data_table_2/data_table_2.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/widgets/data_table2_widget.dart';
 import '../../providers/dashboard_provider.dart';
 import '../dialogs/row_edit_dialog.dart';
 import '../dialogs/edit_confirmation_dialog.dart';
@@ -191,48 +191,6 @@ class _TableDataPageState extends State<TableDataPage> {
     return null;
   }
 
-  Widget _buildCellContent(dynamic value, {bool isBit = false}) {
-    if (value == null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          'NULL',
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontStyle: FontStyle.italic,
-            fontSize: 12,
-          ),
-        ),
-      );
-    }
-
-    String text;
-    if (isBit && value is List<int>) {
-      // Handle BIT columns that are returned as List<int>
-      text = value.isNotEmpty ? value.first.toString() : '0';
-    } else if (isBit &&
-        value is String &&
-        value.startsWith('[') &&
-        value.endsWith(']')) {
-      // Handle BIT columns that are string representations like "[0]" or "[1]"
-      final inner = value.substring(1, value.length - 1);
-      final intValue = int.tryParse(inner.trim());
-      text = (intValue ?? 0).toString();
-    } else {
-      text = value.toString();
-    }
-
-    return Text(
-      text,
-      overflow: TextOverflow.ellipsis,
-      style: const TextStyle(color: Colors.white),
-    );
-  }
-
   Widget _buildCardView() {
     final displayCols = _getCardDisplayColumns();
     final titleCol = _getTitleColumn();
@@ -391,110 +349,51 @@ class _TableDataPageState extends State<TableDataPage> {
   }
 
   Widget _buildTableView() {
-    // Calculate minimum width based on column count
-    final minColWidth = 120.0;
-    final calculatedMinWidth = (_columns.length * minColWidth).toDouble();
-    final actualMinWidth = calculatedMinWidth < 600
-        ? 600.0
-        : calculatedMinWidth;
+    final dataTableColumns = _columns.map((col) {
+      return DataTableColumn(
+        name: col,
+        isPrimaryKey: col == _primaryKeyColumn,
+        isBinary: _binaryColumns.contains(col),
+        isBit: _bitColumns.contains(col),
+      );
+    }).toList();
 
-    return Column(
-      children: [
-        // Instruction bar
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: const Color(0xFF0F172A),
-          child: Row(
-            children: [
-              Icon(Icons.touch_app, size: 16, color: Colors.grey[400]),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _isEditable
-                      ? 'Tap any row to edit'
-                      : 'Table is read-only (no primary key)',
-                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                ),
+    return DataTable2Widget(
+      columns: dataTableColumns,
+      rows: _rows,
+      header: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        color: const Color(0xFF0F172A),
+        child: Row(
+          children: [
+            Icon(Icons.touch_app, size: 16, color: Colors.grey[400]),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _isEditable
+                    ? 'Tap any row to edit'
+                    : 'Table is read-only (no primary key)',
+                style: TextStyle(color: Colors.grey[400], fontSize: 12),
               ),
-            ],
-          ),
-        ),
-
-        // Data Grid
-        Expanded(
-          child: DataTable2(
-            columnSpacing: 12,
-            horizontalMargin: 12,
-            minWidth: actualMinWidth,
-            headingRowColor: WidgetStateColor.resolveWith(
-              (states) => const Color(0xFF1E293B),
             ),
-            columns: _columns.map((col) {
-              final isPK = col == _primaryKeyColumn;
-              final isBinary = _binaryColumns.contains(col);
-              final isBit = _bitColumns.contains(col);
-              return DataColumn2(
-                label: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isPK)
-                      Icon(Icons.key, size: 14, color: Colors.yellow[700]),
-                    if (isPK) const SizedBox(width: 4),
-                    if (isBit)
-                      Icon(Icons.toggle_on, size: 14, color: Colors.blue[400]),
-                    if (isBit) const SizedBox(width: 4),
-                    if (isBinary)
-                      Icon(
-                        Icons.data_object,
-                        size: 14,
-                        color: Colors.grey[500],
-                      ),
-                    if (isBinary) const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        col.toUpperCase(),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                size: ColumnSize.M,
-              );
-            }).toList(),
-            rows: List<DataRow>.generate(_rows.length, (index) {
-              final row = _rows[index];
-
-              return DataRow(
-                cells: _columns.map((col) {
-                  final isBit = _bitColumns.contains(col);
-                  return DataCell(
-                    GestureDetector(
-                      onTap: () => _openRowEditDialog(index),
-                      child: _buildCellContent(row[col], isBit: isBit),
-                    ),
-                  );
-                }).toList(),
-              );
-            }),
-          ),
+          ],
         ),
-
-        // Footer
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: const Color(0xFF0F172A),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Showing ${_rows.length} rows',
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
-          ),
+      ),
+      footer: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        color: const Color(0xFF0F172A),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Showing ${_rows.length} rows',
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ],
         ),
-      ],
+      ),
+      onRowTap: (index) => _openRowEditDialog(index),
     );
   }
 
