@@ -1,49 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../connections/presentation/pages/connections_page.dart';
 import '../../providers/dashboard_provider.dart';
 import '../pages/table_data_page.dart';
 
 class SchemaTab extends StatelessWidget {
   const SchemaTab({super.key});
-
-  void _showDisconnectDialog(BuildContext context, DashboardProvider provider) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Row(
-          children: [
-            Icon(Icons.logout, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('Disconnect?'),
-          ],
-        ),
-        content: const Text(
-          'Are you sure you want to disconnect from this database? You will return to the connections list.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              await provider.disconnect();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const ConnectionsPage()),
-                );
-              }
-            },
-            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Disconnect'),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,12 +54,6 @@ class SchemaTab extends StatelessWidget {
                   : provider.refreshDatabases(),
               icon: const Icon(Icons.refresh),
               tooltip: 'Refresh',
-            ),
-            // Disconnect button
-            IconButton(
-              onPressed: () => _showDisconnectDialog(context, provider),
-              icon: const Icon(Icons.logout),
-              tooltip: 'Disconnect',
             ),
           ],
         ),

@@ -63,14 +63,6 @@ class ConnectionCard extends StatelessWidget {
                             maxLines: 1,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.circle,
-                          size: 8,
-                          color: connection.isConnected
-                              ? const Color(0xFF10B981) // Green
-                              : const Color(0xFFF59E0B), // Orange/Yellow
-                        ),
                       ],
                     ),
                     const SizedBox(height: 4),

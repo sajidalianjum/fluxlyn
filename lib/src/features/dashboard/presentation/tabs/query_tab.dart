@@ -861,13 +861,45 @@ class _QueryTabState extends State<QueryTab> {
     }
   }
 
+  void _showDisconnectDialog(BuildContext context, DashboardProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('Disconnect Database'),
+        content: const Text(
+          'Are you sure you want to disconnect the database?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await provider.disconnect();
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Disconnect'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<DashboardProvider>(context, listen: false);
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => _showDisconnectDialog(context, provider),
         ),
         title: const Text('SQL Editor'),
         actions: [

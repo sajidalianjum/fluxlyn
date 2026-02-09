@@ -18,9 +18,10 @@ class DashboardPage extends StatelessWidget {
     ];
 
     return PopScope(
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) {
-          await provider.disconnect();
+        if (!didPop) {
+          _showDisconnectDialog(context, provider);
         }
       },
       child: Scaffold(
@@ -69,6 +70,36 @@ class DashboardPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDisconnectDialog(BuildContext context, DashboardProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('Disconnect Database'),
+        content: const Text(
+          'Are you sure you want to disconnect the database?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await provider.disconnect();
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Disconnect'),
+          ),
+        ],
       ),
     );
   }
