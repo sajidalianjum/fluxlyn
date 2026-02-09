@@ -26,6 +26,12 @@ class _TableDataPageState extends State<TableDataPage> {
   String? _primaryKeyColumn;
   bool _isEditable = false;
   TableSearchResult? _searchResult;
+  int _offset = 0;
+  final int _limit = 100;
+  bool _hasNextPage = false;
+
+  int get _currentPage => _offset ~/ _limit + 1;
+  bool get _hasPreviousPage => _offset > 0;
 
   @override
   void initState() {
@@ -50,9 +56,15 @@ class _TableDataPageState extends State<TableDataPage> {
         searchText: _searchResult!.searchText,
         sortColumn: _searchResult!.sortColumn,
         sortDirection: _searchResult!.sortDirection,
+        limit: _limit,
+        offset: _offset,
       );
     } else {
-      result = await provider.fetchTableData(widget.tableName);
+      result = await provider.fetchTableData(
+        widget.tableName,
+        limit: _limit,
+        offset: _offset,
+      );
     }
 
     if (mounted) {
@@ -67,6 +79,7 @@ class _TableDataPageState extends State<TableDataPage> {
           _rows = result.rows;
           _primaryKeyColumn = result.primaryKeyColumn;
           _isEditable = result.isEditable;
+          _hasNextPage = result.hasNextPage;
         }
       });
     }
@@ -81,6 +94,7 @@ class _TableDataPageState extends State<TableDataPage> {
         onApply: (result) {
           setState(() {
             _searchResult = result.hasFilters || result.hasSort ? result : null;
+            _offset = 0;
           });
           _loadData();
         },
@@ -91,6 +105,23 @@ class _TableDataPageState extends State<TableDataPage> {
   void _clearFilters() {
     setState(() {
       _searchResult = null;
+      _offset = 0;
+    });
+    _loadData();
+  }
+
+  void _goToNextPage() {
+    if (!_hasNextPage) return;
+    setState(() {
+      _offset += _limit;
+    });
+    _loadData();
+  }
+
+  void _goToPreviousPage() {
+    if (!_hasPreviousPage) return;
+    setState(() {
+      _offset = (_offset - _limit).clamp(0, _offset);
     });
     _loadData();
   }
@@ -252,8 +283,34 @@ class _TableDataPageState extends State<TableDataPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Showing ${_rows.length} rows',
+              'Showing ${_rows.length} rows • Page $_currentPage',
               style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            Row(
+              children: [
+                if (_hasPreviousPage)
+                  IconButton(
+                    onPressed: _isLoading ? null : _goToPreviousPage,
+                    icon: const Icon(Icons.chevron_left, size: 20),
+                    tooltip: 'Previous page',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                  ),
+                if (_hasNextPage)
+                  IconButton(
+                    onPressed: _isLoading ? null : _goToNextPage,
+                    icon: const Icon(Icons.chevron_right, size: 20),
+                    tooltip: 'Next page',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                  ),
+              ],
             ),
           ],
         ),

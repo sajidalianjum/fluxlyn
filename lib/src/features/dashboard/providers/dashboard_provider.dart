@@ -164,6 +164,7 @@ class DashboardProvider extends ChangeNotifier {
   Future<TableDataResult> fetchTableData(
     String tableName, {
     int limit = 100,
+    int offset = 0,
   }) async {
     if (_connection == null) {
       return TableDataResult(error: 'Not connected to database');
@@ -227,10 +228,10 @@ class DashboardProvider extends ChangeNotifier {
           })
           .join(', ');
 
-      // Fetch table data
+      // Fetch table data with pagination
       final result = await _dbService.execute(
         _connection!,
-        'SELECT $selectColumns FROM `$tableName` LIMIT $limit',
+        'SELECT $selectColumns FROM `$tableName` LIMIT $limit OFFSET $offset',
       );
 
       // Extract columns and rows
@@ -298,12 +299,18 @@ class DashboardProvider extends ChangeNotifier {
         }
       }
 
+      // Determine if there's a next page
+      final hasNextPage = rows.length >= limit;
+
       return TableDataResult(
         columns: columns,
         rows: rows,
         primaryKeyColumn: primaryKeyColumn,
         binaryColumns: binaryColumns.toList(),
         bitColumns: bitColumns.toList(),
+        offset: offset,
+        limit: limit,
+        hasNextPage: hasNextPage,
       );
     } catch (e) {
       return TableDataResult(error: 'Failed to fetch table data: $e');
@@ -317,6 +324,7 @@ class DashboardProvider extends ChangeNotifier {
     String? sortColumn,
     SortDirection sortDirection = SortDirection.asc,
     int limit = 100,
+    int offset = 0,
   }) async {
     if (_connection == null) {
       return TableDataResult(error: 'Not connected to database');
@@ -393,7 +401,7 @@ class DashboardProvider extends ChangeNotifier {
       if (orderByClauses.isNotEmpty) {
         query += ' ORDER BY ${orderByClauses.join(', ')}';
       }
-      query += ' LIMIT $limit';
+      query += ' LIMIT $limit OFFSET $offset';
 
       final result = await _dbService.execute(_connection!, query);
 
@@ -453,12 +461,18 @@ class DashboardProvider extends ChangeNotifier {
         }
       }
 
+      // Determine if there's a next page
+      final hasNextPage = rows.length >= limit;
+
       return TableDataResult(
         columns: columns,
         rows: rows,
         primaryKeyColumn: primaryKeyColumn,
         binaryColumns: binaryColumns.toList(),
         bitColumns: bitColumns.toList(),
+        offset: offset,
+        limit: limit,
+        hasNextPage: hasNextPage,
       );
     } catch (e) {
       return TableDataResult(error: 'Failed to fetch filtered table data: $e');
@@ -522,6 +536,9 @@ class TableDataResult {
   final List<String> binaryColumns;
   final List<String> bitColumns;
   final String? error;
+  final int offset;
+  final int limit;
+  final bool hasNextPage;
 
   TableDataResult({
     this.columns = const [],
@@ -530,6 +547,9 @@ class TableDataResult {
     this.binaryColumns = const [],
     this.bitColumns = const [],
     this.error,
+    this.offset = 0,
+    this.limit = 100,
+    this.hasNextPage = false,
   });
 
   bool get hasError => error != null;
