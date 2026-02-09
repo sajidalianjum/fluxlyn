@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 import '../../../core/services/database_service.dart';
 import '../../connections/models/connection_model.dart';
+import '../models/table_search_result.dart';
 import 'dart:async';
 
 enum ConnectionStep {
@@ -298,6 +299,153 @@ class DashboardProvider extends ChangeNotifier {
       );
     } catch (e) {
       return TableDataResult(error: 'Failed to fetch table data: $e');
+    }
+  }
+
+  Future<TableDataResult> fetchTableDataWithFilter({
+    required String tableName,
+    String? searchColumn,
+    String? searchText,
+    String? sortColumn,
+    SortDirection sortDirection = SortDirection.asc,
+    int limit = 100,
+  }) async {
+    if (_connection == null) {
+      return TableDataResult(error: 'Not connected to database');
+    }
+
+    try {
+      String? primaryKeyColumn;
+      final binaryColumns = <String>{};
+      final bitColumns = <String>{};
+      final allColumns = <String>[];
+
+      final pkResult = await _dbService.execute(
+        _connection!,
+        "SHOW KEYS FROM `$tableName` WHERE Key_name = 'PRIMARY'",
+      );
+      for (final row in pkResult.rows) {
+        primaryKeyColumn = row.colByName('Column_name')?.toString();
+        break;
+      }
+
+      final columnsResult = await _dbService.execute(
+        _connection!,
+        'SHOW COLUMNS FROM `$tableName`',
+      );
+      for (final row in columnsResult.rows) {
+        final colName = row.colByName('Field')?.toString();
+        final colType = row.colByName('Type')?.toString().toLowerCase() ?? '';
+        if (colName != null && colName.isNotEmpty) {
+          allColumns.add(colName);
+          if (colType.contains('bit')) {
+            bitColumns.add(colName);
+          } else if (colType.contains('blob') ||
+              colType.contains('binary') ||
+              colType.contains('varbinary')) {
+            binaryColumns.add(colName);
+          }
+        }
+      }
+
+      final selectColumns = allColumns
+          .map((col) {
+            if (bitColumns.contains(col)) {
+              return 'CAST(`$col` AS UNSIGNED) AS `$col`';
+            } else if (binaryColumns.contains(col)) {
+              return 'HEX(`$col`) AS `$col`';
+            }
+            return '`$col`';
+          })
+          .join(', ');
+
+      final conditions = <String>[];
+      if (searchColumn != null && searchText != null && searchText.isNotEmpty) {
+        conditions.add('`$searchColumn` LIKE \'%$searchText%\'');
+      }
+
+      final orderByClauses = <String>[];
+      if (sortColumn != null && sortColumn.isNotEmpty) {
+        final direction = sortDirection == SortDirection.asc ? 'ASC' : 'DESC';
+        orderByClauses.add('`$sortColumn` $direction');
+      }
+
+      var query = 'SELECT $selectColumns FROM `$tableName`';
+      if (conditions.isNotEmpty) {
+        query += ' WHERE ${conditions.join(' AND ')}';
+      }
+      if (orderByClauses.isNotEmpty) {
+        query += ' ORDER BY ${orderByClauses.join(', ')}';
+      }
+      query += ' LIMIT $limit';
+
+      final result = await _dbService.execute(_connection!, query);
+
+      List<String> columns = [];
+      List<Map<String, dynamic>> rows = [];
+
+      if (result.rows.isNotEmpty) {
+        final firstRowMap = result.rows.first.assoc();
+        columns = firstRowMap.keys.toList();
+
+        for (final row in result.rows) {
+          final rowMap = Map<String, dynamic>.from(row.assoc());
+
+          for (final col in bitColumns) {
+            if (rowMap[col] != null) {
+              final colValue = rowMap[col];
+              if (colValue is List<int>) {
+                if (colValue.isEmpty) {
+                  rowMap[col] = 0;
+                } else {
+                  rowMap[col] = colValue[0];
+                }
+              } else if (colValue is! int) {
+                rowMap[col] = int.tryParse(colValue.toString()) ?? 0;
+              }
+            }
+          }
+
+          for (final col in binaryColumns) {
+            if (rowMap[col] != null) {
+              final colValue = rowMap[col];
+              String hexStr;
+
+              if (colValue is List<int>) {
+                hexStr = colValue
+                    .map((b) => b.toRadixString(16).padLeft(2, '0'))
+                    .join();
+              } else {
+                hexStr = colValue.toString();
+              }
+
+              if (hexStr.startsWith('0x')) {
+                hexStr = hexStr.substring(2);
+              }
+
+              if (hexStr.isEmpty) {
+                rowMap[col] = '0x';
+              } else if (hexStr.length > 16) {
+                rowMap[col] =
+                    '0x${hexStr.substring(0, 16)}... (${hexStr.length ~/ 2} bytes)';
+              } else {
+                rowMap[col] = '0x$hexStr';
+              }
+            }
+          }
+          rows.add(rowMap);
+        }
+      }
+
+      return TableDataResult(
+        columns: columns,
+        rows: rows,
+        primaryKeyColumn: primaryKeyColumn,
+        binaryColumns: binaryColumns.toList(),
+        bitColumns: bitColumns.toList(),
+      );
+    } catch (e) {
+      return TableDataResult(error: 'Failed to fetch filtered table data: $e');
     }
   }
 

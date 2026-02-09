@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/widgets/data_table2_widget.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../models/table_search_result.dart';
 import '../dialogs/row_edit_dialog.dart';
 import '../dialogs/edit_confirmation_dialog.dart';
+import '../dialogs/table_search_dialog.dart';
 
 class TableDataPage extends StatefulWidget {
   final String tableName;
@@ -23,6 +25,7 @@ class _TableDataPageState extends State<TableDataPage> {
   List<Map<String, dynamic>> _rows = [];
   String? _primaryKeyColumn;
   bool _isEditable = false;
+  TableSearchResult? _searchResult;
 
   @override
   void initState() {
@@ -37,7 +40,20 @@ class _TableDataPageState extends State<TableDataPage> {
     });
 
     final provider = Provider.of<DashboardProvider>(context, listen: false);
-    final result = await provider.fetchTableData(widget.tableName);
+    TableDataResult result;
+
+    if (_searchResult != null &&
+        (_searchResult!.hasFilters || _searchResult!.hasSort)) {
+      result = await provider.fetchTableDataWithFilter(
+        tableName: widget.tableName,
+        searchColumn: _searchResult!.searchColumn,
+        searchText: _searchResult!.searchText,
+        sortColumn: _searchResult!.sortColumn,
+        sortDirection: _searchResult!.sortDirection,
+      );
+    } else {
+      result = await provider.fetchTableData(widget.tableName);
+    }
 
     if (mounted) {
       setState(() {
@@ -54,6 +70,29 @@ class _TableDataPageState extends State<TableDataPage> {
         }
       });
     }
+  }
+
+  void _openSearchDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => TableSearchDialog(
+        columns: _columns,
+        initialResult: _searchResult,
+        onApply: (result) {
+          setState(() {
+            _searchResult = result.hasFilters || result.hasSort ? result : null;
+          });
+          _loadData();
+        },
+      ),
+    );
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _searchResult = null;
+    });
+    _loadData();
   }
 
   void _openRowEditDialog(int rowIndex) {
@@ -160,6 +199,22 @@ class _TableDataPageState extends State<TableDataPage> {
     }
   }
 
+  String _getFilterLabel() {
+    final parts = <String>[];
+    if (_searchResult!.hasFilters) {
+      parts.add(
+        'Filtered by ${_searchResult!.searchColumn}: ${_searchResult!.searchText}',
+      );
+    }
+    if (_searchResult!.hasSort) {
+      final direction = _searchResult!.sortDirection == SortDirection.asc
+          ? 'ASC'
+          : 'DESC';
+      parts.add('Sorted by ${_searchResult!.sortColumn} $direction');
+    }
+    return parts.join(' • ');
+  }
+
   Widget _buildDataView() {
     final dataTableColumns = _columns.map((col) {
       return DataTableColumn(
@@ -224,23 +279,70 @@ class _TableDataPageState extends State<TableDataPage> {
               'Table: ${widget.tableName}',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            if (_isEditable)
-              Text(
-                'Editable • PK: $_primaryKeyColumn • ${_rows.length} rows',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.green),
-              )
-            else if (_primaryKeyColumn == null && _rows.isNotEmpty)
-              Text(
-                'Read-Only • No Primary Key',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.orange),
-              ),
+            Row(
+              children: [
+                if (_isEditable)
+                  Text(
+                    'Editable • PK: $_primaryKeyColumn • ${_rows.length} rows',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.green),
+                  )
+                else if (_primaryKeyColumn == null && _rows.isNotEmpty)
+                  Text(
+                    'Read-Only • No Primary Key',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.orange),
+                  ),
+                if (_searchResult != null &&
+                    (_searchResult!.hasFilters || _searchResult!.hasSort)) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: Colors.blue.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _getFilterLabel(),
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            fontSize: 10,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        InkWell(
+                          onTap: _clearFilters,
+                          child: const Icon(
+                            Icons.close,
+                            size: 12,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
         actions: [
+          IconButton(
+            onPressed: _openSearchDialog,
+            icon: const Icon(Icons.filter_list),
+            tooltip: 'Search & Filter',
+          ),
           IconButton(
             onPressed: _isLoading ? null : _loadData,
             icon: _isLoading
@@ -288,17 +390,20 @@ class _TableDataPageState extends State<TableDataPage> {
           }
 
           if (_rows.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.table_chart_outlined,
                     color: Colors.grey,
                     size: 48,
                   ),
-                  SizedBox(height: 16),
-                  Text('No data found', style: TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No data found',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             );

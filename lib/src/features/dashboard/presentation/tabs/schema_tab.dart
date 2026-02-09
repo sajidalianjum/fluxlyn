@@ -3,8 +3,22 @@ import 'package:provider/provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../pages/table_data_page.dart';
 
-class SchemaTab extends StatelessWidget {
+class SchemaTab extends StatefulWidget {
   const SchemaTab({super.key});
+
+  @override
+  State<SchemaTab> createState() => _SchemaTabState();
+}
+
+class _SchemaTabState extends State<SchemaTab> {
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,11 +27,9 @@ class SchemaTab extends StatelessWidget {
     final isDbSelected = provider.selectedDatabase != null;
 
     return PopScope(
-      canPop:
-          !isDbSelected, // Can pop if no database selected, otherwise intercept
+      canPop: !isDbSelected,
       onPopInvokedWithResult: (didPop, result) {
         if (isDbSelected && !didPop) {
-          // Defer to avoid race condition with ListView.builder
           WidgetsBinding.instance.addPostFrameCallback((_) {
             provider.clearDatabaseSelection();
           });
@@ -25,36 +37,57 @@ class SchemaTab extends StatelessWidget {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isDbSelected ? provider.selectedDatabase! : connectionName,
-                style: Theme.of(context).textTheme.titleMedium,
+          title: _isSearching
+              ? _buildSearchBar()
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isDbSelected
+                          ? provider.selectedDatabase!
+                          : connectionName,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Row(
+                      children: [
+                        const Icon(Icons.circle, color: Colors.green, size: 8),
+                        const SizedBox(width: 4),
+                        Text(
+                          isDbSelected ? 'TABLES' : 'DATABASES',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelSmall?.copyWith(color: Colors.green),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+          actions: [
+            if (_isSearching) ...[
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _isSearching = false;
+                    _searchController.clear();
+                  });
+                },
+                icon: const Icon(Icons.close),
+                tooltip: 'Clear',
               ),
-              Row(
-                children: [
-                  const Icon(Icons.circle, color: Colors.green, size: 8),
-                  const SizedBox(width: 4),
-                  Text(
-                    isDbSelected ? 'TABLES' : 'DATABASES',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelSmall?.copyWith(color: Colors.green),
-                  ),
-                ],
+            ] else ...[
+              IconButton(
+                onPressed: () => setState(() => _isSearching = true),
+                icon: const Icon(Icons.search),
+                tooltip: 'Search',
+              ),
+              IconButton(
+                onPressed: () => isDbSelected
+                    ? provider.refreshTables()
+                    : provider.refreshDatabases(),
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Refresh',
               ),
             ],
-          ),
-          actions: [
-            // Refresh button
-            IconButton(
-              onPressed: () => isDbSelected
-                  ? provider.refreshTables()
-                  : provider.refreshDatabases(),
-              icon: const Icon(Icons.refresh),
-              tooltip: 'Refresh',
-            ),
           ],
         ),
         body: isDbSelected
@@ -64,11 +97,32 @@ class SchemaTab extends StatelessWidget {
     );
   }
 
+  Widget _buildSearchBar() {
+    return TextField(
+      controller: _searchController,
+      autofocus: true,
+      style: const TextStyle(color: Colors.white),
+      decoration: const InputDecoration(
+        hintText: 'Search...',
+        hintStyle: TextStyle(color: Colors.grey),
+        border: InputBorder.none,
+      ),
+      onChanged: (_) => setState(() {}),
+    );
+  }
+
+  List<String> _filterList(List<String> list) {
+    final query = _searchController.text.toLowerCase();
+    if (query.isEmpty) return list;
+    return list.where((item) => item.toLowerCase().contains(query)).toList();
+  }
+
   Widget _buildDatabaseList(BuildContext context, DashboardProvider provider) {
+    final filteredDatabases = _filterList(provider.databases);
     return ListView.builder(
-      itemCount: provider.databases.length,
+      itemCount: filteredDatabases.length,
       itemBuilder: (context, index) {
-        final db = provider.databases[index];
+        final db = filteredDatabases[index];
         return ListTile(
           leading: const Icon(Icons.storage, color: Colors.orangeAccent),
           title: Text(db),
@@ -80,14 +134,19 @@ class SchemaTab extends StatelessWidget {
   }
 
   Widget _buildTableList(BuildContext context, DashboardProvider provider) {
-    if (provider.tables.isEmpty) {
+    final filteredTables = _filterList(provider.tables);
+    if (filteredTables.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.table_rows_outlined, size: 64, color: Colors.grey),
+            const Icon(Icons.search_off, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
-            const Text('No tables found in this database'),
+            Text(
+              _searchController.text.isEmpty
+                  ? 'No tables found in this database'
+                  : 'No tables match "${_searchController.text}"',
+            ),
             TextButton(
               onPressed: () => provider.clearDatabaseSelection(),
               child: const Text('View all databases'),
@@ -97,9 +156,9 @@ class SchemaTab extends StatelessWidget {
       );
     }
     return ListView.builder(
-      itemCount: provider.tables.length,
+      itemCount: filteredTables.length,
       itemBuilder: (context, index) {
-        final table = provider.tables[index];
+        final table = filteredTables[index];
         return ListTile(
           leading: const Icon(Icons.table_chart, color: Colors.blueGrey),
           title: Text(table),
