@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../tabs/schema_tab.dart';
 import '../tabs/query_tab.dart';
-import 'package:fluxlyn/src/features/settings/presentation/tabs/settings_tab.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -16,7 +15,6 @@ class DashboardPage extends StatelessWidget {
       const SchemaTab(),
       const QueryTab(),
       const Center(child: Text('History (Coming Soon)')),
-      const SettingsTab(),
     ];
 
     return PopScope(
@@ -72,10 +70,6 @@ class DashboardPage extends StatelessWidget {
             BottomNavigationBarItem(
               icon: Icon(Icons.history),
               label: 'History',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: 'Settings',
             ),
           ],
         ),
