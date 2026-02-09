@@ -32,7 +32,11 @@ class ConnectionCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: isMysql ? const Color(0xFF3E2C28) : const Color(0xFF1E3A5F), // Brownish for MySQL, Blueish for PG
+                  color: isMysql
+                      ? const Color(0xFF3E2C28)
+                      : const Color(
+                          0xFF1E3A5F,
+                        ), // Brownish for MySQL, Blueish for PG
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -41,7 +45,7 @@ class ConnectionCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              
+
               // Details
               Expanded(
                 child: Column(
@@ -49,17 +53,21 @@ class ConnectionCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          connection.name,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Text(
+                            connection.name,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Icon(
                           Icons.circle,
                           size: 8,
-                          color: connection.isConnected 
+                          color: connection.isConnected
                               ? const Color(0xFF10B981) // Green
                               : const Color(0xFFF59E0B), // Orange/Yellow
                         ),
@@ -74,13 +82,18 @@ class ConnectionCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        connection.type == ConnectionType.mysql ? 'MYSQL' : 'POSTGRESQL',
+                        connection.type == ConnectionType.mysql
+                            ? 'MYSQL'
+                            : 'POSTGRESQL',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: Colors.blueGrey,
                           fontWeight: FontWeight.bold,
