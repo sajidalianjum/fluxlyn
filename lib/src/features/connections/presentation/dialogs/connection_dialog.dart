@@ -152,38 +152,68 @@ class _ConnectionDialogState extends State<ConnectionDialog>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return Dialog(
       backgroundColor: const Color(0xFF1E293B),
       child: Container(
         padding: const EdgeInsets.all(24),
-        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
+        constraints: BoxConstraints(
+          maxWidth: isMobile ? screenWidth - 48 : 500,
+          maxHeight: 700,
+        ),
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    widget.connection == null
-                        ? 'New Connection'
-                        : 'Edit Connection',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  TabBar(
-                    controller: _tabController,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-                    tabs: const [
-                      Tab(text: 'General'),
-                      Tab(text: 'SSH Tunnel'),
-                    ],
-                  ),
-                ],
-              ),
+              if (isMobile)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.connection == null
+                          ? 'New Connection'
+                          : 'Edit Connection',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 16),
+                    TabBar(
+                      controller: _tabController,
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.start,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      tabs: const [
+                        Tab(text: 'General'),
+                        Tab(text: 'SSH Tunnel'),
+                      ],
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      widget.connection == null
+                          ? 'New Connection'
+                          : 'Edit Connection',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    TabBar(
+                      controller: _tabController,
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.start,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      tabs: const [
+                        Tab(text: 'General'),
+                        Tab(text: 'SSH Tunnel'),
+                      ],
+                    ),
+                  ],
+                ),
               const SizedBox(height: 16),
 
               Expanded(
