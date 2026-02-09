@@ -20,7 +20,7 @@ class DashboardPage extends StatelessWidget {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
-        if (!didPop) {
+        if (!didPop && provider.selectedDatabase == null) {
           _showDisconnectDialog(context, provider);
         }
       },
