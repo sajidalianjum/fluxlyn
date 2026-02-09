@@ -254,7 +254,7 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
     );
   }
 
-  Widget _buildCellContent(dynamic value) {
+  Widget _buildCellContent(dynamic value, {bool isBinary = false}) {
     if (value == null) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -276,7 +276,9 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
     String text;
     final isBit = widget.columns.any((col) => col.isBit);
 
-    if (isBit && value is List<int>) {
+    if (isBinary) {
+      text = '<binary data>';
+    } else if (isBit && value is List<int>) {
       text = value.isNotEmpty ? value.first.toString() : '0';
     } else if (isBit &&
         value is String &&
@@ -398,7 +400,7 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
                 onTap: widget.onRowTap != null
                     ? () => widget.onRowTap!(originalIndex)
                     : null,
-                child: _buildCellContent(row[col.name]),
+                child: _buildCellContent(row[col.name], isBinary: col.isBinary),
               ),
             );
           }).toList(),

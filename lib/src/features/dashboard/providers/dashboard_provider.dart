@@ -191,11 +191,19 @@ class DashboardProvider extends ChangeNotifier {
       final allColumns = <String>[];
       for (final row in columnsResult.rows) {
         final colName = row.colByName('Field')?.toString();
-        final colType = row.colByName('Type')?.toString().toLowerCase() ?? '';
+        final colTypeRaw = row.colByName('Type');
+
+        String colType = '';
+        if (colTypeRaw is List<int>) {
+          colType = String.fromCharCodes(colTypeRaw).toLowerCase();
+        } else if (colTypeRaw != null) {
+          colType = colTypeRaw.toString().toLowerCase();
+        }
+
         if (colName != null && colName.isNotEmpty) {
           allColumns.add(colName);
-          // Detect BIT columns separately
-          if (colType.contains('bit')) {
+          // Detect BIT columns separately (must be exact 'bit' or start with 'bit(')
+          if (colType == 'bit' || colType.startsWith('bit(')) {
             bitColumns.add(colName);
           } else if (colType.contains('blob') ||
               colType.contains('binary') ||
@@ -335,10 +343,18 @@ class DashboardProvider extends ChangeNotifier {
       );
       for (final row in columnsResult.rows) {
         final colName = row.colByName('Field')?.toString();
-        final colType = row.colByName('Type')?.toString().toLowerCase() ?? '';
+        final colTypeRaw = row.colByName('Type');
+
+        String colType = '';
+        if (colTypeRaw is List<int>) {
+          colType = String.fromCharCodes(colTypeRaw).toLowerCase();
+        } else if (colTypeRaw != null) {
+          colType = colTypeRaw.toString().toLowerCase();
+        }
+
         if (colName != null && colName.isNotEmpty) {
           allColumns.add(colName);
-          if (colType.contains('bit')) {
+          if (colType == 'bit' || colType.startsWith('bit(')) {
             bitColumns.add(colName);
           } else if (colType.contains('blob') ||
               colType.contains('binary') ||
