@@ -56,9 +56,6 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       body: IndexedStack(index: _selectedTabIndex, children: tabs),
       floatingActionButton: _getFloatingActionButton(),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF0F172A),
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
         currentIndex: _selectedTabIndex,
         onTap: (index) {
           setState(() {

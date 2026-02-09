@@ -26,10 +26,9 @@ class AppTheme {
         surface: _cardBackground,
         onSurface: _textPrimary,
       ),
-      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).apply(
-        bodyColor: _textPrimary,
-        displayColor: _textPrimary,
-      ),
+      textTheme: GoogleFonts.interTextTheme(
+        ThemeData.dark().textTheme,
+      ).apply(bodyColor: _textPrimary, displayColor: _textPrimary),
       // cardTheme: CardTheme(
       //   color: _cardBackground,
       //   elevation: 0,
@@ -50,6 +49,25 @@ class AppTheme {
         iconTheme: IconThemeData(color: _primary),
       ),
       iconTheme: const IconThemeData(color: _primary),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: _background,
+        selectedItemColor: _primary,
+        unselectedItemColor: Colors.grey,
+        selectedLabelStyle: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+        ),
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+        showUnselectedLabels: true,
+        showSelectedLabels: true,
+        enableFeedback: true,
+        landscapeLayout: BottomNavigationBarLandscapeLayout.centered,
+      ),
     );
   }
 }

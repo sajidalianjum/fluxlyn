@@ -58,10 +58,6 @@ class DashboardPage extends StatelessWidget {
           ],
         ),
         bottomNavigationBar: BottomNavigationBar(
-          backgroundColor: const Color(0xFF0F172A),
-          selectedItemColor: Colors.blue,
-          unselectedItemColor: Colors.grey,
-          type: BottomNavigationBarType.fixed,
           currentIndex: provider.selectedTabIndex,
           onTap: (index) => provider.setTabIndex(index),
           items: const [
