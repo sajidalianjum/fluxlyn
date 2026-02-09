@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/widgets/data_table2_widget.dart';
+import '../../../dashboard/presentation/dialogs/row_edit_dialog.dart';
 
 class QueryResult {
   final String query;
@@ -31,6 +32,41 @@ class QueryResultsWidget extends StatefulWidget {
 }
 
 class _QueryResultsWidgetState extends State<QueryResultsWidget> {
+  void _openRowView(int rowIndex) {
+    final row = widget.result.rows[rowIndex];
+    showDialog(
+      context: context,
+      builder: (context) => RowEditDialog(
+        tableName: 'Query Result',
+        columns: widget.result.columns,
+        row: row,
+        primaryKeyColumn: null,
+        binaryColumns: const [],
+        bitColumns: const [],
+        currentRowIndex: rowIndex,
+        totalRows: widget.result.rows.length,
+        onPrevious: () {
+          Navigator.of(context).pop();
+          if (rowIndex > 0) {
+            _openRowView(rowIndex - 1);
+          }
+        },
+        onNext: () {
+          Navigator.of(context).pop();
+          if (rowIndex < widget.result.rows.length - 1) {
+            _openRowView(rowIndex + 1);
+          }
+        },
+        onCancel: () {
+          Navigator.of(context).pop();
+        },
+        onSave: (_) {
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
   void _exportToCsv() {
     final buffer = StringBuffer();
 
@@ -124,6 +160,7 @@ class _QueryResultsWidgetState extends State<QueryResultsWidget> {
       columns: dataTableColumns,
       rows: widget.result.rows,
       showPagination: true,
+      onRowTap: (index) => _openRowView(index),
       header: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         color: const Color(0xFF1E293B),

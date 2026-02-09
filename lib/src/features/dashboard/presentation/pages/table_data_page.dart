@@ -160,195 +160,7 @@ class _TableDataPageState extends State<TableDataPage> {
     }
   }
 
-  // Get the best columns to display on a card (ID + first 2-3 data columns)
-  List<String> _getCardDisplayColumns() {
-    final displayCols = <String>[];
-
-    // Always show primary key first if exists
-    if (_primaryKeyColumn != null && _columns.contains(_primaryKeyColumn!)) {
-      displayCols.add(_primaryKeyColumn!);
-    }
-
-    // Add up to 3 more non-binary columns
-    for (final col in _columns) {
-      if (displayCols.length >= 4) break;
-      if (displayCols.contains(col)) continue;
-      if (_binaryColumns.contains(col)) continue; // Skip binary in card preview
-      displayCols.add(col);
-    }
-
-    return displayCols;
-  }
-
-  // Get a title column (first non-PK string column)
-  String? _getTitleColumn() {
-    for (final col in _columns) {
-      if (col == _primaryKeyColumn) continue;
-      if (_binaryColumns.contains(col)) continue;
-      final firstValue = _rows.isNotEmpty ? _rows[0][col] : null;
-      if (firstValue is String) return col;
-    }
-    return null;
-  }
-
-  Widget _buildCardView() {
-    final displayCols = _getCardDisplayColumns();
-    final titleCol = _getTitleColumn();
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _rows.length,
-      itemBuilder: (context, index) {
-        final row = _rows[index];
-        final title = titleCol != null ? row[titleCol]?.toString() : null;
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          color: const Color(0xFF1E293B),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: InkWell(
-            onTap: () => _openRowEditDialog(index),
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title row (if we have a good title column)
-                  if (title != null && title.isNotEmpty) ...[
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 12),
-                    const Divider(height: 1, color: Color(0xFF334155)),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // Display key fields
-                  ...displayCols.map((col) {
-                    final isPK = col == _primaryKeyColumn;
-                    final isBit = _bitColumns.contains(col);
-                    final value = row[col];
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Column name
-                          Container(
-                            constraints: const BoxConstraints(minWidth: 80),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (isPK)
-                                  Icon(
-                                    Icons.key,
-                                    size: 12,
-                                    color: Colors.yellow[700],
-                                  ),
-                                if (isBit)
-                                  Icon(
-                                    Icons.toggle_on,
-                                    size: 12,
-                                    color: Colors.blue[400],
-                                  ),
-                                if (isPK || isBit) const SizedBox(width: 4),
-                                Text(
-                                  col,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[400],
-                                    fontWeight: isPK
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // Value
-                          Expanded(child: _buildCardValue(value, isBit: isBit)),
-                        ],
-                      ),
-                    );
-                  }),
-
-                  // Edit hint
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Icon(Icons.edit, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        _isEditable ? 'Tap to edit' : 'View details',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildCardValue(dynamic value, {bool isBit = false}) {
-    if (value == null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          'NULL',
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontStyle: FontStyle.italic,
-            fontSize: 12,
-          ),
-        ),
-      );
-    }
-
-    String text;
-    if (isBit && value is List<int>) {
-      text = value.isNotEmpty ? value.first.toString() : '0';
-    } else if (isBit &&
-        value is String &&
-        value.startsWith('[') &&
-        value.endsWith(']')) {
-      final inner = value.substring(1, value.length - 1);
-      final intValue = int.tryParse(inner.trim());
-      text = (intValue ?? 0).toString();
-    } else {
-      text = value.toString();
-    }
-
-    return Text(
-      text,
-      style: const TextStyle(fontSize: 14, color: Colors.white),
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildTableView() {
+  Widget _buildDataView() {
     final dataTableColumns = _columns.map((col) {
       return DataTableColumn(
         name: col,
@@ -442,8 +254,8 @@ class _TableDataPageState extends State<TableDataPage> {
           IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
+      body: Builder(
+        builder: (context) {
           if (_isLoading && _rows.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -492,14 +304,7 @@ class _TableDataPageState extends State<TableDataPage> {
             );
           }
 
-          // Responsive layout switch
-          if (constraints.maxWidth < 600) {
-            // Mobile: Card view
-            return _buildCardView();
-          } else {
-            // Desktop: Table view
-            return _buildTableView();
-          }
+          return _buildDataView();
         },
       ),
     );
