@@ -440,17 +440,15 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
             : index;
 
         return DataRow(
+          onSelectChanged: widget.onRowTap != null
+              ? (_) => widget.onRowTap!(originalIndex)
+              : null,
           cells: widget.columns.map((col) {
             return DataCell(
-              GestureDetector(
-                onTap: widget.onRowTap != null
-                    ? () => widget.onRowTap!(originalIndex)
-                    : null,
-                child: _buildCellContent(
-                  row[col.name],
-                  isBinary: col.isBinary,
-                  isBit: col.isBit,
-                ),
+              _buildCellContent(
+                row[col.name],
+                isBinary: col.isBinary,
+                isBit: col.isBit,
               ),
             );
           }).toList(),

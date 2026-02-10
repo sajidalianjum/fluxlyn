@@ -245,7 +245,7 @@ class _TableDataPageState extends State<TableDataPage> {
       rows: _rows,
 
       footer: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
         color: const Color(0xFF0F172A),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -334,7 +334,6 @@ class _TableDataPageState extends State<TableDataPage> {
                   )
                 : const Icon(Icons.refresh),
           ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
         ],
         bottom:
             _searchResult != null &&
