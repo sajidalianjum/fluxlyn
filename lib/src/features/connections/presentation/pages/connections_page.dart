@@ -5,6 +5,7 @@ import '../../models/connection_model.dart';
 import '../dialogs/connection_dialog.dart';
 import '../tabs/connections_tab.dart';
 import 'package:fluxlyn/src/features/settings/presentation/tabs/settings_tab.dart';
+import 'package:fluxlyn/src/features/dashboard/presentation/tabs/queries_tab.dart';
 
 class ConnectionsPage extends StatefulWidget {
   const ConnectionsPage({super.key});
@@ -38,7 +39,11 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> tabs = [const ConnectionsTab(), const SettingsTab()];
+    final List<Widget> tabs = [
+      const ConnectionsTab(),
+      const QueriesTab(),
+      const SettingsTab(),
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -56,6 +61,10 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.dns), label: 'Connections'),
+          NavigationDestination(
+            icon: Icon(Icons.saved_search),
+            label: 'Queries',
+          ),
           NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),
@@ -78,6 +87,8 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       case 0:
         return 'Connections';
       case 1:
+        return 'Queries';
+      case 2:
         return 'Settings';
       default:
         return 'Fluxlyn';

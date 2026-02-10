@@ -105,6 +105,11 @@ class StorageService {
         .toList();
   }
 
+  List<QueryModel> getAllSavedQueries() {
+    return queriesBox.values.toList()
+      ..sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+  }
+
   // Query History
   Box<QueryHistoryEntry> get queryHistoryBox =>
       Hive.box<QueryHistoryEntry>(_queryHistoryBoxName);
@@ -134,6 +139,11 @@ class StorageService {
     return queryHistoryBox.values
         .where((e) => e.connectionId == connectionId)
         .toList()
+      ..sort((a, b) => b.executedAt.compareTo(a.executedAt));
+  }
+
+  List<QueryHistoryEntry> getAllQueryHistory() {
+    return queryHistoryBox.values.toList()
       ..sort((a, b) => b.executedAt.compareTo(a.executedAt));
   }
 
