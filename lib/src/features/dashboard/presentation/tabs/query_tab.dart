@@ -356,14 +356,25 @@ class _QueryTabState extends State<QueryTab> {
               ? result.rows.first.assoc().keys.toList()
               : <String>[];
 
+          // First extract raw rows for type inference fallback
+          final rawRows = result.rows.map((row) {
+            final rowMap = <String, dynamic>{};
+            for (final col in columns) {
+              rowMap[col] = row.colByName(col);
+            }
+            return rowMap;
+          }).toList();
+
           final connection = provider.currentConnection;
           final database = provider.selectedDatabase;
 
+          // Detect types with silent fallback to result-based inference
           final columnTypes = await ColumnTypeDetector.detectTypes(
             query: singleQuery,
             resultColumns: columns,
             connection: connection!,
             databaseName: database,
+            sampleRows: rawRows.isNotEmpty ? rawRows : null,
           );
 
           final binaryColumns = <String>[];
@@ -384,14 +395,15 @@ class _QueryTabState extends State<QueryTab> {
             }
           }
 
-          final rows = result.rows.map((row) {
-            final rowMap = <String, dynamic>{};
+          // Format values based on detected types
+          final rows = rawRows.map((rowMap) {
+            final formattedRow = <String, dynamic>{};
             for (final col in columns) {
-              final value = row.colByName(col);
+              final value = rowMap[col];
               final info = columnTypes[col];
-              rowMap[col] = ColumnTypeDetector.formatValue(value, info);
+              formattedRow[col] = ColumnTypeDetector.formatValue(value, info);
             }
-            return rowMap;
+            return formattedRow;
           }).toList();
 
           results.add(

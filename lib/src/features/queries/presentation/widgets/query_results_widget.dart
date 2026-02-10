@@ -142,6 +142,8 @@ class _QueryResultsWidgetState extends State<QueryResultsWidget> {
         name: col,
         isBinary: widget.result.binaryColumns.contains(col),
         isBit: widget.result.bitColumns.contains(col),
+        isEnum: widget.result.enumColumns.containsKey(col),
+        isSet: widget.result.setColumns.containsKey(col),
       );
     }).toList();
 

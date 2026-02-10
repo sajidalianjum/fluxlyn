@@ -6,12 +6,16 @@ class DataTableColumn {
   final bool isPrimaryKey;
   final bool isBinary;
   final bool isBit;
+  final bool isEnum;
+  final bool isSet;
 
   DataTableColumn({
     required this.name,
     this.isPrimaryKey = false,
     this.isBinary = false,
     this.isBit = false,
+    this.isEnum = false,
+    this.isSet = false,
   });
 }
 
@@ -187,6 +191,8 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
                   ...displayCols.map((col) {
                     final isPK = col.isPrimaryKey;
                     final isBit = col.isBit;
+                    final isEnum = col.isEnum;
+                    final isSet = col.isSet;
                     final value = row[col.name];
 
                     return Padding(
@@ -211,7 +217,20 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
                                     size: 12,
                                     color: Colors.blue[400],
                                   ),
-                                if (isPK || isBit) const SizedBox(width: 4),
+                                if (isEnum)
+                                  Icon(
+                                    Icons.list,
+                                    size: 12,
+                                    color: Colors.purple[400],
+                                  ),
+                                if (isSet)
+                                  Icon(
+                                    Icons.checklist,
+                                    size: 12,
+                                    color: Colors.orange[400],
+                                  ),
+                                if (isPK || isBit || isEnum || isSet)
+                                  const SizedBox(width: 4),
                                 Text(
                                   col.name,
                                   style: TextStyle(
@@ -254,7 +273,11 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
     );
   }
 
-  Widget _buildCellContent(dynamic value, {bool isBinary = false}) {
+  Widget _buildCellContent(
+    dynamic value, {
+    bool isBinary = false,
+    bool isBit = false,
+  }) {
     if (value == null) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -274,10 +297,27 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
     }
 
     String text;
-    final isBit = widget.columns.any((col) => col.isBit);
 
     if (isBinary) {
-      text = '<binary data>';
+      // Binary data should already be formatted as hex string (e.g., "0xAABB...")
+      if (value is String && value.startsWith('0x')) {
+        text = value;
+      } else if (value is List<int>) {
+        // Format raw bytes as hex
+        final hexStr = value
+            .map((b) => b.toRadixString(16).padLeft(2, '0'))
+            .join();
+        if (hexStr.length > 16) {
+          text =
+              '0x${hexStr.substring(0, 16)}... (${hexStr.length ~/ 2} bytes)';
+        } else if (hexStr.isEmpty) {
+          text = '0x';
+        } else {
+          text = '0x$hexStr';
+        }
+      } else {
+        text = '<binary data>';
+      }
     } else if (isBit && value is List<int>) {
       text = value.isNotEmpty ? value.first.toString() : '0';
     } else if (isBit &&
@@ -376,6 +416,12 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
               if (col.isBinary)
                 Icon(Icons.data_object, size: 14, color: Colors.grey[500]),
               if (col.isBinary) const SizedBox(width: 4),
+              if (col.isEnum)
+                Icon(Icons.list, size: 14, color: Colors.purple[400]),
+              if (col.isEnum) const SizedBox(width: 4),
+              if (col.isSet)
+                Icon(Icons.checklist, size: 14, color: Colors.orange[400]),
+              if (col.isSet) const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   col.name.toUpperCase(),
@@ -400,7 +446,11 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
                 onTap: widget.onRowTap != null
                     ? () => widget.onRowTap!(originalIndex)
                     : null,
-                child: _buildCellContent(row[col.name], isBinary: col.isBinary),
+                child: _buildCellContent(
+                  row[col.name],
+                  isBinary: col.isBinary,
+                  isBit: col.isBit,
+                ),
               ),
             );
           }).toList(),
