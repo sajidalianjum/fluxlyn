@@ -34,13 +34,15 @@ class ConnectionModelAdapter extends TypeAdapter<ConnectionModel> {
       sshPrivateKey: fields[14] as String?,
       sshKeyPassword: fields[15] as String?,
       databaseName: fields[16] as String?,
+      customTag: fields[17] as String?,
+      tag: fields[18] as ConnectionTag?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ConnectionModel obj) {
     writer
-      ..writeByte(17)
+      ..writeByte(19)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -74,7 +76,11 @@ class ConnectionModelAdapter extends TypeAdapter<ConnectionModel> {
       ..writeByte(15)
       ..write(obj.sshKeyPassword)
       ..writeByte(16)
-      ..write(obj.databaseName);
+      ..write(obj.databaseName)
+      ..writeByte(17)
+      ..write(obj.customTag)
+      ..writeByte(18)
+      ..write(obj.tag);
   }
 
   @override
@@ -84,6 +90,70 @@ class ConnectionModelAdapter extends TypeAdapter<ConnectionModel> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ConnectionModelAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class ConnectionTagAdapter extends TypeAdapter<ConnectionTag> {
+  @override
+  final int typeId = 4;
+
+  @override
+  ConnectionTag read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return ConnectionTag.none;
+      case 1:
+        return ConnectionTag.development;
+      case 2:
+        return ConnectionTag.production;
+      case 3:
+        return ConnectionTag.testing;
+      case 4:
+        return ConnectionTag.staging;
+      case 5:
+        return ConnectionTag.local;
+      case 6:
+        return ConnectionTag.custom;
+      default:
+        return ConnectionTag.none;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, ConnectionTag obj) {
+    switch (obj) {
+      case ConnectionTag.none:
+        writer.writeByte(0);
+        break;
+      case ConnectionTag.development:
+        writer.writeByte(1);
+        break;
+      case ConnectionTag.production:
+        writer.writeByte(2);
+        break;
+      case ConnectionTag.testing:
+        writer.writeByte(3);
+        break;
+      case ConnectionTag.staging:
+        writer.writeByte(4);
+        break;
+      case ConnectionTag.local:
+        writer.writeByte(5);
+        break;
+      case ConnectionTag.custom:
+        writer.writeByte(6);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConnectionTagAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

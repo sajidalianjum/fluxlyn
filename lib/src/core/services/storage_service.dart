@@ -22,6 +22,9 @@ class StorageService {
     if (!Hive.isAdapterRegistered(1)) {
       Hive.registerAdapter(ConnectionTypeAdapter());
     }
+    if (!Hive.isAdapterRegistered(4)) {
+      Hive.registerAdapter(ConnectionTagAdapter());
+    }
     if (!Hive.isAdapterRegistered(0)) {
       Hive.registerAdapter(ConnectionModelAdapter());
     }

@@ -73,25 +73,60 @@ class ConnectionCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        connection.type == ConnectionType.mysql
-                            ? 'MYSQL'
-                            : 'POSTGRESQL',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.blueGrey,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            connection.type == ConnectionType.mysql
+                                ? 'MYSQL'
+                                : 'POSTGRESQL',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: Colors.blueGrey,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ),
-                      ),
+                        if (connection.tag != null &&
+                            connection.tag != ConnectionTag.none)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getTagColor(
+                                connection.tag!,
+                              ).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: _getTagColor(connection.tag!),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              connection.tag == ConnectionTag.custom
+                                  ? (connection.customTag ?? 'Custom')
+                                  : connection.tag!.name[0].toUpperCase() +
+                                        connection.tag!.name.substring(1),
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: _getTagColor(connection.tag!),
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -119,5 +154,24 @@ class ConnectionCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _getTagColor(ConnectionTag tag) {
+    switch (tag) {
+      case ConnectionTag.none:
+        return Colors.grey;
+      case ConnectionTag.development:
+        return Colors.green;
+      case ConnectionTag.production:
+        return Colors.red;
+      case ConnectionTag.testing:
+        return Colors.yellow;
+      case ConnectionTag.staging:
+        return Colors.orange;
+      case ConnectionTag.local:
+        return Colors.purple;
+      case ConnectionTag.custom:
+        return Colors.blue;
+    }
   }
 }

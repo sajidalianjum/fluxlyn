@@ -15,6 +15,30 @@ class ConnectionsTab extends StatefulWidget {
 }
 
 class _ConnectionsTabState extends State<ConnectionsTab> {
+  ConnectionTag _selectedFilterTag = ConnectionTag.none;
+
+  Set<ConnectionTag> _getAvailableTags(List<ConnectionModel> connections) {
+    return connections
+        .map((c) => c.tag)
+        .whereType<ConnectionTag>()
+        .where((tag) => tag != ConnectionTag.none)
+        .toSet();
+  }
+
+  bool _shouldShowFilterBar(List<ConnectionModel> connections) {
+    final availableTags = _getAvailableTags(connections);
+    return availableTags.length >= 2;
+  }
+
+  List<ConnectionModel> _getFilteredConnections(
+    List<ConnectionModel> connections,
+  ) {
+    if (_selectedFilterTag == ConnectionTag.none) {
+      return connections;
+    }
+    return connections.where((c) => c.tag == _selectedFilterTag).toList();
+  }
+
   void _showConnectionDialog(
     BuildContext context, {
     ConnectionModel? connection,
@@ -58,6 +82,21 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
   Widget build(BuildContext context) {
     return Consumer<ConnectionsProvider>(
       builder: (context, provider, child) {
+        final availableTags = _getAvailableTags(provider.connections);
+        if (_selectedFilterTag != ConnectionTag.none &&
+            !availableTags.contains(_selectedFilterTag)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() {
+              _selectedFilterTag = ConnectionTag.none;
+            });
+          });
+        }
+
+        final filteredConnections = _getFilteredConnections(
+          provider.connections,
+        );
+        final showFilterBar = _shouldShowFilterBar(provider.connections);
+
         return Stack(
           children: [
             Padding(
@@ -66,8 +105,34 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 24),
+                  if (showFilterBar) ...[
+                    SizedBox(
+                      height: 40,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          _buildFilterChip(ConnectionTag.none, 'All'),
+                          ...availableTags
+                              .map(
+                                (tag) => [
+                                  const SizedBox(width: 8),
+                                  _buildFilterChip(
+                                    tag,
+                                    tag == ConnectionTag.custom
+                                        ? 'Custom'
+                                        : tag.name[0].toUpperCase() +
+                                              tag.name.substring(1),
+                                  ),
+                                ],
+                              )
+                              .expand((e) => e),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Expanded(
-                    child: provider.connections.isEmpty
+                    child: filteredConnections.isEmpty
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -79,7 +144,9 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'No connections yet.\nTap "+" to add one.',
+                                  provider.connections.isEmpty
+                                      ? 'No connections yet.\nTap "+" to add one.'
+                                      : 'No connections match the selected filter.',
                                   textAlign: TextAlign.center,
                                   style: Theme.of(context).textTheme.bodyLarge
                                       ?.copyWith(color: Colors.grey),
@@ -88,9 +155,9 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                             ),
                           )
                         : ListView.builder(
-                            itemCount: provider.connections.length,
+                            itemCount: filteredConnections.length,
                             itemBuilder: (context, index) {
-                              final connection = provider.connections[index];
+                              final connection = filteredConnections[index];
                               return ConnectionCard(
                                 connection: connection,
                                 onTap: () async {
@@ -167,5 +234,48 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
         );
       },
     );
+  }
+
+  Widget _buildFilterChip(ConnectionTag tag, String label) {
+    final isSelected = _selectedFilterTag == tag;
+    final color = _getTagColor(tag);
+
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _selectedFilterTag = tag;
+        });
+      },
+      selectedColor: color.withValues(alpha: 0.3),
+      checkmarkColor: color,
+      labelStyle: TextStyle(
+        color: isSelected ? color : Colors.grey,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      side: BorderSide(
+        color: isSelected ? color : Colors.grey.withValues(alpha: 0.3),
+      ),
+    );
+  }
+
+  Color _getTagColor(ConnectionTag tag) {
+    switch (tag) {
+      case ConnectionTag.none:
+        return Colors.grey;
+      case ConnectionTag.development:
+        return Colors.green;
+      case ConnectionTag.production:
+        return Colors.red;
+      case ConnectionTag.testing:
+        return Colors.yellow;
+      case ConnectionTag.staging:
+        return Colors.orange;
+      case ConnectionTag.local:
+        return Colors.purple;
+      case ConnectionTag.custom:
+        return Colors.blue;
+    }
   }
 }

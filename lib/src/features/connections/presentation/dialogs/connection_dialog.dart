@@ -25,7 +25,9 @@ class _ConnectionDialogState extends State<ConnectionDialog>
   late TextEditingController _userController;
   late TextEditingController _passwordController;
   late TextEditingController _databaseController;
+  late TextEditingController _customTagController;
   bool _sslEnabled = false;
+  ConnectionTag _selectedTag = ConnectionTag.none;
 
   // SSH Vars
   bool _useSsh = false;
@@ -50,6 +52,8 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     _passwordController = TextEditingController(text: c?.password ?? '');
     _databaseController = TextEditingController(text: c?.databaseName ?? '');
     _sslEnabled = c?.sslEnabled ?? false;
+    _customTagController = TextEditingController(text: c?.customTag ?? '');
+    _selectedTag = c?.tag ?? ConnectionTag.none;
 
     _useSsh = c?.useSsh ?? false;
     _sshHostController = TextEditingController(text: c?.sshHost ?? '');
@@ -77,6 +81,7 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     _userController.dispose();
     _passwordController.dispose();
     _databaseController.dispose();
+    _customTagController.dispose();
 
     _sshHostController.dispose();
     _sshPortController.dispose();
@@ -90,7 +95,7 @@ class _ConnectionDialogState extends State<ConnectionDialog>
   void _submit() {
     if (_formKey.currentState!.validate()) {
       final connection = ConnectionModel(
-        id: widget.connection?.id, // Keep ID if editing
+        id: widget.connection?.id,
         name: _nameController.text,
         host: _hostController.text,
         port: int.parse(_portController.text),
@@ -114,6 +119,12 @@ class _ConnectionDialogState extends State<ConnectionDialog>
             : null,
         databaseName: _databaseController.text.isNotEmpty
             ? _databaseController.text
+            : null,
+        tag: _selectedTag,
+        customTag:
+            _selectedTag == ConnectionTag.custom &&
+                _customTagController.text.isNotEmpty
+            ? _customTagController.text
             : null,
       );
 
@@ -148,6 +159,53 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     setState(() {
       _sshKeyPathController.text = '';
     });
+  }
+
+  Widget _buildTagChip(ConnectionTag tag, String label) {
+    final isSelected = _selectedTag == tag;
+    final color = _getTagColor(tag);
+
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          if (selected) {
+            _selectedTag = tag;
+          } else if (_selectedTag == tag) {
+            _selectedTag = ConnectionTag.none;
+          }
+        });
+      },
+      selectedColor: color.withValues(alpha: 0.3),
+      checkmarkColor: color,
+      labelStyle: TextStyle(
+        color: isSelected ? color : Colors.grey,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      side: BorderSide(
+        color: isSelected ? color : Colors.grey.withValues(alpha: 0.3),
+      ),
+    );
+  }
+
+  Color _getTagColor(ConnectionTag tag) {
+    switch (tag) {
+      case ConnectionTag.none:
+        return Colors.grey;
+      case ConnectionTag.development:
+        return Colors.green;
+      case ConnectionTag.production:
+        return Colors.red;
+      case ConnectionTag.testing:
+        return Colors.yellow;
+      case ConnectionTag.staging:
+        return Colors.orange;
+      case ConnectionTag.local:
+        return Colors.purple;
+      case ConnectionTag.custom:
+        return Colors.blue;
+    }
   }
 
   @override
@@ -231,6 +289,46 @@ class _ConnectionDialogState extends State<ConnectionDialog>
                           validator: (value) =>
                               value?.isEmpty ?? true ? 'Required' : null,
                         ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Tag',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        if (_selectedTag == ConnectionTag.custom)
+                          TextFormField(
+                            controller: _customTagController,
+                            decoration: const InputDecoration(
+                              labelText: 'Custom Tag Name',
+                              hintText: 'e.g., Analytics, Staging, Team A',
+                              suffixIcon: Icon(Icons.edit),
+                            ),
+                            validator: (value) =>
+                                _selectedTag == ConnectionTag.custom &&
+                                    (value?.isEmpty ?? true)
+                                ? 'Required'
+                                : null,
+                          )
+                        else
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _buildTagChip(ConnectionTag.none, 'None'),
+                              _buildTagChip(
+                                ConnectionTag.development,
+                                'Development',
+                              ),
+                              _buildTagChip(
+                                ConnectionTag.production,
+                                'Production',
+                              ),
+                              _buildTagChip(ConnectionTag.testing, 'Testing'),
+                              _buildTagChip(ConnectionTag.staging, 'Staging'),
+                              _buildTagChip(ConnectionTag.local, 'Local'),
+                              _buildTagChip(ConnectionTag.custom, 'Custom +'),
+                            ],
+                          ),
                         const SizedBox(height: 16),
                         Row(
                           children: [
