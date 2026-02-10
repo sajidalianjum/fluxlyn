@@ -69,16 +69,13 @@ class DashboardPage extends StatelessWidget {
               ),
           ],
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: provider.selectedTabIndex,
-          onTap: (index) => provider.setTabIndex(index),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.dns), label: 'Databases'),
-            BottomNavigationBarItem(icon: Icon(Icons.code), label: 'Editor'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.history),
-              label: 'History',
-            ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: provider.selectedTabIndex,
+          onDestinationSelected: (index) => provider.setTabIndex(index),
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.dns), label: 'Databases'),
+            NavigationDestination(icon: Icon(Icons.code), label: 'Editor'),
+            NavigationDestination(icon: Icon(Icons.history), label: 'History'),
           ],
         ),
       ),

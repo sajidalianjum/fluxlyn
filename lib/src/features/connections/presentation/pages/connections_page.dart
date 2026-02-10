@@ -47,19 +47,16 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       ),
       body: IndexedStack(index: _selectedTabIndex, children: tabs),
       floatingActionButton: _getFloatingActionButton(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedTabIndex,
-        onTap: (index) {
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedTabIndex,
+        onDestinationSelected: (index) {
           setState(() {
             _selectedTabIndex = index;
           });
         },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dns), label: 'Connections'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.dns), label: 'Connections'),
+          NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),
     );

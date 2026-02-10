@@ -49,24 +49,31 @@ class AppTheme {
         iconTheme: IconThemeData(color: _primary),
       ),
       iconTheme: const IconThemeData(color: _primary),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      navigationBarTheme: NavigationBarThemeData(
         backgroundColor: _background,
-        selectedItemColor: _primary,
-        unselectedItemColor: Colors.grey,
-        selectedLabelStyle: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-        unselectedLabelStyle: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-        ),
-        type: BottomNavigationBarType.fixed,
+        indicatorColor: _primary.withValues(alpha: 0.2),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: _textPrimary,
+            );
+          }
+          return TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: Colors.grey,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: _primary);
+          }
+          return const IconThemeData(color: Colors.grey);
+        }),
         elevation: 8,
-        showUnselectedLabels: true,
-        showSelectedLabels: true,
-        enableFeedback: true,
-        landscapeLayout: BottomNavigationBarLandscapeLayout.centered,
+        height: 80,
       ),
     );
   }
