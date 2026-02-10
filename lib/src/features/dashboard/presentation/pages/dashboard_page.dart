@@ -31,7 +31,18 @@ class DashboardPage extends StatelessWidget {
             if (provider.isLoading)
               Container(
                 color: Colors.black.withValues(alpha: 0.3),
-                child: const Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(),
+                      if (provider.isReconnecting) ...[
+                        const SizedBox(height: 16),
+                        const Text('Reconnecting to DB...'),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             if (provider.error != null && !provider.isLoading)
               Center(

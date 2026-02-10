@@ -405,4 +405,13 @@ class DatabaseService {
   Future<void> useDatabase(MySQLConnection conn, String databaseName) async {
     await conn.execute('USE `$databaseName`');
   }
+
+  Future<bool> isConnected(MySQLConnection conn) async {
+    try {
+      final result = await conn.execute('SELECT 1');
+      return result != null;
+    } catch (e) {
+      return false;
+    }
+  }
 }

@@ -22,6 +22,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   MySQLConnection? _connection;
   AppLifecycleState? _lastLifecycleState;
   bool _wasConnectedBeforePause = false;
+  bool _isReconnecting = false;
 
   // State
   List<String> _databases = [];
@@ -38,6 +39,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   String? get selectedDatabase => _selectedDatabase;
   List<String> get tables => _tables;
   bool get isLoading => _isLoading;
+  bool get isReconnecting => _isReconnecting;
   String? get error => _error;
   int get selectedTabIndex => _selectedTabIndex;
   ConnectionStep get connectionStep => _connectionStep;
@@ -178,8 +180,24 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (_wasConnectedBeforePause &&
           _connection != null &&
           _currentConnectionModel != null) {
+        _checkAndReconnect();
+      }
+    }
+  }
+
+  Future<void> _checkAndReconnect() async {
+    if (_connection == null) {
+      _autoReconnect();
+      return;
+    }
+
+    try {
+      final isConnected = await _dbService.isConnected(_connection!);
+      if (!isConnected) {
         _autoReconnect();
       }
+    } catch (e) {
+      _autoReconnect();
     }
   }
 
@@ -187,6 +205,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_currentConnectionModel == null) return;
 
     _isLoading = true;
+    _isReconnecting = true;
     _error = null;
     notifyListeners();
 
@@ -219,6 +238,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       _wasConnectedBeforePause = false;
     } finally {
       _isLoading = false;
+      _isReconnecting = false;
       notifyListeners();
     }
   }
