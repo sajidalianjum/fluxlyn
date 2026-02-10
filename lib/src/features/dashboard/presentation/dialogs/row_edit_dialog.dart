@@ -842,21 +842,7 @@ class _RowEditDialogState extends State<RowEditDialog> {
                   if (index == 0) {
                     return Text('Row Data', style: theme.textTheme.titleLarge);
                   }
-                  if (index == 1) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        Text(
-                          'Long press any field to set it to NULL',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                    );
-                  }
+
                   final col = widget.columns[index - 2];
                   final isPK =
                       col == widget.primaryKeyColumn ||

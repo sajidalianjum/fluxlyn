@@ -243,25 +243,7 @@ class _TableDataPageState extends State<TableDataPage> {
     return DataTable2Widget(
       columns: dataTableColumns,
       rows: _rows,
-      header: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        color: const Color(0xFF0F172A),
-        child: Row(
-          children: [
-            Icon(Icons.touch_app, size: 16, color: Colors.grey[400]),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _isEditable
-                    ? 'Tap any row to edit'
-                    : 'Table is read-only (no primary key)',
-                style: TextStyle(color: Colors.grey[400], fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-      ),
+
       footer: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         color: const Color(0xFF0F172A),
