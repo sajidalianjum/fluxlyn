@@ -16,10 +16,12 @@ enum ConnectionStep {
   completed,
 }
 
-class DashboardProvider extends ChangeNotifier {
+class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   final DatabaseService _dbService = DatabaseService();
   ConnectionModel? _currentConnectionModel;
   MySQLConnection? _connection;
+  AppLifecycleState? _lastLifecycleState;
+  bool _wasConnectedBeforePause = false;
 
   // State
   List<String> _databases = [];
@@ -52,6 +54,8 @@ class DashboardProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      WidgetsBinding.instance.addObserver(this);
+
       if (_connection != null) {
         await _dbService.disconnect();
       }
@@ -64,6 +68,7 @@ class DashboardProvider extends ChangeNotifier {
       _connection = await _dbService.connect(config);
       _currentConnectionModel = config;
       _selectedDatabase = config.databaseName;
+      _wasConnectedBeforePause = true;
 
       _connectionStep = ConnectionStep.loadingDatabases;
       notifyListeners();
@@ -152,13 +157,70 @@ class DashboardProvider extends ChangeNotifier {
   }
 
   Future<void> disconnect() async {
+    WidgetsBinding.instance.removeObserver(this);
     await _dbService.disconnect();
     _connection = null;
     _currentConnectionModel = null;
     _databases = [];
     _selectedDatabase = null;
     _tables = [];
+    _wasConnectedBeforePause = false;
     notifyListeners();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _lastLifecycleState = state;
+
+    if (state == AppLifecycleState.paused) {
+      _wasConnectedBeforePause = _connection != null;
+    } else if (state == AppLifecycleState.resumed) {
+      if (_wasConnectedBeforePause &&
+          _connection != null &&
+          _currentConnectionModel != null) {
+        _autoReconnect();
+      }
+    }
+  }
+
+  Future<void> _autoReconnect() async {
+    if (_currentConnectionModel == null) return;
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final oldConnection = _connection;
+      _connection = null;
+
+      if (_currentConnectionModel!.useSsh) {
+        _connectionStep = ConnectionStep.connectingSsh;
+        notifyListeners();
+      }
+
+      _connection = await _dbService.connect(_currentConnectionModel!);
+
+      _connectionStep = ConnectionStep.loadingDatabases;
+      notifyListeners();
+      await refreshDatabases();
+
+      if (_selectedDatabase != null && _selectedDatabase!.isNotEmpty) {
+        _connectionStep = ConnectionStep.loadingTables;
+        notifyListeners();
+        await refreshTables();
+      }
+
+      _connectionStep = ConnectionStep.completed;
+    } catch (e) {
+      _connection = null;
+      _error = 'Auto-reconnect failed: $e';
+      _connectionStep = ConnectionStep.initializing;
+      _wasConnectedBeforePause = false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   // Table data methods
