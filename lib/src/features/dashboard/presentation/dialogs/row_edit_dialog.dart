@@ -842,6 +842,9 @@ class _RowEditDialogState extends State<RowEditDialog> {
                   if (index == 0) {
                     return Text('Row Data', style: theme.textTheme.titleLarge);
                   }
+                  if (index == 1) {
+                    return const SizedBox(height: 16);
+                  }
 
                   final col = widget.columns[index - 2];
                   final isPK =
