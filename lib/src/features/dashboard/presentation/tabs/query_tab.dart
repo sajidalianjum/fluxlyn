@@ -132,6 +132,12 @@ class _QueryTabState extends State<QueryTab> {
       if (provider.tables.isNotEmpty) {
         _preloadSchema();
       }
+      // Load pending query if any
+      final pendingQuery = provider.pendingQuery;
+      if (pendingQuery != null && pendingQuery.isNotEmpty) {
+        _controller.text = pendingQuery;
+        provider.clearPendingQuery();
+      }
     });
   }
 

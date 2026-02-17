@@ -32,8 +32,20 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   String? _error;
   int _selectedTabIndex = 0; // Bottom Nav Index
   ConnectionStep _connectionStep = ConnectionStep.initializing;
+  String? _pendingQuery;
 
   ConnectionModel? get currentConnectionModel => _currentConnectionModel;
+  String? get pendingQuery => _pendingQuery;
+
+  void setPendingQuery(String? query) {
+    _pendingQuery = query;
+    notifyListeners();
+  }
+
+  void clearPendingQuery() {
+    _pendingQuery = null;
+  }
+
   MySQLConnection? get currentConnection => _connection;
   List<String> get databases => _databases;
   String? get selectedDatabase => _selectedDatabase;
