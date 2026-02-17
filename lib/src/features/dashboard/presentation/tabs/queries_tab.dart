@@ -128,6 +128,7 @@ class _QueriesTabState extends State<QueriesTab>
     final filteredQueries = _searchAndSort(
       items: queries,
       getQueryText: (query) => query.query,
+      getQueryName: (query) => query.name,
       getDatabaseName: (query) => query.databaseName,
       searchQuery: searchQuery,
     );
@@ -174,6 +175,7 @@ class _QueriesTabState extends State<QueriesTab>
   List<T> _searchAndSort<T>({
     required List<T> items,
     required String Function(T) getQueryText,
+    String? Function(T)? getQueryName,
     required String? Function(T) getDatabaseName,
     required String searchQuery,
   }) {
@@ -183,21 +185,27 @@ class _QueriesTabState extends State<QueriesTab>
 
     // Separate into priority buckets
     final queryTextMatches = <T>[];
+    final queryNameMatches = <T>[];
     final databaseNameMatches = <T>[];
 
     for (var item in items) {
       final qText = getQueryText(item).toLowerCase();
+      final qNameGetter = getQueryName;
+      final rawName = qNameGetter != null ? qNameGetter(item) : null;
+      final qName = rawName?.toLowerCase();
       final dbName = getDatabaseName(item)?.toLowerCase();
 
       if (qText.contains(query)) {
         queryTextMatches.add(item);
+      } else if (qName != null && qName.contains(query)) {
+        queryNameMatches.add(item);
       } else if (dbName != null && dbName.contains(query)) {
         databaseNameMatches.add(item);
       }
     }
 
-    // Return query text matches first, then database name matches
-    return [...queryTextMatches, ...databaseNameMatches];
+    // Return query text matches first, then name matches, then database name matches
+    return [...queryTextMatches, ...queryNameMatches, ...databaseNameMatches];
   }
 
   void _onQueryTap(
