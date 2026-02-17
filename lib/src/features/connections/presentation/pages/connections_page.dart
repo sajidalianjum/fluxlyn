@@ -16,6 +16,14 @@ class ConnectionsPage extends StatefulWidget {
 
 class _ConnectionsPageState extends State<ConnectionsPage> {
   int _selectedTabIndex = 0;
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _showConnectionDialog(
     BuildContext context, {
@@ -41,13 +49,15 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   Widget build(BuildContext context) {
     final List<Widget> tabs = [
       const ConnectionsTab(),
-      const QueriesTab(),
+      QueriesTab(searchQuery: _selectedTabIndex == 1 ? _searchController.text : ''),
       const SettingsTab(),
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_getAppBarTitle()),
+        title: _isSearching && _selectedTabIndex == 1
+            ? _buildSearchBar()
+            : Text(_getAppBarTitle()),
         actions: _getAppBarActions(),
       ),
       body: IndexedStack(index: _selectedTabIndex, children: tabs),
@@ -57,6 +67,11 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
         onDestinationSelected: (index) {
           setState(() {
             _selectedTabIndex = index;
+            // Reset search when switching tabs
+            if (_isSearching && index != 1) {
+              _isSearching = false;
+              _searchController.clear();
+            }
           });
         },
         destinations: const [
@@ -68,6 +83,20 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
           NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return TextField(
+      controller: _searchController,
+      autofocus: true,
+      style: const TextStyle(color: Colors.white),
+      decoration: const InputDecoration(
+        hintText: 'Search queries or databases...',
+        hintStyle: TextStyle(color: Colors.grey),
+        border: InputBorder.none,
+      ),
+      onChanged: (_) => setState(() {}),
     );
   }
 
@@ -100,7 +129,27 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       case 0:
         return [];
       case 1:
-        return [];
+        if (_isSearching) {
+          return [
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _isSearching = false;
+                  _searchController.clear();
+                });
+              },
+              icon: const Icon(Icons.close),
+              tooltip: 'Close',
+            ),
+          ];
+        }
+        return [
+          IconButton(
+            onPressed: () => setState(() => _isSearching = true),
+            icon: const Icon(Icons.search),
+            tooltip: 'Search',
+          ),
+        ];
       default:
         return [];
     }

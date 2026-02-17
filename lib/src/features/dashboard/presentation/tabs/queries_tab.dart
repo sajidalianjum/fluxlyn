@@ -5,7 +5,9 @@ import '../../../connections/models/connection_model.dart';
 import '../../../queries/models/query_model.dart';
 
 class QueriesTab extends StatefulWidget {
-  const QueriesTab({super.key});
+  final String searchQuery;
+
+  const QueriesTab({super.key, this.searchQuery = ''});
 
   @override
   State<QueriesTab> createState() => _QueriesTabState();
@@ -44,8 +46,8 @@ class _QueriesTabState extends State<QueriesTab>
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildRecentQueriesTab(storageService),
-              _buildSavedQueriesTab(storageService),
+              _buildRecentQueriesTab(storageService, searchQuery: widget.searchQuery),
+              _buildSavedQueriesTab(storageService, searchQuery: widget.searchQuery),
             ],
           ),
         ),
@@ -53,19 +55,35 @@ class _QueriesTabState extends State<QueriesTab>
     );
   }
 
-  Widget _buildRecentQueriesTab(StorageService storageService) {
+  Widget _buildRecentQueriesTab(StorageService storageService, {String searchQuery = ''}) {
     final history = storageService.getAllQueryHistory();
     final connections = storageService.getAllConnections();
     final connectionMap = {for (var c in connections) c.id: c};
 
-    if (history.isEmpty) {
-      return const Center(
+    final filteredHistory = _searchAndSort(
+      items: history,
+      getQueryText: (entry) => entry.query,
+      getDatabaseName: (entry) => entry.databaseName,
+      searchQuery: searchQuery,
+    );
+
+    if (filteredHistory.isEmpty) {
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('No recent queries', style: TextStyle(color: Colors.grey)),
+            Icon(
+              searchQuery.isEmpty ? Icons.history : Icons.search_off,
+              size: 64,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              searchQuery.isEmpty
+                  ? 'No recent queries'
+                  : 'No queries match "$searchQuery"',
+              style: const TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -73,9 +91,9 @@ class _QueriesTabState extends State<QueriesTab>
 
     return ListView.builder(
       padding: const EdgeInsets.all(8),
-      itemCount: history.length,
+      itemCount: filteredHistory.length,
       itemBuilder: (context, index) {
-        final entry = history[index];
+        final entry = filteredHistory[index];
         final connection = connectionMap[entry.connectionId];
 
         return _RecentQueryCard(entry: entry, connection: connection);
@@ -83,19 +101,37 @@ class _QueriesTabState extends State<QueriesTab>
     );
   }
 
-  Widget _buildSavedQueriesTab(StorageService storageService) {
+  Widget _buildSavedQueriesTab(StorageService storageService, {String searchQuery = ''}) {
     final queries = storageService.getAllSavedQueries();
     final connections = storageService.getAllConnections();
     final connectionMap = {for (var c in connections) c.id: c};
 
-    if (queries.isEmpty) {
-      return const Center(
+    final filteredQueries = _searchAndSort(
+      items: queries,
+      getQueryText: (query) => query.query,
+      getDatabaseName: (query) => query.databaseName,
+      searchQuery: searchQuery,
+    );
+
+    if (filteredQueries.isEmpty) {
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.bookmark_border, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('No saved queries', style: TextStyle(color: Colors.grey)),
+            Icon(
+              searchQuery.isEmpty
+                  ? Icons.bookmark_border
+                  : Icons.search_off,
+              size: 64,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              searchQuery.isEmpty
+                  ? 'No saved queries'
+                  : 'No queries match "$searchQuery"',
+              style: const TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -103,14 +139,43 @@ class _QueriesTabState extends State<QueriesTab>
 
     return ListView.builder(
       padding: const EdgeInsets.all(8),
-      itemCount: queries.length,
+      itemCount: filteredQueries.length,
       itemBuilder: (context, index) {
-        final query = queries[index];
+        final query = filteredQueries[index];
         final connection = connectionMap[query.connectionId];
 
         return _SavedQueryCard(query: query, connection: connection);
       },
     );
+  }
+
+  List<T> _searchAndSort<T>({
+    required List<T> items,
+    required String Function(T) getQueryText,
+    required String? Function(T) getDatabaseName,
+    required String searchQuery,
+  }) {
+    if (searchQuery.isEmpty) return items;
+
+    final query = searchQuery.toLowerCase();
+
+    // Separate into priority buckets
+    final queryTextMatches = <T>[];
+    final databaseNameMatches = <T>[];
+
+    for (var item in items) {
+      final qText = getQueryText(item).toLowerCase();
+      final dbName = getDatabaseName(item)?.toLowerCase();
+
+      if (qText.contains(query)) {
+        queryTextMatches.add(item);
+      } else if (dbName != null && dbName.contains(query)) {
+        databaseNameMatches.add(item);
+      }
+    }
+
+    // Return query text matches first, then database name matches
+    return [...queryTextMatches, ...databaseNameMatches];
   }
 }
 
