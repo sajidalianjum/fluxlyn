@@ -511,6 +511,27 @@ class _SavedQueryCard extends StatelessWidget {
                     _formatDate(modifiedAt),
                     style: TextStyle(color: Colors.grey[500], fontSize: 11),
                   ),
+                  if (connection != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        dbType,
+                        style: const TextStyle(
+                          color: Color(0xFF3B82F6),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 8),
@@ -544,25 +565,6 @@ class _SavedQueryCard extends StatelessWidget {
                         ),
                       ),
                     ],
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        dbType,
-                        style: const TextStyle(
-                          color: Color(0xFF3B82F6),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               if (connection == null && databaseName != null)
