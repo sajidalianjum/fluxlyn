@@ -1010,17 +1010,49 @@ class _QueryTabState extends State<QueryTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Consumer<DashboardProvider>(
-                        builder: (context, provider, _) {
-                          return OutlinedButton.icon(
-                            onPressed: () => _showDatabaseSelector(provider),
-                            icon: const Icon(Icons.storage, size: 18),
-                            label: Text(
-                              provider.selectedDatabase ?? 'Select DB',
-                              style: const TextStyle(fontSize: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Consumer<DashboardProvider>(
+                            builder: (context, provider, _) {
+                              return OutlinedButton.icon(
+                                onPressed: () =>
+                                    _showDatabaseSelector(provider),
+                                icon: const Icon(Icons.storage, size: 18),
+                                label: Text(
+                                  provider.selectedDatabase ?? 'Select DB',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  foregroundColor: Colors.white,
+                                  side: const BorderSide(
+                                    color: Color(0xFF334155),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            onPressed: _showAIQueryDialog,
+                            icon: const Icon(
+                              Icons.auto_awesome,
+                              size: 18,
+                              color: Colors.blue,
                             ),
+                            label: const Text('AI Query'),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,
@@ -1032,92 +1064,76 @@ class _QueryTabState extends State<QueryTab> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
-                          );
-                        },
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: _showAIQueryDialog,
-                          icon: const Icon(
-                            Icons.auto_awesome,
-                            size: 18,
-                            color: Colors.blue,
-                          ),
-                          label: const Text('AI Query'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _formatSQL,
+                            icon: const Icon(
+                              Icons.format_align_left,
+                              size: 18,
+                              color: Colors.green,
                             ),
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF334155)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton.icon(
-                          onPressed: _formatSQL,
-                          icon: const Icon(
-                            Icons.format_align_left,
-                            size: 18,
-                            color: Colors.green,
-                          ),
-                          label: const Text('Format'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF334155)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
+                            label: const Text('Format'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Color(0xFF334155)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton.icon(
-                          onPressed: _saveQuery,
-                          icon: const Icon(Icons.save, size: 18),
-                          label: const Text('Save Query'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF334155)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton.icon(
-                          onPressed: _loadQuery,
-                          icon: const Icon(Icons.folder_open, size: 18),
-                          label: const Text('Load Query'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF334155)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            onPressed: _saveQuery,
+                            icon: const Icon(Icons.save, size: 18),
+                            label: const Text('Save'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Color(0xFF334155)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            onPressed: _loadQuery,
+                            icon: const Icon(Icons.folder_open, size: 18),
+                            label: const Text('Load'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Color(0xFF334155)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
