@@ -290,46 +290,6 @@ class _ConnectionDialogState extends State<ConnectionDialog>
                               value?.isEmpty ?? true ? 'Required' : null,
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          'Tag',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        if (_selectedTag == ConnectionTag.custom)
-                          TextFormField(
-                            controller: _customTagController,
-                            decoration: const InputDecoration(
-                              labelText: 'Custom Tag Name',
-                              hintText: 'e.g., Analytics, Staging, Team A',
-                              suffixIcon: Icon(Icons.edit),
-                            ),
-                            validator: (value) =>
-                                _selectedTag == ConnectionTag.custom &&
-                                    (value?.isEmpty ?? true)
-                                ? 'Required'
-                                : null,
-                          )
-                        else
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              _buildTagChip(ConnectionTag.none, 'None'),
-                              _buildTagChip(
-                                ConnectionTag.development,
-                                'Development',
-                              ),
-                              _buildTagChip(
-                                ConnectionTag.production,
-                                'Production',
-                              ),
-                              _buildTagChip(ConnectionTag.testing, 'Testing'),
-                              _buildTagChip(ConnectionTag.staging, 'Staging'),
-                              _buildTagChip(ConnectionTag.local, 'Local'),
-                              _buildTagChip(ConnectionTag.custom, 'Custom +'),
-                            ],
-                          ),
-                        const SizedBox(height: 16),
                         Row(
                           children: [
                             Expanded(
@@ -386,6 +346,46 @@ class _ConnectionDialogState extends State<ConnectionDialog>
                           onChanged: (val) => setState(() => _sslEnabled = val),
                           contentPadding: EdgeInsets.zero,
                         ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Tag',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        if (_selectedTag == ConnectionTag.custom)
+                          TextFormField(
+                            controller: _customTagController,
+                            decoration: const InputDecoration(
+                              labelText: 'Custom Tag Name',
+                              hintText: 'e.g., Analytics, Staging, Team A',
+                              suffixIcon: Icon(Icons.edit),
+                            ),
+                            validator: (value) =>
+                                _selectedTag == ConnectionTag.custom &&
+                                    (value?.isEmpty ?? true)
+                                ? 'Required'
+                                : null,
+                          )
+                        else
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _buildTagChip(ConnectionTag.none, 'None'),
+                              _buildTagChip(
+                                ConnectionTag.development,
+                                'Development',
+                              ),
+                              _buildTagChip(
+                                ConnectionTag.production,
+                                'Production',
+                              ),
+                              _buildTagChip(ConnectionTag.testing, 'Testing'),
+                              _buildTagChip(ConnectionTag.staging, 'Staging'),
+                              _buildTagChip(ConnectionTag.local, 'Local'),
+                              _buildTagChip(ConnectionTag.custom, 'Custom +'),
+                            ],
+                          ),
                       ],
                     ),
 
