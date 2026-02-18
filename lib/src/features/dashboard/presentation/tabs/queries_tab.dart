@@ -376,16 +376,6 @@ class _RecentQueryCard extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          if (databaseName != null) ...[
-                            const SizedBox(width: 4),
-                            Text(
-                              '• $databaseName',
-                              style: const TextStyle(
-                                color: Color(0xFF3B82F6),
-                                fontSize: 10,
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -397,11 +387,31 @@ class _RecentQueryCard extends StatelessWidget {
                   if (connection != null) ...[
                     Icon(Icons.storage, size: 14, color: Colors.grey[500]),
                     const SizedBox(width: 4),
-                    Text(
-                      connection!.name,
-                      style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                    Flexible(
+                      child: Text(
+                        connection!.name,
+                        style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    const SizedBox(width: 8),
+                    if (databaseName != null) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '>',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          databaseName,
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 11,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -424,8 +434,8 @@ class _RecentQueryCard extends StatelessWidget {
   }
 
   String _getQueryPreview(String query) {
-    final lines = query.split('\n').take(2).join('\n');
-    return lines.length > 100 ? '${lines.substring(0, 100)}...' : lines;
+    final replaced = query.replaceAll('\n', ' ');
+    return replaced;
   }
 
   String _formatRelativeTime(DateTime dateTime) {
@@ -509,21 +519,29 @@ class _SavedQueryCard extends StatelessWidget {
                   children: [
                     Icon(Icons.storage, size: 14, color: Colors.grey[500]),
                     const SizedBox(width: 4),
-                    Text(
-                      connection!.name,
-                      style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                    Flexible(
+                      child: Text(
+                        connection!.name,
+                        style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     if (databaseName != null) ...[
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.arrow_forward,
-                        size: 12,
-                        color: Colors.grey[500],
-                      ),
                       const SizedBox(width: 4),
                       Text(
-                        databaseName,
+                        '>',
                         style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          databaseName,
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 11,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                     const Spacer(),
@@ -575,8 +593,8 @@ class _SavedQueryCard extends StatelessWidget {
   }
 
   String _getQueryPreview(String query) {
-    final lines = query.split('\n').take(2).join('\n');
-    return lines.length > 100 ? '${lines.substring(0, 100)}...' : lines;
+    final replaced = query.replaceAll('\n', ' ');
+    return replaced;
   }
 
   String _formatDate(DateTime dateTime) {
