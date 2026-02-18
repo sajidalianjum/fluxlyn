@@ -415,7 +415,7 @@ class _RecentQueryCard extends StatelessWidget {
                   ],
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 10),
               SqlHighlighter(
                 sql: queryText,
                 maxLines: 2,
@@ -566,7 +566,7 @@ class _SavedQueryCard extends StatelessWidget {
                     ),
                   ],
                 ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 10),
               SqlHighlighter(
                 sql: queryText,
                 maxLines: 2,

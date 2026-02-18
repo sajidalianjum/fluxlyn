@@ -23,10 +23,11 @@ class SqlHighlighter extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: backgroundColor.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFF334155), width: 0.5),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Text.rich(
         TextSpan(children: spans),
         maxLines: maxLines,
