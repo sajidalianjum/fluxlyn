@@ -13,6 +13,7 @@ import '../../../../core/services/sql_context_analyzer.dart';
 import '../../../../core/services/sql_formatter.dart';
 import '../../../../core/services/query_protection_service.dart';
 import '../../../../core/services/column_type_detector.dart';
+import '../../../../core/widgets/snackbar_helper.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../../queries/models/query_model.dart';
@@ -40,7 +41,7 @@ class _QueryTabState extends State<QueryTab> {
   SQLContext _lastContext = SQLContext.none;
 
   // SQL Keywords for autocomplete
-  final List<String> _sqlKeywords = [
+  static const List<String> _sqlKeywords = [
     'SELECT',
     'FROM',
     'WHERE',
@@ -334,12 +335,7 @@ class _QueryTabState extends State<QueryTab> {
         if (protectionError != null) {
           setState(() => _isExecuting = false);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(protectionError),
-                backgroundColor: Colors.orange,
-              ),
-            );
+            SnackbarHelper.showWarning(context, protectionError);
           }
           return;
         }
@@ -477,9 +473,7 @@ class _QueryTabState extends State<QueryTab> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      SnackbarHelper.showError(context, 'Error: $e');
     } finally {
       if (mounted) {
         setState(() => _isExecuting = false);
@@ -500,9 +494,7 @@ class _QueryTabState extends State<QueryTab> {
     final connectionModel = provider.currentConnectionModel;
 
     if (connectionModel == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No connection selected')));
+      SnackbarHelper.showInfo(context, 'No connection selected');
       return;
     }
 
@@ -557,9 +549,7 @@ class _QueryTabState extends State<QueryTab> {
       await storageService.saveQuery(queryModel);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Query saved successfully')),
-        );
+        SnackbarHelper.showSuccess(context, 'Query saved successfully');
       }
     }
   }
@@ -570,9 +560,7 @@ class _QueryTabState extends State<QueryTab> {
     final connectionModel = provider.currentConnectionModel;
 
     if (connectionModel == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No connection selected')));
+      SnackbarHelper.showInfo(context, 'No connection selected');
       return;
     }
 
@@ -667,11 +655,7 @@ class _QueryTabState extends State<QueryTab> {
                               await storageService.deleteQuery(query.id);
                               setModalState(() {});
                               if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Query deleted'),
-                                  ),
-                                );
+                                SnackbarHelper.showInfo(context, 'Query deleted');
                               }
                             },
                           ),
@@ -797,21 +781,14 @@ class _QueryTabState extends State<QueryTab> {
     final connection = provider.currentConnection;
 
     if (database == null || connection == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a database first'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      SnackbarHelper.showWarning(context, 'Please select a database first');
       return;
     }
 
     if (settingsProvider.apiKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please set your AI API key in Settings'),
-          backgroundColor: Colors.orange,
-        ),
+      SnackbarHelper.showWarning(
+        context,
+        'Please set your AI API key in Settings',
       );
       return;
     }
@@ -901,12 +878,7 @@ class _QueryTabState extends State<QueryTab> {
                           }
                         } catch (e) {
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Error: $e'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                            SnackbarHelper.showError(context, 'Error: $e');
                             setDialogState(() => isGenerating = false);
                           }
                         }

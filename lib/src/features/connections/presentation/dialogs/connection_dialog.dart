@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:file_selector/file_selector.dart';
 import 'dart:io';
 import '../../models/connection_model.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/snackbar_helper.dart';
 
 class ConnectionDialog extends StatefulWidget {
   final ConnectionModel? connection;
@@ -47,7 +49,7 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     final c = widget.connection;
     _nameController = TextEditingController(text: c?.name ?? '');
     _hostController = TextEditingController(text: c?.host ?? '');
-    _portController = TextEditingController(text: c?.port.toString() ?? '3306');
+    _portController = TextEditingController(text: c?.port.toString() ?? '${AppConstants.portMySQL}');
     _userController = TextEditingController(text: c?.username ?? '');
     _passwordController = TextEditingController(text: c?.password ?? '');
     _databaseController = TextEditingController(text: c?.databaseName ?? '');
@@ -58,7 +60,7 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     _useSsh = c?.useSsh ?? false;
     _sshHostController = TextEditingController(text: c?.sshHost ?? '');
     _sshPortController = TextEditingController(
-      text: c?.sshPort?.toString() ?? '22',
+      text: c?.sshPort?.toString() ?? '${AppConstants.portSSH}',
     );
     _sshUserController = TextEditingController(text: c?.sshUsername ?? '');
     _sshPasswordController = TextEditingController(text: c?.sshPassword ?? '');
@@ -106,7 +108,7 @@ class _ConnectionDialogState extends State<ConnectionDialog>
 
         useSsh: _useSsh,
         sshHost: _sshHostController.text,
-        sshPort: int.tryParse(_sshPortController.text) ?? 22,
+        sshPort: int.tryParse(_sshPortController.text) ?? AppConstants.portSSH,
         sshUsername: _sshUserController.text,
         sshPassword: _sshAuthMethod == 'password'
             ? _sshPasswordController.text
@@ -147,9 +149,7 @@ class _ConnectionDialogState extends State<ConnectionDialog>
         });
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to read key file: $e')),
-          );
+          SnackbarHelper.showError(context, 'Failed to read key file: $e');
         }
       }
     }
@@ -289,6 +289,7 @@ class _ConnectionDialogState extends State<ConnectionDialog>
                           validator: (value) =>
                               value?.isEmpty ?? true ? 'Required' : null,
                         ),
+                        const SizedBox(height: 16),
                         const SizedBox(height: 16),
                         Row(
                           children: [

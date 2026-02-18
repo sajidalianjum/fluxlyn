@@ -20,30 +20,34 @@ class ConnectionCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Icon Container
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: isMysql
-                      ? const Color(0xFF3E2C28)
-                      : const Color(
-                          0xFF1E3A5F,
-                        ), // Brownish for MySQL, Blueish for PG
-                  borderRadius: BorderRadius.circular(8),
+      child: Semantics(
+        label: 'Connection card for ${connection.name}, ${connection.type.name} database',
+        button: true,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icon Container
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: isMysql
+                        ? const Color(0xFF3E2C28)
+                        : const Color(
+                            0xFF1E3A5F,
+                          ), // Brownish for MySQL, Blueish for PG
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.dns, // Generic storage icon
+                    color: isMysql ? Colors.orange : Colors.blue,
+                    semanticLabel: '${connection.type.name} database icon',
+                  ),
                 ),
-                child: Icon(
-                  Icons.dns, // Generic storage icon
-                  color: isMysql ? Colors.orange : Colors.blue,
-                ),
-              ),
               const SizedBox(width: 16),
 
               // Details
@@ -141,11 +145,13 @@ class ConnectionCard extends StatelessWidget {
                     icon: const Icon(Icons.edit, size: 20),
                     color: Colors.white.withValues(alpha: 0.3),
                     tooltip: 'Edit Connection',
+                    semanticLabel: 'Edit connection ${connection.name}',
                   ),
                   const SizedBox(width: 4),
                   Icon(
                     Icons.chevron_right,
                     color: Colors.white.withValues(alpha: 0.3),
+                    semanticLabel: 'Connect to ${connection.name}',
                   ),
                 ],
               ),

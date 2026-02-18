@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'package:google_fonts/google_fonts.dart';
+import '../constants/app_constants.dart';
 
 class AppTheme {
   // Colors from the screenshot/requirements
-  static const Color _background = Color(0xFF0F172A);
-  static const Color _cardBackground = Color(0xFF1E293B);
-  static const Color _primary = Color(0xFF3B82F6); // Blue
+  static const Color _background = AppConstants.colorBackground;
+  static const Color _cardBackground = AppConstants.colorCardBackground;
+  static const Color _primary = AppConstants.colorPrimary;
   static const Color _textPrimary = Colors.white;
 
   static ThemeData get lightTheme {
@@ -29,14 +30,14 @@ class AppTheme {
       textTheme: GoogleFonts.interTextTheme(
         ThemeData.dark().textTheme,
       ).apply(bodyColor: _textPrimary, displayColor: _textPrimary),
-      // cardTheme: CardTheme(
-      //   color: _cardBackground,
-      //   elevation: 0,
-      //   shape: RoundedRectangleBorder(
-      //     borderRadius: BorderRadius.circular(12),
-      //     side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-      //   ),
-      // ),
+      cardTheme: const CardTheme(
+        color: _cardBackground,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          side: BorderSide(color: Color(0x0DFFFFFF)),
+        ),
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: _background,
         elevation: 0,

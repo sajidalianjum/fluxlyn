@@ -60,7 +60,7 @@ class _SchemaTabState extends State<SchemaTab> {
                   children: [
                     Text(
                       isDbSelected
-                          ? provider.selectedDatabase!
+                          ? provider.selectedDatabase ?? connectionName
                           : connectionName,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),

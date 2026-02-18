@@ -292,7 +292,7 @@ class _TableDataPageState extends State<TableDataPage> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, semanticLabel: 'Go back'),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Column(
@@ -321,7 +321,7 @@ class _TableDataPageState extends State<TableDataPage> {
         actions: [
           IconButton(
             onPressed: _openSearchDialog,
-            icon: const Icon(Icons.filter_list),
+            icon: const Icon(Icons.filter_list, semanticLabel: 'Search and filter'),
             tooltip: 'Search & Filter',
           ),
           IconButton(
@@ -332,7 +332,8 @@ class _TableDataPageState extends State<TableDataPage> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.refresh),
+                : const Icon(Icons.refresh, semanticLabel: 'Refresh data'),
+            tooltip: 'Refresh',
           ),
         ],
         bottom:

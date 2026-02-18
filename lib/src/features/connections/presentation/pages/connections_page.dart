@@ -75,12 +75,18 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
           });
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.dns), label: 'Connections'),
           NavigationDestination(
-            icon: Icon(Icons.saved_search),
+            icon: Icon(Icons.dns, semanticLabel: 'View connections'),
+            label: 'Connections',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.saved_search, semanticLabel: 'Saved queries'),
             label: 'Queries',
           ),
-          NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
+          NavigationDestination(
+            icon: Icon(Icons.settings, semanticLabel: 'Application settings'),
+            label: 'Settings',
+          ),
         ],
       ),
     );

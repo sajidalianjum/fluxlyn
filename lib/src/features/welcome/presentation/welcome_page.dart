@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../connections/presentation/pages/connections_page.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -28,7 +29,9 @@ class WelcomePage extends StatelessWidget {
             const SizedBox(height: 48),
             ElevatedButton(
               onPressed: () {
-                // TODO: Navigate to next screen
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const ConnectionsPage()),
+                );
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),

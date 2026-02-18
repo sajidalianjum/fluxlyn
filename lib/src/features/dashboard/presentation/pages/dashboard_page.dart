@@ -59,8 +59,9 @@ class DashboardPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: () =>
-                            provider.connect(provider.currentConnectionModel!),
+                        onPressed: provider.currentConnectionModel != null
+                            ? () => provider.connect(provider.currentConnectionModel!)
+                            : null,
                         child: const Text('Retry'),
                       ),
                     ],
@@ -73,9 +74,18 @@ class DashboardPage extends StatelessWidget {
           selectedIndex: provider.selectedTabIndex,
           onDestinationSelected: (index) => provider.setTabIndex(index),
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.dns), label: 'Databases'),
-            NavigationDestination(icon: Icon(Icons.code), label: 'Editor'),
-            NavigationDestination(icon: Icon(Icons.history), label: 'History'),
+            NavigationDestination(
+              icon: Icon(Icons.dns, semanticLabel: 'View databases'),
+              label: 'Databases',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.code, semanticLabel: 'Query editor'),
+              label: 'Editor',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.history, semanticLabel: 'Query history'),
+              label: 'History',
+            ),
           ],
         ),
       ),

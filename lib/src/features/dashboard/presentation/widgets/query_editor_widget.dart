@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/services/schema_service.dart';
 import '../../../../core/services/sql_context_analyzer.dart';
 import '../../../../core/services/sql_formatter.dart';
+import '../../../../core/widgets/snackbar_helper.dart';
 import '../../../../core/services/query_protection_service.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../../settings/providers/settings_provider.dart';
@@ -314,12 +315,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
       if (protectionError != null) {
         setState(() => _isExecuting = false);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(protectionError),
-              backgroundColor: Colors.orange,
-            ),
-          );
+          SnackbarHelper.showWarning(context, protectionError);
         }
         return;
       }
@@ -339,9 +335,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        SnackbarHelper.showError(context, 'Error: $e');
       }
     } finally {
       if (mounted) {

@@ -5,6 +5,7 @@ import 'package:mysql_dart/mysql_dart.dart';
 import 'package:dartssh2/dartssh2.dart';
 import '../../features/connections/models/connection_model.dart';
 import '../../utils/ssh_helper.dart';
+import '../constants/app_constants.dart';
 
 class DatabaseService {
   SSHClient? _sshClient;
@@ -27,12 +28,12 @@ class DatabaseService {
     // SSH Tunneling Logic
     if (config.useSsh && config.sshHost != null) {
       print(
-        'SSH Tunnel: Connecting to ${config.sshHost}:${config.sshPort ?? 22}',
+        'SSH Tunnel: Connecting to ${config.sshHost}:${config.sshPort ?? AppConstants.portSSH}',
       );
       try {
         final socket = await SSHSocket.connect(
           config.sshHost!,
-          config.sshPort ?? 22,
+          config.sshPort ?? AppConstants.portSSH,
           timeout: const Duration(seconds: 10),
         );
         print('SSH Tunnel: Socket connected');
@@ -206,12 +207,12 @@ class DatabaseService {
     // SSH Tunneling Logic
     if (config.useSsh && config.sshHost != null) {
       print(
-        'SSH Tunnel: Connecting to ${config.sshHost}:${config.sshPort ?? 22}',
+        'SSH Tunnel: Connecting to ${config.sshHost}:${config.sshPort ?? AppConstants.portSSH}',
       );
       try {
         final socket = await SSHSocket.connect(
           config.sshHost!,
-          config.sshPort ?? 22,
+          config.sshPort ?? AppConstants.portSSH,
           timeout: const Duration(seconds: 10),
         );
         print('SSH Tunnel: Socket connected');

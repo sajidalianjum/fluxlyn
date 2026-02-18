@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 import 'package:hive/hive.dart';
+import '../../../core/constants/app_constants.dart';
 
 part 'connection_model.g.dart';
 
@@ -101,7 +102,7 @@ class ConnectionModel extends HiveObject {
     this.isConnected = false,
     this.useSsh = false,
     this.sshHost,
-    this.sshPort = 22,
+    this.sshPort = AppConstants.portSSH,
     this.sshUsername,
     this.sshPassword,
     this.sshPrivateKey,
