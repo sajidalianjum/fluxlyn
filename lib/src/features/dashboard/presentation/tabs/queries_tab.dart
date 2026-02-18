@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/storage_service.dart';
+import '../../../../core/widgets/sql_highlighter.dart';
 import '../../../connections/models/connection_model.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../../dashboard/presentation/pages/dashboard_page.dart';
@@ -327,7 +328,6 @@ class _RecentQueryCard extends StatelessWidget {
     final success = entry.success;
     final databaseName = entry.databaseName;
 
-    final queryPreview = _getQueryPreview(queryText);
     final relativeTime = _formatRelativeTime(executedAt);
     final dbType = connection?.type.name.toUpperCase() ?? 'UNKNOWN';
 
@@ -416,26 +416,17 @@ class _RecentQueryCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              Text(
-                queryPreview,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  color: Colors.white70,
-                ),
+              SqlHighlighter(
+                sql: queryText,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
+                fontSize: 12,
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  String _getQueryPreview(String query) {
-    final replaced = query.replaceAll('\n', ' ');
-    return replaced;
   }
 
   String _formatRelativeTime(DateTime dateTime) {
@@ -479,7 +470,6 @@ class _SavedQueryCard extends StatelessWidget {
     final modifiedAt = query.modifiedAt;
     final databaseName = query.databaseName;
 
-    final queryPreview = _getQueryPreview(queryText);
     final dbType = connection?.type.name.toUpperCase() ?? 'UNKNOWN';
 
     return Card(
@@ -577,26 +567,17 @@ class _SavedQueryCard extends StatelessWidget {
                   ],
                 ),
               const SizedBox(height: 4),
-              Text(
-                queryPreview,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  color: Colors.white70,
-                ),
+              SqlHighlighter(
+                sql: queryText,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
+                fontSize: 12,
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  String _getQueryPreview(String query) {
-    final replaced = query.replaceAll('\n', ' ');
-    return replaced;
   }
 
   String _formatDate(DateTime dateTime) {
