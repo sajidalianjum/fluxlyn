@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_selector/file_selector.dart';
 import 'dart:io';
 import '../../models/connection_model.dart';
@@ -40,6 +41,8 @@ class _ConnectionDialogState extends State<ConnectionDialog>
   late TextEditingController _sshKeyPathController;
   late TextEditingController _sshKeyPasswordController;
   String _sshAuthMethod = 'password'; // 'password', 'key', 'agent'
+  bool _keyModified = false;
+  String? _originalKey;
 
   @override
   void initState() {
@@ -49,7 +52,9 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     final c = widget.connection;
     _nameController = TextEditingController(text: c?.name ?? '');
     _hostController = TextEditingController(text: c?.host ?? '');
-    _portController = TextEditingController(text: c?.port.toString() ?? '${AppConstants.portMySQL}');
+    _portController = TextEditingController(
+      text: c?.port.toString() ?? '${AppConstants.portMySQL}',
+    );
     _userController = TextEditingController(text: c?.username ?? '');
     _passwordController = TextEditingController(text: c?.password ?? '');
     _databaseController = TextEditingController(text: c?.databaseName ?? '');
@@ -64,14 +69,18 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     );
     _sshUserController = TextEditingController(text: c?.sshUsername ?? '');
     _sshPasswordController = TextEditingController(text: c?.sshPassword ?? '');
-    _sshKeyPathController = TextEditingController(text: c?.sshPrivateKey ?? '');
+
+    _originalKey = c?.sshPrivateKey;
+    if (c?.sshPrivateKey != null && c!.sshPrivateKey!.isNotEmpty) {
+      _sshAuthMethod = 'key';
+      _sshKeyPathController = TextEditingController(text: '<Private Key>');
+    } else {
+      _sshKeyPathController = TextEditingController(text: '');
+    }
+
     _sshKeyPasswordController = TextEditingController(
       text: c?.sshKeyPassword ?? '',
     );
-
-    if (c?.sshPrivateKey != null && c!.sshPrivateKey!.isNotEmpty) {
-      _sshAuthMethod = 'key';
-    }
   }
 
   @override
@@ -96,6 +105,15 @@ class _ConnectionDialogState extends State<ConnectionDialog>
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
+      String? privateKeyToSave;
+      if (_sshAuthMethod == 'key') {
+        if (_keyModified) {
+          privateKeyToSave = _sshKeyPathController.text;
+        } else {
+          privateKeyToSave = _originalKey;
+        }
+      }
+
       final connection = ConnectionModel(
         id: widget.connection?.id,
         name: _nameController.text,
@@ -113,9 +131,7 @@ class _ConnectionDialogState extends State<ConnectionDialog>
         sshPassword: _sshAuthMethod == 'password'
             ? _sshPasswordController.text
             : null,
-        sshPrivateKey: _sshAuthMethod == 'key'
-            ? _sshKeyPathController.text
-            : null,
+        sshPrivateKey: privateKeyToSave,
         sshKeyPassword: _sshAuthMethod == 'key'
             ? _sshKeyPasswordController.text
             : null,
@@ -144,8 +160,10 @@ class _ConnectionDialogState extends State<ConnectionDialog>
       try {
         final fileObj = File(file.path);
         final content = await fileObj.readAsString();
+        final formatted = _formatSSHKey(content);
         setState(() {
-          _sshKeyPathController.text = content;
+          _sshKeyPathController.text = formatted;
+          _keyModified = true;
         });
       } catch (e) {
         if (mounted) {
@@ -155,10 +173,34 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     }
   }
 
+  String _formatSSHKey(String key) {
+    String formatted = key.trim();
+
+    if (formatted.isEmpty) return formatted;
+
+    if (!formatted.endsWith('\n')) {
+      formatted += '\n';
+    }
+
+    return formatted;
+  }
+
   void _clearKey() {
     setState(() {
       _sshKeyPathController.text = '';
+      _keyModified = true;
     });
+  }
+
+  Future<void> _pasteKey() async {
+    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+    if (clipboardData?.text != null) {
+      final formatted = _formatSSHKey(clipboardData!.text!);
+      setState(() {
+        _sshKeyPathController.text = formatted;
+        _keyModified = true;
+      });
+    }
   }
 
   Widget _buildTagChip(ConnectionTag tag, String label) {
@@ -488,27 +530,92 @@ class _ConnectionDialogState extends State<ConnectionDialog>
                                     controller: _sshKeyPathController,
                                     decoration: InputDecoration(
                                       labelText:
-                                          _sshKeyPathController.text.isNotEmpty
-                                          ? 'Private Key (loaded)'
-                                          : 'Private Key',
+                                          _sshKeyPathController.text ==
+                                              '<Private Key>'
+                                          ? 'Private Key (saved)'
+                                          : (_sshKeyPathController
+                                                    .text
+                                                    .isNotEmpty
+                                                ? 'Private Key (loaded)'
+                                                : 'Private Key'),
                                       hintText: 'Pick a file or paste key',
                                       suffixIcon:
-                                          _sshKeyPathController.text.isNotEmpty
-                                          ? IconButton(
-                                              icon: const Icon(
-                                                Icons.clear,
-                                                size: 20,
-                                              ),
-                                              onPressed: _clearKey,
-                                              tooltip: 'Clear key',
+                                          _sshKeyPathController.text ==
+                                              '<Private Key>'
+                                          ? Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                IconButton(
+                                                  icon: const Icon(
+                                                    Icons.paste,
+                                                    size: 20,
+                                                  ),
+                                                  onPressed: _pasteKey,
+                                                  tooltip: 'Paste new key',
+                                                ),
+                                              ],
                                             )
-                                          : null,
+                                          : (_sshKeyPathController
+                                                    .text
+                                                    .isNotEmpty
+                                                ? IconButton(
+                                                    icon: const Icon(
+                                                      Icons.clear,
+                                                      size: 20,
+                                                    ),
+                                                    onPressed: _clearKey,
+                                                    tooltip: 'Clear key',
+                                                  )
+                                                : null),
                                     ),
-                                    maxLines:
-                                        _sshKeyPathController.text.isNotEmpty
-                                        ? 2
-                                        : 1,
-                                    readOnly: false,
+                                    style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 12,
+                                    ),
+                                    minLines: 1,
+                                    maxLines: 10,
+                                    readOnly:
+                                        _sshKeyPathController.text ==
+                                        '<Private Key>',
+                                    keyboardType: TextInputType.multiline,
+                                    validator: (value) {
+                                      if (_useSsh && (value?.isEmpty ?? true)) {
+                                        return 'Required';
+                                      }
+                                      if (value != null &&
+                                          value.trim().isNotEmpty) {
+                                        final trimmed = value.trim();
+                                        if (trimmed == '<Private Key>') {
+                                          return null;
+                                        }
+                                        if (!trimmed.startsWith('-----BEGIN')) {
+                                          return 'Invalid key format: must start with -----BEGIN';
+                                        }
+                                        if (!trimmed.endsWith('-----END')) {
+                                          return 'Invalid key format: must end with -----END';
+                                        }
+                                      }
+                                      return null;
+                                    },
+                                    onFieldSubmitted: (value) {
+                                      final formatted = _formatSSHKey(value);
+                                      if (formatted != value) {
+                                        _sshKeyPathController.text = formatted;
+                                        _keyModified = true;
+                                      } else if (value != '<Private Key>') {
+                                        _keyModified = true;
+                                      }
+                                    },
+                                    onTapOutside: (_) {
+                                      final formatted = _formatSSHKey(
+                                        _sshKeyPathController.text,
+                                      );
+                                      if (formatted !=
+                                          _sshKeyPathController.text) {
+                                        _sshKeyPathController.text = formatted;
+                                        _keyModified = true;
+                                      }
+                                    },
                                   ),
                                 ),
                                 const SizedBox(width: 8),
