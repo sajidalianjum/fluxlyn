@@ -1,16 +1,379 @@
-# fluxlyn
+<div align="center">
 
-A new Flutter project.
+  ![Fluxlyn Logo](assets/icon/app_icon.png)
 
-## Getting Started
+  # Fluxlyn
 
-This project is a starting point for a Flutter application.
+  **A Modern DB Explorer for Developers**
 
-A few resources to get you started if this is your first Flutter project:
+  [![Flutter](https://img.shields.io/badge/Flutter-3.x-blue?logo=flutter)](https://flutter.dev)
+  [![Dart](https://img.shields.io/badge/Dart-3.10+-blue?logo=dart)](https://dart.dev)
+  [![License](https://img.shields.io/badge/license-Dual%20License-blue)](LICENSE)
+  [![Platform](https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple)](https://www.apple.com/macos)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+  [Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Contributing](#-contributing)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+</div>
+
+---
+
+## 📖 About
+
+Fluxlyn is a powerful, cross-platform database explorer built with Flutter, designed specifically for developers. It provides a modern interface for managing MySQL databases with advanced features like SSH tunneling, AI-powered query assistance, and secure encrypted storage of connections.
+
+### Why Fluxlyn?
+
+- 🔒 **Secure**: All credentials encrypted with AES-256
+- 🚀 **Fast**: Built with Flutter for native performance
+- 🎨 **Modern UI**: Material 3 design with dark theme
+- 🤖 **AI-Powered**: Integrated AI assistance for query generation
+- 🔌 **SSH Tunneling**: Secure database connections through SSH
+- 💾 **Query Management**: Save, organize, and track your queries
+- 📊 **Rich Data Tables**: Advanced data grid with sorting and filtering
+
+---
+
+## ✨ Features
+
+### Database Management
+- 🗄️ **MySQL Support** - Full MySQL database connectivity
+- 🔗 **Connection Management** - Save and manage multiple database connections
+- 🔐 **SSL/TLS Support** - Secure database connections
+- 📡 **SSH Tunneling** - Connect to remote databases through SSH tunnels
+  - Password and private key authentication
+  - Automatic fallback between netcat and direct-tcpip
+
+### Query Editor
+- 📝 **SQL Editor** - Syntax-highlighted SQL query editor
+- 💾 **Save Queries** - Save frequently used queries
+- ⭐ **Favorite Queries** - Mark important queries as favorites
+- 📜 **Query History** - Automatic tracking of executed queries (last 100 per connection)
+- ⚡ **Query Execution** - Execute queries with performance metrics
+
+### Data Exploration
+- 📊 **Schema Browser** - Browse databases, tables, and columns
+- 📋 **Data Grid** - View and edit table data
+- 🔍 **Table Search** - Quick search across tables
+- 📄 **Pagination** - Efficiently navigate large datasets
+- ✏️ **Inline Editing** - Edit rows directly with confirmation dialog
+
+### Security
+- 🔒 **Encrypted Storage** - All sensitive data encrypted with AES-256
+- 🛡️ **Protection Locks** - Optional locks for DELETE and DROP operations
+- 🔑 **Secure Credentials** - No plaintext password storage
+
+### AI Integration
+- 🤖 **Multiple AI Providers**:
+  - OpenAI (GPT-4, GPT-3.5)
+  - Anthropic (Claude)
+  - OpenRouter
+  - Groq
+  - xAI
+  - Custom endpoints
+
+### User Experience
+- 🌙 **Dark Theme** - Eye-friendly dark interface
+- 🎨 **Material 3 Design** - Modern, consistent UI
+- 📱 **Responsive Layout** - Adapts to different screen sizes
+- ⚙️ **Settings Management** - Customizable app behavior
+
+---
+
+## 🚀 Installation
+
+### Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- **Flutter SDK** (3.19.0 or higher)
+  ```bash
+  flutter --version
+  ```
+- **Dart SDK** (3.10.8 or higher)
+- **macOS** (currently supported, Windows and Linux coming soon)
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/sajidalianjum/fluxlyn.git
+cd fluxlyn
+```
+
+### Step 2: Install Dependencies
+
+```bash
+flutter pub get
+```
+
+### Step 3: Generate Type Adapters
+
+```bash
+flutter pub run build_runner build --delete-conflicting-outputs
+```
+
+### Step 4: Run the Application
+
+```bash
+# On macOS
+flutter run -d macos
+
+# Or run in release mode
+flutter run --release -d macos
+```
+
+---
+
+## 📖 Usage
+
+### First Launch
+
+1. **Welcome Screen** - You'll be greeted with the connections page
+2. **Add Connection** - Click the "+" button to create a new database connection
+3. **Configure Connection** - Fill in your database details:
+   - Connection name
+   - Host and port
+   - Username and password
+   - Database name (optional)
+   - SSL options
+   - SSH tunneling (optional)
+
+### Managing Connections
+
+- **Connect** - Click on a connection card to connect
+- **Edit** - Use the edit button to modify connection details
+- **Delete** - Remove connections (with confirmation if lock is enabled)
+
+### Dashboard
+
+Once connected, you'll have access to 4 main tabs:
+
+#### 1. Databases Tab
+- Browse all databases on the server
+- View tables within each database
+- Click on tables to view data
+- Edit rows inline with confirmation
+
+#### 2. Editor Tab
+- Write SQL queries with syntax highlighting
+- Execute queries and see results
+- Save queries for later use
+- View query history
+
+#### 3. History Tab (Coming Soon)
+- Comprehensive query history
+
+#### 4. Settings Tab (Coming Soon)
+- Application settings
+
+### Settings
+
+Access settings by clicking the settings icon on the connections page:
+
+- **Protection Locks**:
+  - Lock DELETE operations (prevents accidental deletion)
+  - Lock DROP operations (prevents accidental dropping)
+- **AI Configuration**:
+  - Select AI provider
+  - Configure API key
+  - Set custom endpoint (for custom provider)
+
+---
+
+## 🛠️ Development
+
+### Project Structure
+
+```
+lib/
+├── main.dart                 # App entry point
+├── src/
+│   ├── app.dart             # App configuration
+│   ├── core/                # Core utilities and services
+│   │   ├── constants/       # App constants
+│   │   ├── models/          # Core data models
+│   │   ├── services/        # Storage, database, AI services
+│   │   ├── theme/           # App theming
+│   │   └── widgets/         # Reusable widgets
+│   └── features/            # Feature modules
+│       ├── connections/     # Connection management
+│       ├── dashboard/       # Main app interface
+│       ├── queries/         # Saved queries
+│       ├── settings/        # App settings
+│       └── welcome/         # Welcome/onboarding
+```
+
+### Key Technologies
+
+| Package | Purpose |
+|---------|---------|
+| `provider` | State management |
+| `hive_flutter` | Encrypted local storage |
+| `mysql_dart` | MySQL database connectivity |
+| `dartssh2` | SSH tunneling |
+| `google_fonts` | Typography (Inter font) |
+| `data_table_2` | Advanced data grid |
+| `flutter_code_editor` | Code editor component |
+| `flutter_highlight` | SQL syntax highlighting |
+
+### Available Scripts
+
+```bash
+# Run the app
+flutter run -d macos
+
+# Build for release
+flutter build macos --release
+
+# Run tests
+flutter test
+
+# Analyze code
+flutter analyze
+
+# Format code
+dart format .
+
+# Clean build artifacts
+flutter clean
+
+# Generate code (TypeAdapters)
+flutter pub run build_runner build --delete-conflicting-outputs
+```
+
+### Coding Standards
+
+- **No unnecessary comments** - Code should be self-documenting
+- **Follow existing code style** - Match patterns in codebase
+- **Use existing libraries** - Check `pubspec.yaml` before adding new packages
+- **Run `flutter analyze`** - Must pass before committing
+
+For detailed developer guidelines, see [AGENTS.md](AGENTS.md).
+
+---
+
+## 🔒 Security
+
+### Data Storage
+
+Fluxlyn uses **Hive** with **AES-256 encryption** for all persistent data:
+
+- ✅ Encrypted credentials (passwords, API keys, SSH keys)
+- ✅ Encrypted connection configurations
+- ✅ Encrypted saved queries
+- ❌ NO use of platform keychains (avoids entitlement issues)
+
+### Protection Features
+
+- **Operation Locks**: Optional confirmation dialogs for DELETE and DROP operations
+- **Secure Connections**: SSL/TLS support for database connections
+- **SSH Tunneling**: Secure connectivity through SSH tunnels
+
+---
+
+## 🗺️ Roadmap
+
+### Version 1.1 (Planned)
+- [ ] PostgreSQL support
+- [ ] Query history tab
+- [ ] Settings tab improvements
+- [ ] Export query results to CSV/JSON
+- [ ] Query favorites organization
+
+### Version 1.2 (Planned)
+- [ ] Windows support
+- [ ] Linux support
+- [ ] AI-powered query optimization
+- [ ] Visual query builder
+- [ ] Database backup/restore
+
+### Version 2.0 (Future)
+- [ ] Collaborative features
+- [ ] Cloud sync for connections
+- [ ] Plugin system
+- [ ] Advanced data visualization
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. **Fork the repository**
+2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
+3. **Make your changes**
+4. **Run tests and analysis** (`flutter test && flutter analyze`)
+5. **Commit your changes** (`git commit -m 'Add amazing feature'`)
+6. **Push to the branch** (`git push origin feature/amazing-feature`)
+7. **Open a Pull Request**
+
+### Development Guidelines
+
+- Follow the existing code structure and patterns
+- Use Provider for state management
+- Use Hive for all persistent storage
+- Ensure Material 3 design compliance
+- Test on macOS before submitting PR
+- Update documentation as needed
+
+See [AGENTS.md](AGENTS.md) for comprehensive development guidelines.
+
+---
+
+## 📄 License
+
+This project is **dual licensed**:
+
+### Open Source License
+**GNU General Public License v3.0 (GPL-3.0)**
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [GNU General Public License](LICENSE) for more details.
+
+### Commercial License
+**For Proprietary Use**
+
+A commercial license is available for:
+- Proprietary use cases
+- Redistribution under a different brand
+- Projects that cannot comply with GPL-3.0 terms
+
+For commercial licensing inquiries, please contact [@sajidalianjum](https://github.com/sajidalianjum).
+
+See [LICENSE](LICENSE) and [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md) for complete details.
+
+---
+
+## 👤 Author
+
+**Sajid Ali Anjum**
+
+- GitHub: [@sajidalianjum](https://github.com/sajidalianjum)
+- Built with passion for making database management easier for developers
+
+---
+
+## 🙏 Acknowledgments
+
+- **Flutter Team** - For the amazing Flutter framework
+- **Provider Package** - Excellent state management solution
+- **Hive Team** - Fast and secure local storage
+- **Material Design Team** - Beautiful design system
+
+---
+
+## 📞 Support
+
+- 🐛 Issues: [GitHub Issues](https://github.com/sajidalianjum/fluxlyn/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/sajidalianjum/fluxlyn/discussions)
+- 📖 Documentation: [AGENTS.md](AGENTS.md) for developer guidelines
+
+---
+
+## ⭐ Show Your Support
+
+If you find Fluxlyn helpful, consider giving it a star on GitHub!
+
+<div align="center">
+  <sub>Built with ❤️ by <a href="https://github.com/sajidalianjum">Sajid Ali Anjum</a></sub>
+</div>
