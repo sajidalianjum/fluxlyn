@@ -21,6 +21,31 @@
 
 Fluxlyn is a powerful, cross-platform database explorer built with Flutter, designed specifically for developers. It provides a modern interface for managing MySQL databases with advanced features like SSH tunneling, AI-powered query assistance, and secure encrypted storage of connections.
 
+---
+
+## 🚀 Quick Start
+
+Get up and running with Fluxlyn in under 5 minutes:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/sajidalianjum/fluxlyn.git
+cd fluxlyn
+
+# 2. Install dependencies
+flutter pub get
+
+# 3. Generate type adapters
+flutter pub run build_runner build --delete-conflicting-outputs
+
+# 4. Run the app
+flutter run -d macos
+```
+
+That's it! You're ready to explore your databases. Click the **"+"** button to add your first connection.
+
+---
+
 ### Why Fluxlyn?
 
 - 🔒 **Secure**: All credentials encrypted with AES-256
