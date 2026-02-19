@@ -30,7 +30,7 @@ class AppTheme {
       textTheme: GoogleFonts.interTextTheme(
         ThemeData.dark().textTheme,
       ).apply(bodyColor: _textPrimary, displayColor: _textPrimary),
-      cardTheme: const CardTheme(
+      cardTheme: const CardThemeData(
         color: _cardBackground,
         elevation: 0,
         shape: RoundedRectangleBorder(

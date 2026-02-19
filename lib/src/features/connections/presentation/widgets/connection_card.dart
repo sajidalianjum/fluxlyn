@@ -21,7 +21,8 @@ class ConnectionCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Semantics(
-        label: 'Connection card for ${connection.name}, ${connection.type.name} database',
+        label:
+            'Connection card for ${connection.name}, ${connection.type.name} database',
         button: true,
         child: InkWell(
           onTap: onTap,
@@ -48,114 +49,114 @@ class ConnectionCard extends StatelessWidget {
                     semanticLabel: '${connection.type.name} database icon',
                   ),
                 ),
-              const SizedBox(width: 16),
+                const SizedBox(width: 16),
 
-              // Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            connection.name,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                // Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              connection.name,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      connection.host,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey,
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            connection.type == ConnectionType.mysql
-                                ? 'MYSQL'
-                                : 'POSTGRESQL',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.blueGrey,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
+                      const SizedBox(height: 4),
+                      Text(
+                        connection.host,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey,
                         ),
-                        if (connection.tag != null &&
-                            connection.tag != ConnectionTag.none)
+                      ),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: _getTagColor(
-                                connection.tag!,
-                              ).withValues(alpha: 0.15),
+                              color: Colors.white.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: _getTagColor(connection.tag!),
-                                width: 1,
-                              ),
                             ),
                             child: Text(
-                              connection.tag == ConnectionTag.custom
-                                  ? (connection.customTag ?? 'Custom')
-                                  : connection.tag!.name[0].toUpperCase() +
-                                        connection.tag!.name.substring(1),
+                              connection.type == ConnectionType.mysql
+                                  ? 'MYSQL'
+                                  : 'POSTGRESQL',
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: _getTagColor(connection.tag!),
+                                color: Colors.blueGrey,
                                 fontWeight: FontWeight.bold,
-                                letterSpacing: 0.3,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ),
-                      ],
+                          if (connection.tag != null &&
+                              connection.tag != ConnectionTag.none)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _getTagColor(
+                                  connection.tag!,
+                                ).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: _getTagColor(connection.tag!),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                connection.tag == ConnectionTag.custom
+                                    ? (connection.customTag ?? 'Custom')
+                                    : connection.tag!.name[0].toUpperCase() +
+                                          connection.tag!.name.substring(1),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: _getTagColor(connection.tag!),
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Chevron & Edit
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: onEdit,
+                      icon: const Icon(Icons.edit, size: 20),
+                      color: Colors.white.withValues(alpha: 0.3),
+                      tooltip: 'Edit Connection',
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.chevron_right,
+                      color: Colors.white.withValues(alpha: 0.3),
+                      semanticLabel: 'Connect to ${connection.name}',
                     ),
                   ],
                 ),
-              ),
-
-              // Chevron & Edit
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    onPressed: onEdit,
-                    icon: const Icon(Icons.edit, size: 20),
-                    color: Colors.white.withValues(alpha: 0.3),
-                    tooltip: 'Edit Connection',
-                    semanticLabel: 'Edit connection ${connection.name}',
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    color: Colors.white.withValues(alpha: 0.3),
-                    semanticLabel: 'Connect to ${connection.name}',
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
