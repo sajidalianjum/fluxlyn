@@ -65,6 +65,7 @@ class DatabaseService {
           username: config.sshUsername ?? '',
           onPasswordRequest: () => config.sshPassword,
           identities: keys,
+          onVerifyHostKey: (host, key) => true,
           keepAliveInterval: const Duration(seconds: 30),
         );
         print('SSH Tunnel: Client created, waiting for authentication...');
@@ -244,6 +245,7 @@ class DatabaseService {
           username: config.sshUsername ?? '',
           onPasswordRequest: () => config.sshPassword,
           identities: keys,
+          onVerifyHostKey: (host, key) => true,
           keepAliveInterval: const Duration(seconds: 30),
         );
         print('SSH Tunnel: Client created, waiting for authentication...');
