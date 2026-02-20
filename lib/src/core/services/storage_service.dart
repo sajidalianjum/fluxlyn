@@ -75,7 +75,20 @@ class StorageService {
   }
 
   List<ConnectionModel> getAllConnections() {
-    return connectionsBox.values.toList();
+    final connections = connectionsBox.values.toList();
+    final sortedConnections = <ConnectionModel>[];
+
+    final withSortOrder = connections.where((c) => c.sortOrder != null).toList()
+      ..sort((a, b) => a.sortOrder!.compareTo(b.sortOrder!));
+
+    final withoutSortOrder = connections
+        .where((c) => c.sortOrder == null)
+        .toList();
+
+    sortedConnections.addAll(withSortOrder);
+    sortedConnections.addAll(withoutSortOrder);
+
+    return sortedConnections;
   }
 
   ConnectionModel? getConnectionById(String id) {

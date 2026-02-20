@@ -36,13 +36,14 @@ class ConnectionModelAdapter extends TypeAdapter<ConnectionModel> {
       databaseName: fields[16] as String?,
       customTag: fields[17] as String?,
       tag: fields[18] as ConnectionTag?,
+      sortOrder: fields[19] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ConnectionModel obj) {
     writer
-      ..writeByte(19)
+      ..writeByte(20)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -80,7 +81,9 @@ class ConnectionModelAdapter extends TypeAdapter<ConnectionModel> {
       ..writeByte(17)
       ..write(obj.customTag)
       ..writeByte(18)
-      ..write(obj.tag);
+      ..write(obj.tag)
+      ..writeByte(19)
+      ..write(obj.sortOrder);
   }
 
   @override

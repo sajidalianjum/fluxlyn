@@ -18,6 +18,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   int _selectedTabIndex = 0;
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+  bool _isSortingMode = false;
 
   @override
   void dispose() {
@@ -48,8 +49,10 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> tabs = [
-      const ConnectionsTab(),
-      QueriesTab(searchQuery: _selectedTabIndex == 1 ? _searchController.text : ''),
+      ConnectionsTab(isSortingEnabled: _isSortingMode),
+      QueriesTab(
+        searchQuery: _selectedTabIndex == 1 ? _searchController.text : '',
+      ),
       const SettingsTab(),
     ];
 
@@ -133,7 +136,16 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   List<Widget> _getAppBarActions() {
     switch (_selectedTabIndex) {
       case 0:
-        return [];
+        return [
+          IconButton(
+            onPressed: () => setState(() => _isSortingMode = !_isSortingMode),
+            icon: Icon(_isSortingMode ? Icons.check : Icons.swap_vert),
+            tooltip: _isSortingMode ? 'Done sorting' : 'Sort connections',
+            color: _isSortingMode
+                ? Theme.of(context).colorScheme.primary
+                : null,
+          ),
+        ];
       case 1:
         if (_isSearching) {
           return [

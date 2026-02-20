@@ -90,6 +90,9 @@ class ConnectionModel extends HiveObject {
   @HiveField(18)
   final ConnectionTag? tag;
 
+  @HiveField(19)
+  final int? sortOrder;
+
   ConnectionModel({
     String? id,
     required this.name,
@@ -110,6 +113,7 @@ class ConnectionModel extends HiveObject {
     this.databaseName,
     this.customTag,
     ConnectionTag? tag,
+    this.sortOrder,
   }) : tag = tag ?? ConnectionTag.none,
        id = id ?? const Uuid().v4();
 

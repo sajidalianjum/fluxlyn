@@ -8,7 +8,9 @@ import '../widgets/connection_card.dart';
 import '../dialogs/connection_dialog.dart';
 
 class ConnectionsTab extends StatefulWidget {
-  const ConnectionsTab({super.key});
+  final bool isSortingEnabled;
+
+  const ConnectionsTab({super.key, this.isSortingEnabled = false});
 
   @override
   State<ConnectionsTab> createState() => _ConnectionsTabState();
@@ -146,7 +148,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                                 Text(
                                   provider.connections.isEmpty
                                       ? 'No connections yet.\nTap "+" to add one.'
-                                      : 'No connections match the selected filter.',
+                                      : 'No connections match selected filter.',
                                   textAlign: TextAlign.center,
                                   style: Theme.of(context).textTheme.bodyLarge
                                       ?.copyWith(color: Colors.grey),
@@ -154,44 +156,10 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                               ],
                             ),
                           )
-                        : ListView.builder(
-                            itemCount: filteredConnections.length,
-                            itemBuilder: (context, index) {
-                              final connection = filteredConnections[index];
-                              return ConnectionCard(
-                                connection: connection,
-                                onTap: () async {
-                                  final dashboardProvider = context
-                                      .read<DashboardProvider>();
-                                  await dashboardProvider.connect(connection);
-
-                                  if (context.mounted) {
-                                    if (dashboardProvider.error != null) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Error: ${dashboardProvider.error}',
-                                          ),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    } else {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => const DashboardPage(),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                onEdit: () => _showConnectionDialog(
-                                  context,
-                                  connection: connection,
-                                ),
-                              );
-                            },
+                        : _buildConnectionsList(
+                            provider,
+                            filteredConnections,
+                            _selectedFilterTag == ConnectionTag.none,
                           ),
                   ),
                 ],
@@ -231,6 +199,113 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
               },
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildConnectionsList(
+    ConnectionsProvider provider,
+    List<ConnectionModel> connections,
+    bool allowReorder,
+  ) {
+    if (allowReorder) {
+      return ReorderableListView.builder(
+        buildDefaultDragHandles: false,
+        itemCount: connections.length,
+        onReorder: (oldIndex, newIndex) {
+          provider.reorderConnections(oldIndex, newIndex);
+        },
+        proxyDecorator: (child, index, animation) {
+          return AnimatedBuilder(
+            animation: animation,
+            builder: (BuildContext context, Widget? child) {
+              return Transform.scale(scale: 1.05, child: child);
+            },
+            child: child,
+          );
+        },
+        itemBuilder: (context, index) {
+          final connection = connections[index];
+          return Container(
+            key: ValueKey(connection.id),
+            child: Row(
+              children: [
+                if (widget.isSortingEnabled)
+                  ReorderableDragStartListener(
+                    index: index,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: Icon(
+                        Icons.drag_handle,
+                        color: Colors.grey.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: ConnectionCard(
+                    connection: connection,
+                    onTap: () async {
+                      final dashboardProvider = context
+                          .read<DashboardProvider>();
+                      await dashboardProvider.connect(connection);
+
+                      if (context.mounted) {
+                        if (dashboardProvider.error != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Error: ${dashboardProvider.error}',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        } else {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const DashboardPage(),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    onEdit: () =>
+                        _showConnectionDialog(context, connection: connection),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    return ListView.builder(
+      itemCount: connections.length,
+      itemBuilder: (context, index) {
+        final connection = connections[index];
+        return ConnectionCard(
+          connection: connection,
+          onTap: () async {
+            final dashboardProvider = context.read<DashboardProvider>();
+            await dashboardProvider.connect(connection);
+
+            if (context.mounted) {
+              if (dashboardProvider.error != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error: ${dashboardProvider.error}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              } else {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const DashboardPage()),
+                );
+              }
+            }
+          },
+          onEdit: () => _showConnectionDialog(context, connection: connection),
         );
       },
     );
