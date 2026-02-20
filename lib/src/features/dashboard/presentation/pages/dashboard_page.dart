@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../tabs/schema_tab.dart';
 import '../tabs/query_tab.dart';
-import 'package:fluxlyn/src/features/settings/presentation/tabs/settings_tab.dart';
+import '../tabs/connection_queries_tab.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -15,7 +15,7 @@ class DashboardPage extends StatelessWidget {
     final List<Widget> pages = [
       const SchemaTab(),
       const QueryTab(),
-      const SettingsTab(),
+      const ConnectionQueriesTab(),
     ];
 
     return PopScope(
@@ -86,8 +86,8 @@ class DashboardPage extends StatelessWidget {
               label: 'Editor',
             ),
             NavigationDestination(
-              icon: Icon(Icons.settings, semanticLabel: 'Settings'),
-              label: 'Settings',
+              icon: Icon(Icons.history, semanticLabel: 'Query history'),
+              label: 'History',
             ),
           ],
         ),
