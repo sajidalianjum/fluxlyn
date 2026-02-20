@@ -31,6 +31,7 @@ class _ConnectionDialogState extends State<ConnectionDialog>
   late TextEditingController _customTagController;
   bool _sslEnabled = false;
   ConnectionTag _selectedTag = ConnectionTag.none;
+  ConnectionType _selectedType = ConnectionType.mysql;
 
   // SSH Vars
   bool _useSsh = false;
@@ -52,8 +53,9 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     final c = widget.connection;
     _nameController = TextEditingController(text: c?.name ?? '');
     _hostController = TextEditingController(text: c?.host ?? '');
+    _selectedType = c?.type ?? ConnectionType.mysql;
     _portController = TextEditingController(
-      text: c?.port.toString() ?? '${AppConstants.portMySQL}',
+      text: c?.port.toString() ?? _getDefaultPort(),
     );
     _userController = TextEditingController(text: c?.username ?? '');
     _passwordController = TextEditingController(text: c?.password ?? '');
@@ -103,6 +105,15 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     super.dispose();
   }
 
+  String _getDefaultPort() {
+    switch (_selectedType) {
+      case ConnectionType.mysql:
+        return '${AppConstants.portMySQL}';
+      case ConnectionType.postgresql:
+        return '${AppConstants.portPostgreSQL}';
+    }
+  }
+
   void _submit() {
     if (_formKey.currentState!.validate()) {
       String? privateKeyToSave;
@@ -122,7 +133,7 @@ class _ConnectionDialogState extends State<ConnectionDialog>
         username: _userController.text,
         password: _passwordController.text,
         sslEnabled: _sslEnabled,
-        type: ConnectionType.mysql,
+        type: _selectedType,
 
         useSsh: _useSsh,
         sshHost: _sshHostController.text,
@@ -332,6 +343,30 @@ class _ConnectionDialogState extends State<ConnectionDialog>
                               value?.isEmpty ?? true ? 'Required' : null,
                         ),
                         const SizedBox(height: 16),
+                        DropdownButtonFormField<ConnectionType>(
+                          initialValue: _selectedType,
+                          decoration: const InputDecoration(
+                            labelText: 'Database Type',
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: ConnectionType.mysql,
+                              child: Text('MySQL'),
+                            ),
+                            DropdownMenuItem(
+                              value: ConnectionType.postgresql,
+                              child: Text('PostgreSQL'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedType = value;
+                                _portController.text = _getDefaultPort();
+                              });
+                            }
+                          },
+                        ),
                         const SizedBox(height: 16),
                         Row(
                           children: [
