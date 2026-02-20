@@ -285,19 +285,31 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
 
+      final isPostgreSQL =
+          _currentConnectionModel!.type != ConnectionType.mysql;
+      final identifierQuote = isPostgreSQL ? '"' : '`';
+
       final selectColumns = allColumns
           .map((col) {
+            final quotedCol = '$identifierQuote$col$identifierQuote';
             if (bitColumns.contains(col)) {
-              return 'CAST(`$col` AS UNSIGNED) AS `$col`';
+              if (isPostgreSQL) {
+                return '$quotedCol::integer AS $quotedCol';
+              }
+              return 'CAST($quotedCol AS UNSIGNED) AS $quotedCol';
             } else if (binaryColumns.contains(col)) {
-              return 'HEX(`$col`) AS `$col`';
+              if (isPostgreSQL) {
+                return 'encode($quotedCol::bytea, \'hex\') AS $quotedCol';
+              }
+              return 'HEX($quotedCol) AS $quotedCol';
             }
-            return '`$col`';
+            return quotedCol;
           })
           .join(', ');
 
+      final quotedTableName = '$identifierQuote$tableName$identifierQuote';
       final result = await executeQuery(
-        'SELECT $selectColumns FROM `$tableName` LIMIT $limit OFFSET $offset',
+        'SELECT $selectColumns FROM $quotedTableName LIMIT $limit OFFSET $offset',
       );
 
       List<String> columnNames = [];
@@ -424,29 +436,43 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
 
+      final isPostgreSQL =
+          _currentConnectionModel!.type != ConnectionType.mysql;
+      final identifierQuote = isPostgreSQL ? '"' : '`';
+
       final selectColumns = allColumns
           .map((col) {
+            final quotedCol = '$identifierQuote$col$identifierQuote';
             if (bitColumns.contains(col)) {
-              return 'CAST(`$col` AS UNSIGNED) AS `$col`';
+              if (isPostgreSQL) {
+                return '$quotedCol::integer AS $quotedCol';
+              }
+              return 'CAST($quotedCol AS UNSIGNED) AS $quotedCol';
             } else if (binaryColumns.contains(col)) {
-              return 'HEX(`$col`) AS `$col`';
+              if (isPostgreSQL) {
+                return 'encode($quotedCol::bytea, \'hex\') AS $quotedCol';
+              }
+              return 'HEX($quotedCol) AS $quotedCol';
             }
-            return '`$col`';
+            return quotedCol;
           })
           .join(', ');
 
       final conditions = <String>[];
       if (searchColumn != null && searchText != null && searchText.isNotEmpty) {
-        conditions.add('`$searchColumn` LIKE \'%$searchText%\'');
+        final quotedCol = '$identifierQuote$searchColumn$identifierQuote';
+        conditions.add('$quotedCol LIKE \'%$searchText%\'');
       }
 
       final orderByClauses = <String>[];
       if (sortColumn != null && sortColumn.isNotEmpty) {
+        final quotedCol = '$identifierQuote$sortColumn$identifierQuote';
         final direction = sortDirection == SortDirection.asc ? 'ASC' : 'DESC';
-        orderByClauses.add('`$sortColumn` $direction');
+        orderByClauses.add('$quotedCol $direction');
       }
 
-      var query = 'SELECT $selectColumns FROM `$tableName`';
+      final quotedTableName = '$identifierQuote$tableName$identifierQuote';
+      var query = 'SELECT $selectColumns FROM $quotedTableName';
       if (conditions.isNotEmpty) {
         query += ' WHERE ${conditions.join(' AND ')}';
       }
@@ -552,33 +578,40 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     try {
+      final isPostgreSQL =
+          _currentConnectionModel!.type != ConnectionType.mysql;
+      final identifierQuote = isPostgreSQL ? '"' : '`';
+
       final setClauses = <String>[];
       for (final entry in updates.entries) {
+        final quotedCol = '$identifierQuote${entry.key}$identifierQuote';
         if (entry.value == null) {
-          setClauses.add('`${entry.key}` = NULL');
+          setClauses.add('$quotedCol = NULL');
         } else if (entry.value is String) {
           final escaped = (entry.value as String).replaceAll("'", "''");
-          setClauses.add('`${entry.key}` = \'$escaped\'');
+          setClauses.add('$quotedCol = \'$escaped\'');
         } else if (entry.value is DateTime) {
           final formatted = (entry.value as DateTime).toIso8601String();
-          setClauses.add('`${entry.key}` = \'$formatted\'');
+          setClauses.add('$quotedCol = \'$formatted\'');
         } else {
-          setClauses.add('`${entry.key}` = ${entry.value}');
+          setClauses.add('$quotedCol = ${entry.value}');
         }
       }
 
       String whereClause;
+      final quotedPkCol = '$identifierQuote$primaryKeyColumn$identifierQuote';
       if (primaryKeyValue == null) {
         return 'Cannot update row: primary key value is null';
       } else if (primaryKeyValue is String) {
         final escaped = primaryKeyValue.replaceAll("'", "''");
-        whereClause = '`$primaryKeyColumn` = \'$escaped\'';
+        whereClause = '$quotedPkCol = \'$escaped\'';
       } else {
-        whereClause = '`$primaryKeyColumn` = $primaryKeyValue';
+        whereClause = '$quotedPkCol = $primaryKeyValue';
       }
 
+      final quotedTableName = '$identifierQuote$tableName$identifierQuote';
       final sql =
-          'UPDATE `$tableName` SET ${setClauses.join(', ')} WHERE $whereClause';
+          'UPDATE $quotedTableName SET ${setClauses.join(', ')} WHERE $whereClause';
       await executeQuery(sql);
 
       return null;

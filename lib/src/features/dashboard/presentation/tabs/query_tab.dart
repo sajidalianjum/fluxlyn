@@ -357,18 +357,29 @@ class _QueryTabState extends State<QueryTab> {
             throw Exception('Failed to execute query');
           }
 
-          final columns = result.rows.isNotEmpty
-              ? result.rows.first.assoc().keys.toList()
-              : <String>[];
+          List<String> columns;
+          List<Map<String, dynamic>> rawRows;
 
-          // First extract raw rows for type inference fallback
-          final rawRows = result.rows.map((row) {
-            final rowMap = <String, dynamic>{};
-            for (final col in columns) {
-              rowMap[col] = row.colByName(col);
-            }
-            return rowMap;
-          }).toList();
+          if (provider.currentConnectionModel!.type == ConnectionType.mysql) {
+            final mysqlResult = result as IResultSet;
+            columns = mysqlResult.rows.isNotEmpty
+                ? mysqlResult.rows.first.assoc().keys.toList()
+                : <String>[];
+
+            rawRows = mysqlResult.rows.map((row) {
+              final rowMap = <String, dynamic>{};
+              for (final col in columns) {
+                rowMap[col] = row.colByName(col);
+              }
+              return rowMap;
+            }).toList();
+          } else {
+            final pgResult = result as List<Map<String, dynamic>>;
+            columns = pgResult.isNotEmpty
+                ? pgResult.first.keys.toList()
+                : <String>[];
+            rawRows = pgResult;
+          }
 
           final driver = provider.driver;
           final database = provider.selectedDatabase;
