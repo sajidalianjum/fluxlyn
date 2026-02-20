@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_selector/file_selector.dart';
+import 'package:excel/excel.dart' hide Border;
 import '../../../../core/widgets/data_table2_widget.dart';
 import '../../../dashboard/presentation/dialogs/row_edit_dialog.dart';
 import '../../models/query_result.dart';
@@ -67,9 +69,18 @@ class _QueryResultsPageState extends State<QueryResultsPage>
     super.dispose();
   }
 
-  void _exportToCsv(QueryResult result) {
-    final buffer = StringBuffer();
+  Future<void> _exportToCsvFile(QueryResult result) async {
+    final FileSaveLocation? resultLocation = await getSaveLocation(
+      acceptedTypeGroups: [
+        const XTypeGroup(label: 'CSV', extensions: ['csv'])
+      ],
+      suggestedName: 'export.csv',
+    );
+    if (resultLocation == null) return;
 
+    final buffer = StringBuffer();
+    // Add UTF-8 BOM
+    buffer.write('\uFEFF');
     buffer.writeln(result.columns.join(','));
 
     for (final row in result.rows) {
@@ -78,7 +89,7 @@ class _QueryResultsPageState extends State<QueryResultsPage>
             final value = row[col];
             if (value == null) return '';
             final stringValue = value.toString();
-            if (stringValue.contains(',') || stringValue.contains('"')) {
+            if (stringValue.contains(',') || stringValue.contains('"') || stringValue.contains('\n')) {
               return '"${stringValue.replaceAll('"', '""')}"';
             }
             return stringValue;
@@ -87,18 +98,55 @@ class _QueryResultsPageState extends State<QueryResultsPage>
       buffer.writeln(values);
     }
 
-    Clipboard.setData(ClipboardData(text: buffer.toString()));
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('CSV copied to clipboard')));
+    final Uint8List fileData = Uint8List.fromList(utf8.encode(buffer.toString()));
+    final XFile file = XFile.fromData(fileData, mimeType: 'text/csv', name: 'export.csv');
+    await file.saveTo(resultLocation.path);
+
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Exported to ${resultLocation.path}')));
+    }
   }
 
-  void _exportToJson(QueryResult result) {
-    final jsonData = jsonEncode(result.rows);
-    Clipboard.setData(ClipboardData(text: jsonData));
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('JSON copied to clipboard')));
+  Future<void> _exportToXlsxFile(QueryResult result) async {
+    final FileSaveLocation? resultLocation = await getSaveLocation(
+      acceptedTypeGroups: [
+        const XTypeGroup(label: 'Excel', extensions: ['xlsx'])
+      ],
+      suggestedName: 'export.xlsx',
+    );
+    if (resultLocation == null) return;
+
+    final excel = Excel.createExcel();
+    final sheet = excel['Sheet1'];
+
+    // Add header
+    sheet.appendRow(result.columns.map((col) => TextCellValue(col)).toList());
+
+    // Add rows
+    for (final row in result.rows) {
+      sheet.appendRow(result.columns.map((col) {
+        final value = row[col];
+        if (value == null) return TextCellValue('');
+        if (value is int) return IntCellValue(value);
+        if (value is double) return DoubleCellValue(value);
+        if (value is bool) return BoolCellValue(value);
+        return TextCellValue(value.toString());
+      }).toList());
+    }
+
+    final List<int>? fileBytes = excel.save();
+    if (fileBytes != null) {
+      final XFile file = XFile.fromData(Uint8List.fromList(fileBytes), mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', name: 'export.xlsx');
+      await file.saveTo(resultLocation.path);
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Exported to ${resultLocation.path}')));
+      }
+    }
   }
 
   Widget _buildResultView(QueryResult result) {
@@ -175,15 +223,26 @@ class _QueryResultsPageState extends State<QueryResultsPage>
               style: const TextStyle(color: Colors.green, fontSize: 12),
             ),
             const Spacer(),
-            IconButton(
-              onPressed: () => _exportToCsv(result),
-              icon: const Icon(Icons.table_chart, size: 18),
-              tooltip: 'Export CSV',
-            ),
-            IconButton(
-              onPressed: () => _exportToJson(result),
-              icon: const Icon(Icons.code, size: 18),
-              tooltip: 'Export JSON',
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.download, size: 18),
+              tooltip: 'Export',
+              onSelected: (value) {
+                if (value == 'csv') {
+                  _exportToCsvFile(result);
+                } else if (value == 'xlsx') {
+                  _exportToXlsxFile(result);
+                }
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                  value: 'csv',
+                  child: Text('Export as CSV'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'xlsx',
+                  child: Text('Export as XLSX'),
+                ),
+              ],
             ),
           ],
         ),
