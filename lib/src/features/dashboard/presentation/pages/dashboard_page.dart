@@ -15,7 +15,6 @@ class DashboardPage extends StatelessWidget {
     final List<Widget> pages = [
       const SchemaTab(),
       const QueryTab(),
-      const Center(child: Text('History (Coming Soon)')),
       const SettingsTab(),
     ];
 
@@ -85,10 +84,6 @@ class DashboardPage extends StatelessWidget {
             NavigationDestination(
               icon: Icon(Icons.code, semanticLabel: 'Query editor'),
               label: 'Editor',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.history, semanticLabel: 'Query history'),
-              label: 'History',
             ),
             NavigationDestination(
               icon: Icon(Icons.settings, semanticLabel: 'Settings'),

@@ -41,19 +41,19 @@ class _QueriesTabState extends State<QueriesTab>
         TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'Recent'),
             Tab(text: 'Saved'),
+            Tab(text: 'Recent'),
           ],
         ),
         Expanded(
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildRecentQueriesTab(
+              _buildSavedQueriesTab(
                 storageService,
                 searchQuery: widget.searchQuery,
               ),
-              _buildSavedQueriesTab(
+              _buildRecentQueriesTab(
                 storageService,
                 searchQuery: widget.searchQuery,
               ),
