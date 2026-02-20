@@ -49,7 +49,10 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> tabs = [
-      ConnectionsTab(isSortingEnabled: _isSortingMode),
+      ConnectionsTab(
+        isSortingEnabled: _isSortingMode,
+        searchQuery: _selectedTabIndex == 0 ? _searchController.text : '',
+      ),
       QueriesTab(
         searchQuery: _selectedTabIndex == 1 ? _searchController.text : '',
       ),
@@ -58,7 +61,8 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: _isSearching && _selectedTabIndex == 1
+        title:
+            _isSearching && (_selectedTabIndex == 0 || _selectedTabIndex == 1)
             ? _buildSearchBar()
             : Text(_getAppBarTitle()),
         actions: _getAppBarActions(),
@@ -70,8 +74,8 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
         onDestinationSelected: (index) {
           setState(() {
             _selectedTabIndex = index;
-            // Reset search when switching tabs
-            if (_isSearching && index != 1) {
+            // Reset search when switching away from search-enabled tabs
+            if (_isSearching && index != 0 && index != 1) {
               _isSearching = false;
               _searchController.clear();
             }
@@ -100,9 +104,11 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       controller: _searchController,
       autofocus: true,
       style: const TextStyle(color: Colors.white),
-      decoration: const InputDecoration(
-        hintText: 'Search queries or databases...',
-        hintStyle: TextStyle(color: Colors.grey),
+      decoration: InputDecoration(
+        hintText: _selectedTabIndex == 0
+            ? 'Search connections...'
+            : 'Search queries or databases...',
+        hintStyle: const TextStyle(color: Colors.grey),
         border: InputBorder.none,
       ),
       onChanged: (_) => setState(() {}),
@@ -136,6 +142,20 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   List<Widget> _getAppBarActions() {
     switch (_selectedTabIndex) {
       case 0:
+        if (_isSearching) {
+          return [
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _isSearching = false;
+                  _searchController.clear();
+                });
+              },
+              icon: const Icon(Icons.close),
+              tooltip: 'Close',
+            ),
+          ];
+        }
         return [
           IconButton(
             onPressed: () => setState(() => _isSortingMode = !_isSortingMode),
@@ -144,6 +164,11 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
             color: _isSortingMode
                 ? Theme.of(context).colorScheme.primary
                 : null,
+          ),
+          IconButton(
+            onPressed: () => setState(() => _isSearching = true),
+            icon: const Icon(Icons.search),
+            tooltip: 'Search connections',
           ),
         ];
       case 1:
@@ -165,7 +190,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
           IconButton(
             onPressed: () => setState(() => _isSearching = true),
             icon: const Icon(Icons.search),
-            tooltip: 'Search',
+            tooltip: 'Search queries',
           ),
         ];
       default:

@@ -9,8 +9,13 @@ import '../dialogs/connection_dialog.dart';
 
 class ConnectionsTab extends StatefulWidget {
   final bool isSortingEnabled;
+  final String searchQuery;
 
-  const ConnectionsTab({super.key, this.isSortingEnabled = false});
+  const ConnectionsTab({
+    super.key,
+    this.isSortingEnabled = false,
+    this.searchQuery = '',
+  });
 
   @override
   State<ConnectionsTab> createState() => _ConnectionsTabState();
@@ -35,10 +40,20 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
   List<ConnectionModel> _getFilteredConnections(
     List<ConnectionModel> connections,
   ) {
-    if (_selectedFilterTag == ConnectionTag.none) {
-      return connections;
+    var filtered = connections;
+
+    if (_selectedFilterTag != ConnectionTag.none) {
+      filtered = filtered.where((c) => c.tag == _selectedFilterTag).toList();
     }
-    return connections.where((c) => c.tag == _selectedFilterTag).toList();
+
+    if (widget.searchQuery.isNotEmpty) {
+      final query = widget.searchQuery.toLowerCase();
+      filtered = filtered
+          .where((c) => c.name.toLowerCase().contains(query))
+          .toList();
+    }
+
+    return filtered;
   }
 
   void _showConnectionDialog(
@@ -140,15 +155,17 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                  Icons.dns_outlined,
+                                  widget.searchQuery.isEmpty
+                                      ? Icons.dns_outlined
+                                      : Icons.search_off,
                                   size: 64,
                                   color: Colors.grey.withValues(alpha: 0.2),
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  provider.connections.isEmpty
-                                      ? 'No connections yet.\nTap "+" to add one.'
-                                      : 'No connections match selected filter.',
+                                  _getEmptyStateMessage(
+                                    provider.connections.isEmpty,
+                                  ),
                                   textAlign: TextAlign.center,
                                   style: Theme.of(context).textTheme.bodyLarge
                                       ?.copyWith(color: Colors.grey),
@@ -159,7 +176,8 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                         : _buildConnectionsList(
                             provider,
                             filteredConnections,
-                            _selectedFilterTag == ConnectionTag.none,
+                            _selectedFilterTag == ConnectionTag.none &&
+                                widget.searchQuery.isEmpty,
                           ),
                   ),
                 ],
@@ -352,5 +370,15 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
       case ConnectionTag.custom:
         return Colors.blue;
     }
+  }
+
+  String _getEmptyStateMessage(bool hasNoConnections) {
+    if (hasNoConnections) {
+      return 'No connections yet.\nTap "+" to add one.';
+    }
+    if (widget.searchQuery.isNotEmpty) {
+      return 'No connections match "${widget.searchQuery}"';
+    }
+    return 'No connections match selected filter.';
   }
 }
