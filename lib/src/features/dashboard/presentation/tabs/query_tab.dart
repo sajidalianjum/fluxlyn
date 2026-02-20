@@ -6,6 +6,7 @@ import 'package:highlight/languages/sql.dart';
 import 'package:flutter_highlight/themes/monokai-sublime.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:mysql_dart/mysql_dart.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/schema_service.dart';
 import '../../../../core/services/ai_service.dart';
@@ -13,12 +14,14 @@ import '../../../../core/services/sql_context_analyzer.dart';
 import '../../../../core/services/sql_formatter.dart';
 import '../../../../core/services/query_protection_service.dart';
 import '../../../../core/services/column_type_detector.dart';
+import '../../../../core/services/mysql_driver.dart';
 import '../../../../core/widgets/snackbar_helper.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../../queries/models/query_model.dart';
 import '../../../queries/models/query_result.dart';
 import '../../../queries/presentation/pages/query_results_page.dart';
+import '../../../connections/models/connection_model.dart';
 
 class QueryTab extends StatefulWidget {
   const QueryTab({super.key});
@@ -236,10 +239,10 @@ class _QueryTabState extends State<QueryTab> {
 
   Future<void> _reloadSchemaOnDatabaseChange() async {
     final provider = Provider.of<DashboardProvider>(context, listen: false);
-    final connection = provider.currentConnection;
+    final driver = provider.driver;
     final database = provider.selectedDatabase;
 
-    if (connection != null && database != null) {
+    if (driver != null && database != null) {
       // Clear cache for previous database and load new one
       _schemaService.clearCache(database);
       _schemaService.clearTableNamesCache(database);
@@ -259,7 +262,7 @@ class _QueryTabState extends State<QueryTab> {
       _controller.autocompleter.setCustomWords(_autocompleteWords);
 
       // Preload columns for all tables in background
-      await _schemaService.preloadColumns(connection, database, tables);
+      await _schemaService.preloadColumns(driver, database, tables);
 
       // Trigger context-aware autocomplete update
       _lastContext = SQLContext.none;
@@ -269,16 +272,16 @@ class _QueryTabState extends State<QueryTab> {
 
   Future<void> _preloadSchema() async {
     final provider = Provider.of<DashboardProvider>(context, listen: false);
-    final connection = provider.currentConnection;
+    final driver = provider.driver;
     final database = provider.selectedDatabase;
 
-    if (connection != null && database != null) {
+    if (driver != null && database != null) {
       // Cache table names in SchemaService
       final tables = provider.tables;
       _schemaService.setTableNames(database, tables);
 
       // Preload columns for all tables in background
-      await _schemaService.preloadColumns(connection, database, tables);
+      await _schemaService.preloadColumns(driver, database, tables);
 
       // Trigger initial autocomplete update
       _lastContext = SQLContext.none;
@@ -367,14 +370,20 @@ class _QueryTabState extends State<QueryTab> {
             return rowMap;
           }).toList();
 
-          final connection = provider.currentConnection;
+          final driver = provider.driver;
           final database = provider.selectedDatabase;
+          final connectionModel = provider.currentConnectionModel;
 
-          // Detect types with silent fallback to result-based inference
+          MySQLConnection? mysqlConnection;
+          if (connectionModel?.type == ConnectionType.mysql &&
+              driver is MySQLDriver) {
+            mysqlConnection = driver.connection;
+          }
+
           final columnTypes = await ColumnTypeDetector.detectTypes(
             query: singleQuery,
             resultColumns: columns,
-            connection: connection!,
+            connection: mysqlConnection,
             databaseName: database,
             sampleRows: rawRows.isNotEmpty ? rawRows : null,
           );
@@ -431,7 +440,7 @@ class _QueryTabState extends State<QueryTab> {
               executionTimeMs: stopwatch.elapsedMilliseconds,
               rowCount: rows.length,
               success: true,
-              connectionId: connectionModel.id,
+              connectionId: connectionModel!.id,
               databaseName: provider.selectedDatabase,
             ),
           );
@@ -655,7 +664,10 @@ class _QueryTabState extends State<QueryTab> {
                               await storageService.deleteQuery(query.id);
                               setModalState(() {});
                               if (mounted) {
-                                SnackbarHelper.showInfo(context, 'Query deleted');
+                                SnackbarHelper.showInfo(
+                                  context,
+                                  'Query deleted',
+                                );
                               }
                             },
                           ),
@@ -778,9 +790,9 @@ class _QueryTabState extends State<QueryTab> {
       listen: false,
     );
     final database = provider.selectedDatabase;
-    final connection = provider.currentConnection;
+    final driver = provider.driver;
 
-    if (database == null || connection == null) {
+    if (database == null || driver == null) {
       SnackbarHelper.showWarning(context, 'Please select a database first');
       return;
     }
@@ -856,13 +868,13 @@ class _QueryTabState extends State<QueryTab> {
 
                           for (final table in tables) {
                             final columns = await _schemaService.getColumns(
-                              connection,
+                              driver,
                               database,
                               table,
                             );
                             schemaBuffer.writeln('Table: $table');
                             schemaBuffer.writeln(
-                              'Columns: ${columns.map((c) => "${c.name} (${c.dataType})").join(", ")}',
+                              'Columns: ${columns.map((c) => "${c.name} (${c.type})").join(", ")}',
                             );
                             schemaBuffer.writeln();
                           }

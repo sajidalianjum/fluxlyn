@@ -1,40 +1,22 @@
-import 'package:mysql_dart/mysql_dart.dart';
-
-class ColumnInfo {
-  final String name;
-  final String dataType;
-  final bool isNullable;
-
-  ColumnInfo({
-    required this.name,
-    required this.dataType,
-    required this.isNullable,
-  });
-}
+import 'database_driver.dart';
 
 class SchemaService {
-  // Cache for table columns
   final Map<String, List<ColumnInfo>> _columnsCache = {};
   final Set<String> _loadingTables = {};
-  // Cache for table names
   final Map<String, List<String>> _tableNamesCache = {};
 
-  /// Get columns for a specific table (lazy loading with caching)
   Future<List<ColumnInfo>> getColumns(
-    MySQLConnection connection,
+    DatabaseDriver driver,
     String databaseName,
     String tableName,
   ) async {
     final cacheKey = '$databaseName.$tableName';
 
-    // Return cached columns if available
     if (_columnsCache.containsKey(cacheKey)) {
       return _columnsCache[cacheKey]!;
     }
 
-    // Prevent duplicate concurrent requests
     if (_loadingTables.contains(cacheKey)) {
-      // Wait for the loading to complete
       while (_loadingTables.contains(cacheKey)) {
         await Future.delayed(const Duration(milliseconds: 50));
       }
@@ -44,21 +26,7 @@ class SchemaService {
     _loadingTables.add(cacheKey);
 
     try {
-      final result = await connection.execute("""
-        SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE
-        FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_SCHEMA = '$databaseName' AND TABLE_NAME = '$tableName'
-        ORDER BY ORDINAL_POSITION
-        """);
-
-      final columns = result.rows.map((row) {
-        return ColumnInfo(
-          name: row.colByName('COLUMN_NAME')?.toString() ?? '',
-          dataType: row.colByName('DATA_TYPE')?.toString() ?? '',
-          isNullable: row.colByName('IS_NULLABLE')?.toString() == 'YES',
-        );
-      }).toList();
-
+      final columns = await driver.getColumns(tableName);
       _columnsCache[cacheKey] = columns;
       return columns;
     } finally {
@@ -66,9 +34,8 @@ class SchemaService {
     }
   }
 
-  /// Preload columns for multiple tables (called when entering editor)
   Future<void> preloadColumns(
-    MySQLConnection connection,
+    DatabaseDriver driver,
     String databaseName,
     List<String> tableNames,
   ) async {
@@ -77,11 +44,10 @@ class SchemaService {
       return !_columnsCache.containsKey(cacheKey);
     }).toList();
 
-    // Load in parallel
     await Future.wait(
       tablesToLoad.map(
         (table) => getColumns(
-          connection,
+          driver,
           databaseName,
           table,
         ).catchError((_) => <ColumnInfo>[]),
@@ -89,7 +55,6 @@ class SchemaService {
     );
   }
 
-  /// Get all column names for autocomplete
   List<String> getAllColumnNames(String databaseName, String? tableName) {
     if (tableName != null) {
       final cacheKey = '$databaseName.$tableName';
@@ -99,7 +64,6 @@ class SchemaService {
       }
     }
 
-    // Return all columns from all cached tables
     final allColumns = <String>[];
     for (final entry in _columnsCache.entries) {
       if (entry.key.startsWith('$databaseName.')) {
@@ -109,7 +73,6 @@ class SchemaService {
     return allColumns;
   }
 
-  /// Clear cache for a specific database
   void clearCache(String? databaseName) {
     if (databaseName == null) {
       _columnsCache.clear();
@@ -118,23 +81,19 @@ class SchemaService {
     }
   }
 
-  /// Check if columns are loaded for a table
   bool isLoaded(String databaseName, String tableName) {
     final cacheKey = '$databaseName.$tableName';
     return _columnsCache.containsKey(cacheKey);
   }
 
-  /// Get all table names for a database
   List<String> getTableNames(String databaseName) {
     return _tableNamesCache[databaseName] ?? [];
   }
 
-  /// Set table names for a database
   void setTableNames(String databaseName, List<String> tableNames) {
     _tableNamesCache[databaseName] = tableNames;
   }
 
-  /// Clear table names cache for a specific database
   void clearTableNamesCache(String? databaseName) {
     if (databaseName == null) {
       _tableNamesCache.clear();

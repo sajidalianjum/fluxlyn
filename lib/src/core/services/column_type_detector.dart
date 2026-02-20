@@ -92,13 +92,15 @@ class ColumnTypeDetector {
   static Future<Map<String, ColumnTypeInfo>> detectTypes({
     required String query,
     required List<String> resultColumns,
-    required MySQLConnection connection,
+    MySQLConnection? connection,
     String? databaseName,
     List<Map<String, dynamic>>? sampleRows,
   }) async {
     final columnTypes = <String, ColumnTypeInfo>{};
 
-    if (!SqlAnalyzer.isSelectQuery(query) || databaseName == null) {
+    if (connection == null ||
+        !SqlAnalyzer.isSelectQuery(query) ||
+        databaseName == null) {
       // Infer types from sample rows if available
       if (sampleRows != null && sampleRows.isNotEmpty) {
         return _inferTypesFromResults(resultColumns, sampleRows);

@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 import '../../../core/services/database_service.dart';
+import '../../../core/services/database_driver.dart';
 import '../../connections/models/connection_model.dart';
 import '../models/table_search_result.dart';
 
@@ -17,25 +17,31 @@ enum ConnectionStep {
 }
 
 class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
-  final DatabaseService _dbService = DatabaseService();
   ConnectionModel? _currentConnectionModel;
-  MySQLConnection? _connection;
-  AppLifecycleState? _lastLifecycleState;
+  DatabaseDriver? _driver;
   bool _wasConnectedBeforePause = false;
   bool _isReconnecting = false;
 
-  // State
   List<String> _databases = [];
   String? _selectedDatabase;
   List<String> _tables = [];
   bool _isLoading = false;
   String? _error;
-  int _selectedTabIndex = 0; // Bottom Nav Index
+  int _selectedTabIndex = 0;
   ConnectionStep _connectionStep = ConnectionStep.initializing;
   String? _pendingQuery;
 
   ConnectionModel? get currentConnectionModel => _currentConnectionModel;
   String? get pendingQuery => _pendingQuery;
+  DatabaseDriver? get driver => _driver;
+  List<String> get databases => _databases;
+  String? get selectedDatabase => _selectedDatabase;
+  List<String> get tables => _tables;
+  bool get isLoading => _isLoading;
+  bool get isReconnecting => _isReconnecting;
+  String? get error => _error;
+  int get selectedTabIndex => _selectedTabIndex;
+  ConnectionStep get connectionStep => _connectionStep;
 
   void setPendingQuery(String? query) {
     _pendingQuery = query;
@@ -45,16 +51,6 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   void clearPendingQuery() {
     _pendingQuery = null;
   }
-
-  MySQLConnection? get currentConnection => _connection;
-  List<String> get databases => _databases;
-  String? get selectedDatabase => _selectedDatabase;
-  List<String> get tables => _tables;
-  bool get isLoading => _isLoading;
-  bool get isReconnecting => _isReconnecting;
-  String? get error => _error;
-  int get selectedTabIndex => _selectedTabIndex;
-  ConnectionStep get connectionStep => _connectionStep;
 
   void setTabIndex(int index) {
     _selectedTabIndex = index;
@@ -70,8 +66,8 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       WidgetsBinding.instance.addObserver(this);
 
-      if (_connection != null) {
-        await _dbService.disconnect();
+      if (_driver != null) {
+        await _driver!.disconnect();
       }
 
       if (config.useSsh) {
@@ -79,7 +75,8 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
         notifyListeners();
       }
 
-      _connection = await _dbService.connect(config);
+      _driver = DatabaseService.createDriver(config.type);
+      await _driver!.connect(config);
       _currentConnectionModel = config;
       _selectedDatabase = config.databaseName;
       _wasConnectedBeforePause = true;
@@ -94,7 +91,6 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
         await refreshTables();
       }
 
-      // Navigate to Schema/Databases tab by default
       _selectedTabIndex = 0;
       _connectionStep = ConnectionStep.completed;
     } catch (e) {
@@ -116,9 +112,9 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> refreshDatabases() async {
-    if (_connection == null) return;
+    if (_driver == null) return;
     try {
-      _databases = await _dbService.getDatabases(_connection!);
+      _databases = await _driver!.getDatabases();
       _error = null;
     } catch (e) {
       _error = 'Failed to load databases: $e';
@@ -127,13 +123,13 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> selectDatabase(String dbName) async {
-    if (_connection == null) return;
+    if (_driver == null) return;
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await _dbService.useDatabase(_connection!, dbName);
+      await _driver!.useDatabase(dbName);
       _selectedDatabase = dbName;
       await refreshTables();
     } catch (e) {
@@ -145,9 +141,9 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> refreshTables() async {
-    if (_connection == null || _selectedDatabase == null) return;
+    if (_driver == null || _selectedDatabase == null) return;
     try {
-      _tables = await _dbService.getTables(_connection!);
+      _tables = await _driver!.getTables();
       _error = null;
     } catch (e) {
       _error = 'Failed to load tables: $e';
@@ -155,10 +151,10 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  Future<IResultSet?> executeQuery(String sql) async {
-    if (_connection == null) return null;
+  Future<dynamic> executeQuery(String sql) async {
+    if (_driver == null) return null;
     try {
-      return await _dbService.execute(_connection!, sql);
+      return await _driver!.execute(sql);
     } catch (e) {
       rethrow;
     }
@@ -172,8 +168,8 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> disconnect() async {
     WidgetsBinding.instance.removeObserver(this);
-    await _dbService.disconnect();
-    _connection = null;
+    await _driver?.disconnect();
+    _driver = null;
     _currentConnectionModel = null;
     _databases = [];
     _selectedDatabase = null;
@@ -184,13 +180,11 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    _lastLifecycleState = state;
-
     if (state == AppLifecycleState.paused) {
-      _wasConnectedBeforePause = _connection != null;
+      _wasConnectedBeforePause = _driver != null;
     } else if (state == AppLifecycleState.resumed) {
       if (_wasConnectedBeforePause &&
-          _connection != null &&
+          _driver != null &&
           _currentConnectionModel != null) {
         _checkAndReconnect();
       }
@@ -198,13 +192,13 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _checkAndReconnect() async {
-    if (_connection == null) {
+    if (_driver == null) {
       _autoReconnect();
       return;
     }
 
     try {
-      final isConnected = await _dbService.isConnected(_connection!);
+      final isConnected = await _driver!.isConnected();
       if (!isConnected) {
         _autoReconnect();
       }
@@ -222,15 +216,15 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
 
     try {
-      final oldConnection = _connection;
-      _connection = null;
+      _driver = null;
 
       if (_currentConnectionModel!.useSsh) {
         _connectionStep = ConnectionStep.connectingSsh;
         notifyListeners();
       }
 
-      _connection = await _dbService.connect(_currentConnectionModel!);
+      _driver = DatabaseService.createDriver(_currentConnectionModel!.type);
+      await _driver!.connect(_currentConnectionModel!);
 
       _connectionStep = ConnectionStep.loadingDatabases;
       notifyListeners();
@@ -244,7 +238,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       _connectionStep = ConnectionStep.completed;
     } catch (e) {
-      _connection = null;
+      _driver = null;
       _error = 'Auto-reconnect failed: $e';
       _connectionStep = ConnectionStep.initializing;
       _wasConnectedBeforePause = false;
@@ -255,69 +249,42 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  // Table data methods
   Future<TableDataResult> fetchTableData(
     String tableName, {
     int limit = 100,
     int offset = 0,
   }) async {
-    if (_connection == null) {
+    if (_driver == null) {
       return TableDataResult(error: 'Not connected to database');
     }
 
     try {
-      // Get primary key info first
-      final pkResult = await _dbService.execute(
-        _connection!,
-        "SHOW KEYS FROM `$tableName` WHERE Key_name = 'PRIMARY'",
-      );
-      String? primaryKeyColumn;
-      for (final row in pkResult.rows) {
-        primaryKeyColumn = row.colByName('Column_name')?.toString();
-        break; // Take first PK column
-      }
+      final primaryKeyColumn = await _driver!.getPrimaryKeyColumn(tableName);
+      final columns = await _driver!.getColumns(tableName);
 
-      // Get column types to detect binary columns
-      final columnsResult = await _dbService.execute(
-        _connection!,
-        'SHOW COLUMNS FROM `$tableName`',
-      );
       final binaryColumns = <String>{};
       final bitColumns = <String>{};
       final enumColumns = <String, List<String>>{};
       final setColumns = <String, List<String>>{};
       final allColumns = <String>{};
-      for (final row in columnsResult.rows) {
-        final colName = row.colByName('Field')?.toString();
-        final colTypeRaw = row.colByName('Type');
 
-        String colType = '';
-        if (colTypeRaw is List<int>) {
-          colType = utf8.decode(colTypeRaw).toLowerCase();
-        } else if (colTypeRaw != null) {
-          colType = colTypeRaw.toString().toLowerCase();
-        }
+      for (final col in columns) {
+        allColumns.add(col.name);
+        final colType = col.type.toLowerCase();
 
-        if (colName != null && colName.isNotEmpty) {
-          allColumns.add(colName);
-          // Detect BIT columns separately (must be exact 'bit' or start with 'bit(')
-          if (colType == 'bit' || colType.startsWith('bit(')) {
-            bitColumns.add(colName);
-          } else if (colType.startsWith('enum(')) {
-            enumColumns[colName] = _parseEnumSetValues(colType);
-          } else if (colType.startsWith('set(')) {
-            setColumns[colName] = _parseEnumSetValues(colType);
-          } else if (colType.contains('blob') ||
-              colType.contains('binary') ||
-              colType.contains('varbinary')) {
-            binaryColumns.add(colName);
-          }
+        if (colType == 'bit' || colType.startsWith('bit(')) {
+          bitColumns.add(col.name);
+        } else if (colType.startsWith('enum(')) {
+          enumColumns[col.name] = _parseEnumSetValues(col.type);
+        } else if (colType.startsWith('set(')) {
+          setColumns[col.name] = _parseEnumSetValues(col.type);
+        } else if (colType.contains('blob') ||
+            colType.contains('binary') ||
+            colType.contains('varbinary')) {
+          binaryColumns.add(col.name);
         }
       }
 
-      // Build SELECT query that handles binary columns safely
-      // Convert binary columns to HEX to avoid UTF-8 decoding issues
-      // Convert BIT columns to unsigned integer
       final selectColumns = allColumns
           .map((col) {
             if (bitColumns.contains(col)) {
@@ -329,82 +296,79 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
           })
           .join(', ');
 
-      // Fetch table data with pagination
-      final result = await _dbService.execute(
-        _connection!,
+      final result = await executeQuery(
         'SELECT $selectColumns FROM `$tableName` LIMIT $limit OFFSET $offset',
       );
 
-      // Extract columns and rows
-      List<String> columns = [];
+      List<String> columnNames = [];
       List<Map<String, dynamic>> rows = [];
 
-      if (result.rows.isNotEmpty) {
-        // Get column names from first row using assoc()
-        final firstRowMap = result.rows.first.assoc();
-        columns = firstRowMap.keys.toList();
+      if (_currentConnectionModel!.type == ConnectionType.mysql) {
+        final mysqlResult = result as IResultSet;
+        if (mysqlResult.rows.isNotEmpty) {
+          final firstRowMap = mysqlResult.rows.first.assoc();
+          columnNames = firstRowMap.keys.toList();
 
-        // Convert all rows to maps
-        for (final row in result.rows) {
-          final rowMap = Map<String, dynamic>.from(row.assoc());
+          for (final row in mysqlResult.rows) {
+            final rowMap = Map<String, dynamic>.from(row.assoc());
 
-          // Handle BIT columns - convert to integer if needed
-          for (final col in bitColumns) {
-            if (rowMap[col] != null) {
-              final colValue = rowMap[col];
-              if (colValue is List<int>) {
-                // Extract integer from list
-                if (colValue.isEmpty) {
-                  rowMap[col] = 0;
-                } else {
-                  rowMap[col] = colValue[0];
+            for (final col in bitColumns) {
+              if (rowMap[col] != null) {
+                final colValue = rowMap[col];
+                if (colValue is List<int>) {
+                  if (colValue.isEmpty) {
+                    rowMap[col] = 0;
+                  } else {
+                    rowMap[col] = colValue[0];
+                  }
+                } else if (colValue is! int) {
+                  rowMap[col] = int.tryParse(colValue.toString()) ?? 0;
                 }
-              } else if (colValue is! int) {
-                // Try to parse as int
-                rowMap[col] = int.tryParse(colValue.toString()) ?? 0;
               }
             }
-          }
 
-          // Format binary columns as hex
-          for (final col in binaryColumns) {
-            if (rowMap[col] != null) {
-              final colValue = rowMap[col];
-              String hexStr;
+            for (final col in binaryColumns) {
+              if (rowMap[col] != null) {
+                final colValue = rowMap[col];
+                String hexStr;
 
-              if (colValue is List<int>) {
-                // Convert bytes to hex string
-                hexStr = colValue
-                    .map((b) => b.toRadixString(16).padLeft(2, '0'))
-                    .join();
-              } else {
-                hexStr = colValue.toString();
-              }
+                if (colValue is List<int>) {
+                  hexStr = colValue
+                      .map((b) => b.toRadixString(16).padLeft(2, '0'))
+                      .join();
+                } else {
+                  hexStr = colValue.toString();
+                }
 
-              // Remove any '0x' prefix if it exists from HEX() function
-              if (hexStr.startsWith('0x')) {
-                hexStr = hexStr.substring(2);
-              }
+                if (hexStr.startsWith('0x')) {
+                  hexStr = hexStr.substring(2);
+                }
 
-              if (hexStr.isEmpty) {
-                rowMap[col] = '0x';
-              } else if (hexStr.length > 16) {
-                rowMap[col] =
-                    '0x${hexStr.substring(0, 16)}... (${hexStr.length ~/ 2} bytes)';
-              } else {
-                rowMap[col] = '0x$hexStr';
+                if (hexStr.isEmpty) {
+                  rowMap[col] = '0x';
+                } else if (hexStr.length > 16) {
+                  rowMap[col] =
+                      '0x${hexStr.substring(0, 16)}... (${hexStr.length ~/ 2} bytes)';
+                } else {
+                  rowMap[col] = '0x$hexStr';
+                }
               }
             }
+            rows.add(rowMap);
           }
-          rows.add(rowMap);
+        }
+      } else {
+        final pgResult = result as List<Map<String, dynamic>>;
+        if (pgResult.isNotEmpty) {
+          columnNames = pgResult.first.keys.toList();
+          rows = pgResult;
         }
       }
 
-      // Determine if there's a next page
       final hasNextPage = rows.length >= limit;
 
       return TableDataResult(
-        columns: columns,
+        columns: columnNames,
         rows: rows,
         primaryKeyColumn: primaryKeyColumn,
         binaryColumns: binaryColumns.toList(),
@@ -429,55 +393,34 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     int limit = 100,
     int offset = 0,
   }) async {
-    if (_connection == null) {
+    if (_driver == null) {
       return TableDataResult(error: 'Not connected to database');
     }
 
     try {
-      String? primaryKeyColumn;
+      String? primaryKeyColumn = await _driver!.getPrimaryKeyColumn(tableName);
+      final columns = await _driver!.getColumns(tableName);
+
       final binaryColumns = <String>{};
       final bitColumns = <String>{};
       final enumColumns = <String, List<String>>{};
       final setColumns = <String, List<String>>{};
       final allColumns = <String>{};
 
-      final pkResult = await _dbService.execute(
-        _connection!,
-        "SHOW KEYS FROM `$tableName` WHERE Key_name = 'PRIMARY'",
-      );
-      for (final row in pkResult.rows) {
-        primaryKeyColumn = row.colByName('Column_name')?.toString();
-        break;
-      }
+      for (final col in columns) {
+        allColumns.add(col.name);
+        final colType = col.type.toLowerCase();
 
-      final columnsResult = await _dbService.execute(
-        _connection!,
-        'SHOW COLUMNS FROM `$tableName`',
-      );
-      for (final row in columnsResult.rows) {
-        final colName = row.colByName('Field')?.toString();
-        final colTypeRaw = row.colByName('Type');
-
-        String colType = '';
-        if (colTypeRaw is List<int>) {
-          colType = utf8.decode(colTypeRaw).toLowerCase();
-        } else if (colTypeRaw != null) {
-          colType = colTypeRaw.toString().toLowerCase();
-        }
-
-        if (colName != null && colName.isNotEmpty) {
-          allColumns.add(colName);
-          if (colType == 'bit' || colType.startsWith('bit(')) {
-            bitColumns.add(colName);
-          } else if (colType.startsWith('enum(')) {
-            enumColumns[colName] = _parseEnumSetValues(colType);
-          } else if (colType.startsWith('set(')) {
-            setColumns[colName] = _parseEnumSetValues(colType);
-          } else if (colType.contains('blob') ||
-              colType.contains('binary') ||
-              colType.contains('varbinary')) {
-            binaryColumns.add(colName);
-          }
+        if (colType == 'bit' || colType.startsWith('bit(')) {
+          bitColumns.add(col.name);
+        } else if (colType.startsWith('enum(')) {
+          enumColumns[col.name] = _parseEnumSetValues(col.type);
+        } else if (colType.startsWith('set(')) {
+          setColumns[col.name] = _parseEnumSetValues(col.type);
+        } else if (colType.contains('blob') ||
+            colType.contains('binary') ||
+            colType.contains('varbinary')) {
+          binaryColumns.add(col.name);
         }
       }
 
@@ -512,69 +455,77 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
       query += ' LIMIT $limit OFFSET $offset';
 
-      final result = await _dbService.execute(_connection!, query);
+      final result = await executeQuery(query);
 
-      List<String> columns = [];
+      List<String> columnNames = [];
       List<Map<String, dynamic>> rows = [];
 
-      if (result.rows.isNotEmpty) {
-        final firstRowMap = result.rows.first.assoc();
-        columns = firstRowMap.keys.toList();
+      if (_currentConnectionModel!.type == ConnectionType.mysql) {
+        final mysqlResult = result as IResultSet;
+        if (mysqlResult.rows.isNotEmpty) {
+          final firstRowMap = mysqlResult.rows.first.assoc();
+          columnNames = firstRowMap.keys.toList();
 
-        for (final row in result.rows) {
-          final rowMap = Map<String, dynamic>.from(row.assoc());
+          for (final row in mysqlResult.rows) {
+            final rowMap = Map<String, dynamic>.from(row.assoc());
 
-          for (final col in bitColumns) {
-            if (rowMap[col] != null) {
-              final colValue = rowMap[col];
-              if (colValue is List<int>) {
-                if (colValue.isEmpty) {
-                  rowMap[col] = 0;
-                } else {
-                  rowMap[col] = colValue[0];
+            for (final col in bitColumns) {
+              if (rowMap[col] != null) {
+                final colValue = rowMap[col];
+                if (colValue is List<int>) {
+                  if (colValue.isEmpty) {
+                    rowMap[col] = 0;
+                  } else {
+                    rowMap[col] = colValue[0];
+                  }
+                } else if (colValue is! int) {
+                  rowMap[col] = int.tryParse(colValue.toString()) ?? 0;
                 }
-              } else if (colValue is! int) {
-                rowMap[col] = int.tryParse(colValue.toString()) ?? 0;
               }
             }
-          }
 
-          for (final col in binaryColumns) {
-            if (rowMap[col] != null) {
-              final colValue = rowMap[col];
-              String hexStr;
+            for (final col in binaryColumns) {
+              if (rowMap[col] != null) {
+                final colValue = rowMap[col];
+                String hexStr;
 
-              if (colValue is List<int>) {
-                hexStr = colValue
-                    .map((b) => b.toRadixString(16).padLeft(2, '0'))
-                    .join();
-              } else {
-                hexStr = colValue.toString();
-              }
+                if (colValue is List<int>) {
+                  hexStr = colValue
+                      .map((b) => b.toRadixString(16).padLeft(2, '0'))
+                      .join();
+                } else {
+                  hexStr = colValue.toString();
+                }
 
-              if (hexStr.startsWith('0x')) {
-                hexStr = hexStr.substring(2);
-              }
+                if (hexStr.startsWith('0x')) {
+                  hexStr = hexStr.substring(2);
+                }
 
-              if (hexStr.isEmpty) {
-                rowMap[col] = '0x';
-              } else if (hexStr.length > 16) {
-                rowMap[col] =
-                    '0x${hexStr.substring(0, 16)}... (${hexStr.length ~/ 2} bytes)';
-              } else {
-                rowMap[col] = '0x$hexStr';
+                if (hexStr.isEmpty) {
+                  rowMap[col] = '0x';
+                } else if (hexStr.length > 16) {
+                  rowMap[col] =
+                      '0x${hexStr.substring(0, 16)}... (${hexStr.length ~/ 2} bytes)';
+                } else {
+                  rowMap[col] = '0x$hexStr';
+                }
               }
             }
+            rows.add(rowMap);
           }
-          rows.add(rowMap);
+        }
+      } else {
+        final pgResult = result as List<Map<String, dynamic>>;
+        if (pgResult.isNotEmpty) {
+          columnNames = pgResult.first.keys.toList();
+          rows = pgResult;
         }
       }
 
-      // Determine if there's a next page
       final hasNextPage = rows.length >= limit;
 
       return TableDataResult(
-        columns: columns,
+        columns: columnNames,
         rows: rows,
         primaryKeyColumn: primaryKeyColumn,
         binaryColumns: binaryColumns.toList(),
@@ -596,18 +547,16 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     dynamic primaryKeyValue,
     Map<String, dynamic> updates,
   ) async {
-    if (_connection == null) {
+    if (_driver == null) {
       return 'Not connected to database';
     }
 
     try {
-      // Build SET clause
       final setClauses = <String>[];
       for (final entry in updates.entries) {
         if (entry.value == null) {
           setClauses.add('`${entry.key}` = NULL');
         } else if (entry.value is String) {
-          // Escape single quotes
           final escaped = (entry.value as String).replaceAll("'", "''");
           setClauses.add('`${entry.key}` = \'$escaped\'');
         } else if (entry.value is DateTime) {
@@ -618,7 +567,6 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
 
-      // Build WHERE clause
       String whereClause;
       if (primaryKeyValue == null) {
         return 'Cannot update row: primary key value is null';
@@ -631,9 +579,9 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       final sql =
           'UPDATE `$tableName` SET ${setClauses.join(', ')} WHERE $whereClause';
-      await _dbService.execute(_connection!, sql);
+      await executeQuery(sql);
 
-      return null; // Success
+      return null;
     } catch (e) {
       return 'Failed to update row: $e';
     }

@@ -241,10 +241,10 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
 
   Future<void> _reloadSchemaOnDatabaseChange() async {
     final provider = Provider.of<DashboardProvider>(context, listen: false);
-    final connection = provider.currentConnection;
+    final driver = provider.driver;
     final database = provider.selectedDatabase;
 
-    if (connection != null && database != null) {
+    if (driver != null && database != null) {
       _schemaService.clearCache(database);
       _schemaService.clearTableNamesCache(database);
 
@@ -258,7 +258,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
       _autocompleteWords = List.from(_sqlKeywords);
       _controller.autocompleter.setCustomWords(_autocompleteWords);
 
-      await _schemaService.preloadColumns(connection, database, tables);
+      await _schemaService.preloadColumns(driver, database, tables);
 
       _lastContext = SQLContext.none;
       _updateContextAwareAutocomplete();
@@ -267,14 +267,14 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
 
   Future<void> _preloadSchema() async {
     final provider = Provider.of<DashboardProvider>(context, listen: false);
-    final connection = provider.currentConnection;
+    final driver = provider.driver;
     final database = provider.selectedDatabase;
 
-    if (connection != null && database != null) {
+    if (driver != null && database != null) {
       final tables = provider.tables;
       _schemaService.setTableNames(database, tables);
 
-      await _schemaService.preloadColumns(connection, database, tables);
+      await _schemaService.preloadColumns(driver, database, tables);
 
       _lastContext = SQLContext.none;
       _updateContextAwareAutocomplete();
