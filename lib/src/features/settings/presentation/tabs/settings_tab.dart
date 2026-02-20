@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/models/settings_model.dart';
 import '../../providers/settings_provider.dart';
 
@@ -184,6 +185,54 @@ class _SettingsTabState extends State<SettingsTab> {
           autocorrect: false,
           onChanged: (_) => _saveCurrentSettings(),
           onFieldSubmitted: (_) => _saveCurrentSettings(),
+        ),
+        const SizedBox(height: 32),
+        const Divider(),
+        const SizedBox(height: 24),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'About',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Fluxlyn', style: theme.textTheme.headlineSmall),
+            const SizedBox(height: 8),
+            Text(
+              'Developed by Sajid Ali Anjum',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            Text('Licensed under GPLv3', style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 16),
+            InkWell(
+              onTap: () async {
+                final Uri url = Uri.parse(
+                  'https://github.com/sajidalianjum/fluxlyn',
+                );
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url);
+                }
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.link, size: 16, color: theme.colorScheme.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    'github.com/sajidalianjum',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );

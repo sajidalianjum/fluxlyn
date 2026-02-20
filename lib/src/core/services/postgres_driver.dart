@@ -1,17 +1,11 @@
 import 'dart:async';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:postgres/postgres.dart';
-import 'package:dartssh2/dartssh2.dart';
 import '../../features/connections/models/connection_model.dart';
-import '../../utils/ssh_helper.dart';
-import '../constants/app_constants.dart';
 import 'database_driver.dart';
+import 'ssh_tunnel_service.dart';
 
 class PostgreSQLDriver implements DatabaseDriver {
-  SSHClient? _sshClient;
-  ServerSocket? _serverSocket;
-  int _localPort = 0;
+  final SSHTunnelService _sshTunnel = SSHTunnelService();
   Connection? _connection;
   String? _currentDatabase;
   ConnectionModel? _config;
@@ -23,147 +17,9 @@ class PostgreSQLDriver implements DatabaseDriver {
     int port = config.port;
 
     if (config.useSsh && config.sshHost != null) {
-      print(
-        'SSH Tunnel: Connecting to ${config.sshHost}:${config.sshPort ?? AppConstants.portSSH}',
-      );
-      try {
-        final socket = await SSHSocket.connect(
-          config.sshHost!,
-          config.sshPort ?? AppConstants.portSSH,
-          timeout: const Duration(seconds: 10),
-        );
-        print('SSH Tunnel: Socket connected');
-
-        final List<SSHKeyPair> keys = [];
-        if (config.sshPrivateKey != null) {
-          final keyText = config.sshPrivateKey!;
-          if (keyText.startsWith('-----')) {
-            final decryptedKeys = await compute(decryptSSHKeyPairs, [
-              keyText,
-              config.sshKeyPassword ?? '',
-            ]);
-            keys.addAll(decryptedKeys);
-          } else {
-            final file = File(keyText);
-            if (file.existsSync()) {
-              final keyContent = await file.readAsString();
-              final decryptedKeys = await compute(decryptSSHKeyPairs, [
-                keyContent,
-                config.sshKeyPassword ?? '',
-              ]);
-              keys.addAll(decryptedKeys);
-            }
-          }
-        }
-
-        _sshClient = SSHClient(
-          socket,
-          username: config.sshUsername ?? '',
-          onPasswordRequest: () => config.sshPassword,
-          identities: keys,
-          onVerifyHostKey: (host, key) => true,
-          keepAliveInterval: const Duration(seconds: 30),
-        );
-        print('SSH Tunnel: Client created, waiting for authentication...');
-
-        await _sshClient!.authenticated;
-        print('SSH Tunnel: Authenticated successfully');
-
-        _serverSocket = await ServerSocket.bind('127.0.0.1', 0);
-        _localPort = _serverSocket!.port;
-        print('SSH Tunnel: ServerSocket bound to 127.0.0.1:$_localPort');
-
-        _serverSocket!.listen((socket) async {
-          try {
-            print(
-              'SSH Tunnel: New connection received, creating forward channel to ${config.host}:${config.port}',
-            );
-
-            final remoteHost = config.host == 'localhost'
-                ? '127.0.0.1'
-                : config.host;
-
-            try {
-              print('SSH Tunnel: Attempting connection via netcat...');
-              final session = await _sshClient!.execute(
-                'nc $remoteHost ${config.port}',
-              );
-
-              bool ncFailed = false;
-              session.stderr.listen((data) {
-                final err = String.fromCharCodes(data).toLowerCase();
-                if (err.contains('not found') ||
-                    err.contains('not recognized')) {
-                  ncFailed = true;
-                }
-              });
-
-              await Future.delayed(const Duration(milliseconds: 200));
-
-              if (ncFailed) {
-                throw Exception('nc not found');
-              }
-
-              print('SSH Tunnel: Netcat session started');
-              socket.setOption(SocketOption.tcpNoDelay, true);
-
-              session.stdout.listen(
-                (data) => socket.add(data),
-                onDone: () => socket.close(),
-                onError: (e) => socket.close(),
-              );
-
-              socket.listen(
-                (data) => session.stdin.add(data),
-                onDone: () => session.stdin.close(),
-                onError: (e) => session.stdin.close(),
-              );
-
-              await session.done;
-              print('SSH Tunnel: Netcat session closed');
-            } catch (e) {
-              print(
-                'SSH Tunnel: Netcat failed or not found ($e), falling back to direct-tcpip...',
-              );
-
-              final forward = await _sshClient!.forwardLocal(
-                remoteHost,
-                config.port,
-              );
-              print('SSH Tunnel: Direct forward channel created');
-
-              socket.setOption(SocketOption.tcpNoDelay, true);
-
-              forward.stream.listen(
-                (data) => socket.add(data),
-                onDone: () => socket.close(),
-                onError: (e) => socket.close(),
-              );
-
-              socket.listen(
-                (data) => forward.sink.add(data),
-                onDone: () => forward.sink.close(),
-                onError: (e) => forward.sink.close(),
-              );
-
-              await forward.done;
-              print('SSH Tunnel: Direct forward channel closed');
-            }
-          } catch (e) {
-            print('SSH Tunnel: Forward error - $e');
-            socket.close();
-          }
-        });
-        print('SSH Tunnel: Listener started');
-
-        host = '127.0.0.1';
-        port = _localPort;
-        print('SSH Tunnel: Ready to connect PostgreSQL via $host:$port');
-      } catch (e) {
-        print('SSH Tunnel: Error - $e');
-        disconnect();
-        throw Exception('SSH Connection Failed: $e');
-      }
+      await _sshTunnel.connect(config, config.host, config.port);
+      host = _sshTunnel.localHost;
+      port = _sshTunnel.localPort;
     }
 
     print('PostgreSQL: Creating connection to $host:$port');
@@ -188,11 +44,11 @@ class PostgreSQLDriver implements DatabaseDriver {
       print('PostgreSQL: Connection closed');
     } catch (e) {
       print('PostgreSQL: Connection error - $e');
-      disconnect();
+      await disconnect();
       rethrow;
     }
 
-    disconnect();
+    await disconnect();
     print('Test completed successfully');
   }
 
@@ -203,147 +59,9 @@ class PostgreSQLDriver implements DatabaseDriver {
     int port = config.port;
 
     if (config.useSsh && config.sshHost != null) {
-      print(
-        'SSH Tunnel: Connecting to ${config.sshHost}:${config.sshPort ?? AppConstants.portSSH}',
-      );
-      try {
-        final socket = await SSHSocket.connect(
-          config.sshHost!,
-          config.sshPort ?? AppConstants.portSSH,
-          timeout: const Duration(seconds: 10),
-        );
-        print('SSH Tunnel: Socket connected');
-
-        final List<SSHKeyPair> keys = [];
-        if (config.sshPrivateKey != null) {
-          final keyText = config.sshPrivateKey!;
-          if (keyText.startsWith('-----')) {
-            final decryptedKeys = await compute(decryptSSHKeyPairs, [
-              keyText,
-              config.sshKeyPassword ?? '',
-            ]);
-            keys.addAll(decryptedKeys);
-          } else {
-            final file = File(keyText);
-            if (file.existsSync()) {
-              final keyContent = await file.readAsString();
-              final decryptedKeys = await compute(decryptSSHKeyPairs, [
-                keyContent,
-                config.sshKeyPassword ?? '',
-              ]);
-              keys.addAll(decryptedKeys);
-            }
-          }
-        }
-
-        _sshClient = SSHClient(
-          socket,
-          username: config.sshUsername ?? '',
-          onPasswordRequest: () => config.sshPassword,
-          identities: keys,
-          onVerifyHostKey: (host, key) => true,
-          keepAliveInterval: const Duration(seconds: 30),
-        );
-        print('SSH Tunnel: Client created, waiting for authentication...');
-
-        await _sshClient!.authenticated;
-        print('SSH Tunnel: Authenticated successfully');
-
-        _serverSocket = await ServerSocket.bind('127.0.0.1', 0);
-        _localPort = _serverSocket!.port;
-        print('SSH Tunnel: ServerSocket bound to 127.0.0.1:$_localPort');
-
-        _serverSocket!.listen((socket) async {
-          try {
-            print(
-              'SSH Tunnel: New connection received, creating forward channel to ${config.host}:${config.port}',
-            );
-
-            final remoteHost = config.host == 'localhost'
-                ? '127.0.0.1'
-                : config.host;
-
-            try {
-              print('SSH Tunnel: Attempting connection via netcat...');
-              final session = await _sshClient!.execute(
-                'nc $remoteHost ${config.port}',
-              );
-
-              bool ncFailed = false;
-              session.stderr.listen((data) {
-                final err = String.fromCharCodes(data).toLowerCase();
-                if (err.contains('not found') ||
-                    err.contains('not recognized')) {
-                  ncFailed = true;
-                }
-              });
-
-              await Future.delayed(const Duration(milliseconds: 200));
-
-              if (ncFailed) {
-                throw Exception('nc not found');
-              }
-
-              print('SSH Tunnel: Netcat session started');
-              socket.setOption(SocketOption.tcpNoDelay, true);
-
-              session.stdout.listen(
-                (data) => socket.add(data),
-                onDone: () => socket.close(),
-                onError: (e) => socket.close(),
-              );
-
-              socket.listen(
-                (data) => session.stdin.add(data),
-                onDone: () => session.stdin.close(),
-                onError: (e) => session.stdin.close(),
-              );
-
-              await session.done;
-              print('SSH Tunnel: Netcat session closed');
-            } catch (e) {
-              print(
-                'SSH Tunnel: Netcat failed or not found ($e), falling back to direct-tcpip...',
-              );
-
-              final forward = await _sshClient!.forwardLocal(
-                remoteHost,
-                config.port,
-              );
-              print('SSH Tunnel: Direct forward channel created');
-
-              socket.setOption(SocketOption.tcpNoDelay, true);
-
-              forward.stream.listen(
-                (data) => socket.add(data),
-                onDone: () => socket.close(),
-                onError: (e) => socket.close(),
-              );
-
-              socket.listen(
-                (data) => forward.sink.add(data),
-                onDone: () => forward.sink.close(),
-                onError: (e) => forward.sink.close(),
-              );
-
-              await forward.done;
-              print('SSH Tunnel: Direct forward channel closed');
-            }
-          } catch (e) {
-            print('SSH Tunnel: Forward error - $e');
-            socket.close();
-          }
-        });
-        print('SSH Tunnel: Listener started');
-
-        host = '127.0.0.1';
-        port = _localPort;
-        print('SSH Tunnel: Ready to connect PostgreSQL via $host:$port');
-      } catch (e) {
-        print('SSH Tunnel: Error - $e');
-        disconnect();
-        throw Exception('SSH Connection Failed: $e');
-      }
+      await _sshTunnel.connect(config, config.host, config.port);
+      host = _sshTunnel.localHost;
+      port = _sshTunnel.localPort;
     }
 
     print('PostgreSQL: Creating connection to $host:$port');
@@ -366,12 +84,7 @@ class PostgreSQLDriver implements DatabaseDriver {
 
   @override
   Future<void> disconnect() async {
-    await _serverSocket?.close();
-    _serverSocket = null;
-    if (_sshClient != null) {
-      _sshClient!.close();
-      _sshClient = null;
-    }
+    await _sshTunnel.disconnect();
     await _connection?.close();
     _connection = null;
     _currentDatabase = null;
@@ -444,147 +157,9 @@ class PostgreSQLDriver implements DatabaseDriver {
     int port = _config!.port;
 
     if (_config!.useSsh && _config!.sshHost != null) {
-      print(
-        'SSH Tunnel: Connecting to ${_config!.sshHost}:${_config!.sshPort ?? AppConstants.portSSH}',
-      );
-      try {
-        final socket = await SSHSocket.connect(
-          _config!.sshHost!,
-          _config!.sshPort ?? AppConstants.portSSH,
-          timeout: const Duration(seconds: 10),
-        );
-        print('SSH Tunnel: Socket connected');
-
-        final List<SSHKeyPair> keys = [];
-        if (_config!.sshPrivateKey != null) {
-          final keyText = _config!.sshPrivateKey!;
-          if (keyText.startsWith('-----')) {
-            final decryptedKeys = await compute(decryptSSHKeyPairs, [
-              keyText,
-              _config!.sshKeyPassword ?? '',
-            ]);
-            keys.addAll(decryptedKeys);
-          } else {
-            final file = File(keyText);
-            if (file.existsSync()) {
-              final keyContent = await file.readAsString();
-              final decryptedKeys = await compute(decryptSSHKeyPairs, [
-                keyContent,
-                _config!.sshKeyPassword ?? '',
-              ]);
-              keys.addAll(decryptedKeys);
-            }
-          }
-        }
-
-        _sshClient = SSHClient(
-          socket,
-          username: _config!.sshUsername ?? '',
-          onPasswordRequest: () => _config!.sshPassword,
-          identities: keys,
-          onVerifyHostKey: (host, key) => true,
-          keepAliveInterval: const Duration(seconds: 30),
-        );
-        print('SSH Tunnel: Client created, waiting for authentication...');
-
-        await _sshClient!.authenticated;
-        print('SSH Tunnel: Authenticated successfully');
-
-        _serverSocket = await ServerSocket.bind('127.0.0.1', 0);
-        _localPort = _serverSocket!.port;
-        print('SSH Tunnel: ServerSocket bound to 127.0.0.1:$_localPort');
-
-        _serverSocket!.listen((socket) async {
-          try {
-            print(
-              'SSH Tunnel: New connection received, creating forward channel to ${_config!.host}:${_config!.port}',
-            );
-
-            final remoteHost = _config!.host == 'localhost'
-                ? '127.0.0.1'
-                : _config!.host;
-
-            try {
-              print('SSH Tunnel: Attempting connection via netcat...');
-              final session = await _sshClient!.execute(
-                'nc $remoteHost ${_config!.port}',
-              );
-
-              bool ncFailed = false;
-              session.stderr.listen((data) {
-                final err = String.fromCharCodes(data).toLowerCase();
-                if (err.contains('not found') ||
-                    err.contains('not recognized')) {
-                  ncFailed = true;
-                }
-              });
-
-              await Future.delayed(const Duration(milliseconds: 200));
-
-              if (ncFailed) {
-                throw Exception('nc not found');
-              }
-
-              print('SSH Tunnel: Netcat session started');
-              socket.setOption(SocketOption.tcpNoDelay, true);
-
-              session.stdout.listen(
-                (data) => socket.add(data),
-                onDone: () => socket.close(),
-                onError: (e) => socket.close(),
-              );
-
-              socket.listen(
-                (data) => session.stdin.add(data),
-                onDone: () => session.stdin.close(),
-                onError: (e) => session.stdin.close(),
-              );
-
-              await session.done;
-              print('SSH Tunnel: Netcat session closed');
-            } catch (e) {
-              print(
-                'SSH Tunnel: Netcat failed or not found ($e), falling back to direct-tcpip...',
-              );
-
-              final forward = await _sshClient!.forwardLocal(
-                remoteHost,
-                _config!.port,
-              );
-              print('SSH Tunnel: Direct forward channel created');
-
-              socket.setOption(SocketOption.tcpNoDelay, true);
-
-              forward.stream.listen(
-                (data) => socket.add(data),
-                onDone: () => socket.close(),
-                onError: (e) => socket.close(),
-              );
-
-              socket.listen(
-                (data) => forward.sink.add(data),
-                onDone: () => forward.sink.close(),
-                onError: (e) => forward.sink.close(),
-              );
-
-              await forward.done;
-              print('SSH Tunnel: Direct forward channel closed');
-            }
-          } catch (e) {
-            print('SSH Tunnel: Forward error - $e');
-            socket.close();
-          }
-        });
-        print('SSH Tunnel: Listener started');
-
-        host = '127.0.0.1';
-        port = _localPort;
-        print('SSH Tunnel: Ready to connect PostgreSQL via $host:$port');
-      } catch (e) {
-        print('SSH Tunnel: Error - $e');
-        disconnect();
-        throw Exception('SSH Connection Failed: $e');
-      }
+      await _sshTunnel.connect(_config!, _config!.host, _config!.port);
+      host = _sshTunnel.localHost;
+      port = _sshTunnel.localPort;
     }
 
     final conn = await Connection.open(
