@@ -957,8 +957,7 @@ class _QueryTabState extends State<QueryTab> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+        leading: BackButton(
           onPressed: () => _showDisconnectDialog(context, provider),
         ),
         title: const Text('SQL Editor'),
