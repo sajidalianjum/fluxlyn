@@ -17,6 +17,8 @@ class ConnectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isMysql = connection.type == ConnectionType.mysql;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth > 600;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -28,13 +30,13 @@ class ConnectionCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(isWideScreen ? 20 : 16),
             child: Row(
               children: [
                 // Icon Container
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: isWideScreen ? 56 : 48,
+                  height: isWideScreen ? 56 : 48,
                   decoration: BoxDecoration(
                     color: isMysql
                         ? const Color(0xFF3E2C28)
@@ -47,6 +49,7 @@ class ConnectionCard extends StatelessWidget {
                     Icons.dns, // Generic storage icon
                     color: isMysql ? Colors.orange : Colors.blue,
                     semanticLabel: '${connection.type.name} database icon',
+                    size: isWideScreen ? 28 : 24,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -71,12 +74,91 @@ class ConnectionCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        connection.host,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey,
+                      if (isWideScreen)
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 4,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.dns,
+                                  size: 14,
+                                  color: Colors.grey[600],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  connection.host,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.settings_ethernet,
+                                  size: 14,
+                                  color: Colors.grey[600],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  ':${connection.port}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (connection.username != null &&
+                                connection.username!.isNotEmpty)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.person,
+                                    size: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    connection.username!,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            if (connection.useSsh)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.lock,
+                                    size: 14,
+                                    color: Colors.green,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'SSH',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        )
+                      else
+                        Text(
+                          connection.host,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey,
+                          ),
                         ),
-                      ),
                       const SizedBox(height: 4),
                       Wrap(
                         spacing: 4,

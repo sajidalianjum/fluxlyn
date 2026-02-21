@@ -11,6 +11,8 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<DashboardProvider>();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth > 800;
 
     final List<Widget> pages = [
       const SchemaTab(),
@@ -28,70 +30,114 @@ class DashboardPage extends StatelessWidget {
       child: Scaffold(
         body: Stack(
           children: [
-            IndexedStack(index: provider.selectedTabIndex, children: pages),
-            if (provider.isLoading)
-              Container(
-                color: Colors.black.withValues(alpha: 0.3),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircularProgressIndicator(),
-                      if (provider.isReconnecting) ...[
-                        const SizedBox(height: 16),
-                        const Text('Reconnecting to DB...'),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            if (provider.error != null && !provider.isLoading)
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.black87,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Error: ${provider.error}',
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
+            if (isWideScreen)
+              Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: provider.selectedTabIndex,
+                    onDestinationSelected: (index) =>
+                        provider.setTabIndex(index),
+                    labelType: NavigationRailLabelType.all,
+                    destinations: const [
+                      NavigationRailDestination(
+                        icon: Icon(Icons.dns, semanticLabel: 'View databases'),
+                        label: Text('Databases'),
                       ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: provider.currentConnectionModel != null
-                            ? () => provider.connect(
-                                provider.currentConnectionModel!,
-                              )
-                            : null,
-                        child: const Text('Retry'),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.code, semanticLabel: 'Query editor'),
+                        label: Text('Editor'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(
+                          Icons.history,
+                          semanticLabel: 'Query history',
+                        ),
+                        label: Text('History'),
                       ),
                     ],
                   ),
-                ),
+                  const VerticalDivider(
+                    thickness: 1,
+                    width: 1,
+                    color: Color(0xFF334155),
+                  ),
+                  Expanded(child: _buildContent(pages, provider)),
+                ],
+              )
+            else
+              _buildContent(pages, provider),
+          ],
+        ),
+        bottomNavigationBar: isWideScreen
+            ? null
+            : NavigationBar(
+                selectedIndex: provider.selectedTabIndex,
+                onDestinationSelected: (index) => provider.setTabIndex(index),
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.dns, semanticLabel: 'View databases'),
+                    label: 'Databases',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.code, semanticLabel: 'Query editor'),
+                    label: 'Editor',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.history, semanticLabel: 'Query history'),
+                    label: 'History',
+                  ),
+                ],
               ),
-          ],
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: provider.selectedTabIndex,
-          onDestinationSelected: (index) => provider.setTabIndex(index),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.dns, semanticLabel: 'View databases'),
-              label: 'Databases',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.code, semanticLabel: 'Query editor'),
-              label: 'Editor',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.history, semanticLabel: 'Query history'),
-              label: 'History',
-            ),
-          ],
-        ),
       ),
+    );
+  }
+
+  Widget _buildContent(List<Widget> pages, DashboardProvider provider) {
+    return Stack(
+      children: [
+        IndexedStack(index: provider.selectedTabIndex, children: pages),
+        if (provider.isLoading)
+          Container(
+            color: Colors.black.withValues(alpha: 0.3),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  if (provider.isReconnecting) ...[
+                    const SizedBox(height: 16),
+                    const Text('Reconnecting to DB...'),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        if (provider.error != null && !provider.isLoading)
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              color: Colors.black87,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Error: ${provider.error}',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: provider.currentConnectionModel != null
+                        ? () =>
+                              provider.connect(provider.currentConnectionModel!)
+                        : null,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 

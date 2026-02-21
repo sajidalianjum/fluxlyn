@@ -114,73 +114,86 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
         );
         final showFilterBar = _shouldShowFilterBar(provider.connections);
 
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isWideScreen = screenWidth > 1200;
+
         return Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 24),
-                  if (showFilterBar) ...[
-                    SizedBox(
-                      height: 40,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          _buildFilterChip(ConnectionTag.none, 'All'),
-                          ...availableTags
-                              .map(
-                                (tag) => [
-                                  const SizedBox(width: 8),
-                                  _buildFilterChip(
-                                    tag,
-                                    tag == ConnectionTag.custom
-                                        ? 'Custom'
-                                        : tag.name[0].toUpperCase() +
-                                              tag.name.substring(1),
-                                  ),
-                                ],
-                              )
-                              .expand((e) => e),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  Expanded(
-                    child: filteredConnections.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  widget.searchQuery.isEmpty
-                                      ? Icons.dns_outlined
-                                      : Icons.search_off,
-                                  size: 64,
-                                  color: Colors.grey.withValues(alpha: 0.2),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _getEmptyStateMessage(
-                                    provider.connections.isEmpty,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.bodyLarge
-                                      ?.copyWith(color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                          )
-                        : _buildConnectionsList(
-                            provider,
-                            filteredConnections,
-                            _selectedFilterTag == ConnectionTag.none &&
-                                widget.searchQuery.isEmpty,
+            Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isWideScreen ? 1200 : double.infinity,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 24),
+                      if (showFilterBar) ...[
+                        SizedBox(
+                          height: 40,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            children: [
+                              _buildFilterChip(ConnectionTag.none, 'All'),
+                              ...availableTags
+                                  .map(
+                                    (tag) => [
+                                      const SizedBox(width: 8),
+                                      _buildFilterChip(
+                                        tag,
+                                        tag == ConnectionTag.custom
+                                            ? 'Custom'
+                                            : tag.name[0].toUpperCase() +
+                                                  tag.name.substring(1),
+                                      ),
+                                    ],
+                                  )
+                                  .expand((e) => e),
+                            ],
                           ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      Expanded(
+                        child: filteredConnections.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      widget.searchQuery.isEmpty
+                                          ? Icons.dns_outlined
+                                          : Icons.search_off,
+                                      size: 64,
+                                      color: Colors.grey.withValues(alpha: 0.2),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      _getEmptyStateMessage(
+                                        provider.connections.isEmpty,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : _buildConnectionsList(
+                                provider,
+                                filteredConnections,
+                                _selectedFilterTag == ConnectionTag.none &&
+                                    widget.searchQuery.isEmpty,
+                                isWideScreen,
+                              ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
             Consumer<DashboardProvider>(
@@ -226,7 +239,47 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
     ConnectionsProvider provider,
     List<ConnectionModel> connections,
     bool allowReorder,
+    bool isWideScreen,
   ) {
+    if (isWideScreen && !allowReorder) {
+      return GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 2.5,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+        ),
+        itemCount: connections.length,
+        itemBuilder: (context, index) {
+          final connection = connections[index];
+          return ConnectionCard(
+            connection: connection,
+            onTap: () async {
+              final dashboardProvider = context.read<DashboardProvider>();
+              await dashboardProvider.connect(connection);
+
+              if (context.mounted) {
+                if (dashboardProvider.error != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${dashboardProvider.error}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } else {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const DashboardPage()),
+                  );
+                }
+              }
+            },
+            onEdit: () =>
+                _showConnectionDialog(context, connection: connection),
+          );
+        },
+      );
+    }
+
     if (allowReorder) {
       return ReorderableListView.builder(
         buildDefaultDragHandles: false,

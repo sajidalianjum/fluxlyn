@@ -954,6 +954,8 @@ class _QueryTabState extends State<QueryTab> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth > 1200;
 
     return Scaffold(
       appBar: AppBar(
@@ -962,19 +964,16 @@ class _QueryTabState extends State<QueryTab> {
         ),
         title: const Text('SQL Editor'),
         actions: [
-          // History button
           IconButton(
             onPressed: _showHistory,
             icon: const Icon(Icons.history),
             tooltip: 'Query History',
           ),
-          // Clear button
           IconButton(
             onPressed: _clearEditor,
             icon: const Icon(Icons.clear_all),
             tooltip: 'Clear Editor',
           ),
-          // Run button
           IconButton(
             onPressed: _isExecuting ? null : _executeQuery,
             icon: _isExecuting
@@ -995,188 +994,280 @@ class _QueryTabState extends State<QueryTab> {
           const SingleActivator(LogicalKeyboardKey.enter, meta: true):
               _executeQuery,
         },
-        child: Column(
-          children: [
-            // Toolbar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: const Color(0xFF0F172A),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: isWideScreen
+            ? Row(
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        Consumer<DashboardProvider>(
-                          builder: (context, provider, _) {
-                            return OutlinedButton.icon(
-                              onPressed: () => _showDatabaseSelector(provider),
-                              icon: const Icon(Icons.storage, size: 18),
-                              label: Text(
-                                provider.selectedDatabase ?? 'Select DB',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                foregroundColor: Colors.white,
-                                side: const BorderSide(
-                                  color: Color(0xFF334155),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: _showAIQueryDialog,
-                          icon: const Icon(
-                            Icons.auto_awesome,
-                            size: 18,
-                            color: Colors.blue,
-                          ),
-                          label: const Text('AI Query'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF334155)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: _formatSQL,
-                          icon: const Icon(
-                            Icons.format_align_left,
-                            size: 18,
-                            color: Colors.green,
-                          ),
-                          label: const Text('Format'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF334155)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: _saveQuery,
-                          icon: const Icon(Icons.save, size: 18),
-                          label: const Text('Save'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF334155)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: _loadQuery,
-                          icon: const Icon(Icons.folder_open, size: 18),
-                          label: const Text('Load'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF334155)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  Expanded(flex: 3, child: _buildEditorPanel(provider)),
+                  Container(width: 1, color: const Color(0xFF334155)),
+                  Expanded(flex: 2, child: _buildResultsPanel(provider)),
                 ],
-              ),
-            ),
-
-            // Editor
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  _focusNode.requestFocus();
-                },
-                child: CodeTheme(
-                  data: CodeThemeData(styles: monokaiSublimeTheme),
-                  child: CodeField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    textStyle: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 14,
-                    ),
-                    gutterStyle: const GutterStyle(
-                      textStyle: TextStyle(color: Colors.grey),
-                      width: 48,
-                      margin: 0,
-                    ),
-                    cursorColor: Colors.blue,
-                    background: const Color(0xFF0F172A),
-                  ),
-                ),
-              ),
-            ),
-
-            // Status bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: const Color(0xFF1E293B),
-              child: Row(
-                children: [
-                  Icon(Icons.keyboard, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Ctrl+Enter to run',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${_controller.text.length} chars',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isExecuting ? null : _executeQuery,
-        icon: _isExecuting
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
               )
-            : const Icon(Icons.play_arrow),
-        label: Text(_isExecuting ? 'Running...' : 'Run Query'),
+            : _buildEditorPanel(provider),
+      ),
+      floatingActionButton: !isWideScreen
+          ? FloatingActionButton.extended(
+              onPressed: _isExecuting ? null : _executeQuery,
+              icon: _isExecuting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.play_arrow),
+              label: Text(_isExecuting ? 'Running...' : 'Run Query'),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildEditorPanel(DashboardProvider provider) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: const Color(0xFF0F172A),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Consumer<DashboardProvider>(
+                      builder: (context, provider, _) {
+                        return OutlinedButton.icon(
+                          onPressed: () => _showDatabaseSelector(provider),
+                          icon: const Icon(Icons.storage, size: 18),
+                          label: Text(
+                            provider.selectedDatabase ?? 'Select DB',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Color(0xFF334155)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _showAIQueryDialog,
+                      icon: const Icon(
+                        Icons.auto_awesome,
+                        size: 18,
+                        color: Colors.blue,
+                      ),
+                      label: const Text('AI Query'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF334155)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _formatSQL,
+                      icon: const Icon(
+                        Icons.format_align_left,
+                        size: 18,
+                        color: Colors.green,
+                      ),
+                      label: const Text('Format'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF334155)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _saveQuery,
+                      icon: const Icon(Icons.save, size: 18),
+                      label: const Text('Save'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF334155)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _loadQuery,
+                      icon: const Icon(Icons.folder_open, size: 18),
+                      label: const Text('Load'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF334155)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              _focusNode.requestFocus();
+            },
+            child: CodeTheme(
+              data: CodeThemeData(styles: monokaiSublimeTheme),
+              child: CodeField(
+                controller: _controller,
+                focusNode: _focusNode,
+                textStyle: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 14,
+                ),
+                gutterStyle: const GutterStyle(
+                  textStyle: TextStyle(color: Colors.grey),
+                  width: 48,
+                  margin: 0,
+                ),
+                cursorColor: Colors.blue,
+                background: const Color(0xFF0F172A),
+              ),
+            ),
+          ),
+        ),
+
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: const Color(0xFF1E293B),
+          child: Row(
+            children: [
+              Icon(Icons.keyboard, size: 16, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Text(
+                'Ctrl+Enter to run',
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              ),
+              const Spacer(),
+              Text(
+                '${_controller.text.length} chars',
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResultsPanel(DashboardProvider provider) {
+    return Container(
+      color: const Color(0xFF1E293B),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: const Color(0xFF0F172A),
+            child: Row(
+              children: [
+                const Icon(Icons.assessment, size: 20, color: Colors.grey),
+                const SizedBox(width: 8),
+                const Text(
+                  'Results Preview',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                FilledButton.icon(
+                  onPressed: _isExecuting ? null : _executeQuery,
+                  icon: _isExecuting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.play_arrow, size: 18),
+                  label: Text(_isExecuting ? 'Running...' : 'Run'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.play_circle_outline,
+                      size: 64,
+                      color: Colors.grey.withValues(alpha: 0.3),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Run a query to see results',
+                      style: TextStyle(
+                        color: Colors.grey.withValues(alpha: 0.6),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Results will appear here on wide screens',
+                      style: TextStyle(
+                        color: Colors.grey.withValues(alpha: 0.4),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

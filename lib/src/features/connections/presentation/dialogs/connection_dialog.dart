@@ -265,13 +265,14 @@ class _ConnectionDialogState extends State<ConnectionDialog>
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
+    final isWideScreen = screenWidth >= 1200;
 
     return Dialog(
       backgroundColor: const Color(0xFF1E293B),
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: BoxConstraints(
-          maxWidth: isMobile ? screenWidth - 48 : 500,
+          maxWidth: isMobile ? screenWidth - 48 : (isWideScreen ? 900 : 700),
           maxHeight: 700,
         ),
         child: Form(
@@ -468,213 +469,435 @@ class _ConnectionDialogState extends State<ConnectionDialog>
                     ),
 
                     // Tab 2: SSH
-                    ListView(
-                      children: [
-                        SwitchListTile(
-                          title: const Text('Use SSH Tunnel'),
-                          value: _useSsh,
-                          onChanged: (val) => setState(() => _useSsh = val),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        if (_useSsh) ...[
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: TextFormField(
-                                  controller: _sshHostController,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final useTwoColumn = constraints.maxWidth >= 900;
+                        return ListView(
+                          children: [
+                            SwitchListTile(
+                              title: const Text('Use SSH Tunnel'),
+                              value: _useSsh,
+                              onChanged: (val) => setState(() => _useSsh = val),
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            if (_useSsh) ...[
+                              const SizedBox(height: 16),
+                              if (useTwoColumn) ...[
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: _sshHostController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'SSH Host',
+                                        ),
+                                        validator: (value) =>
+                                            _useSsh && (value?.isEmpty ?? true)
+                                            ? 'Required'
+                                            : null,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: _sshPortController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Port',
+                                        ),
+                                        keyboardType: TextInputType.number,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: _sshUserController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'SSH Username',
+                                        ),
+                                        validator: (value) =>
+                                            _useSsh && (value?.isEmpty ?? true)
+                                            ? 'Required'
+                                            : null,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Authentication Method',
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.titleSmall,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          SegmentedButton<String>(
+                                            segments: const [
+                                              ButtonSegment(
+                                                value: 'password',
+                                                label: Text('Password'),
+                                              ),
+                                              ButtonSegment(
+                                                value: 'key',
+                                                label: Text('Key'),
+                                              ),
+                                            ],
+                                            selected: {_sshAuthMethod},
+                                            onSelectionChanged:
+                                                (Set<String> newSelection) {
+                                                  setState(() {
+                                                    _sshAuthMethod =
+                                                        newSelection.first;
+                                                  });
+                                                },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ] else ...[
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: TextFormField(
+                                        controller: _sshHostController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'SSH Host',
+                                        ),
+                                        validator: (value) =>
+                                            _useSsh && (value?.isEmpty ?? true)
+                                            ? 'Required'
+                                            : null,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: _sshPortController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Port',
+                                        ),
+                                        keyboardType: TextInputType.number,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _sshUserController,
                                   decoration: const InputDecoration(
-                                    labelText: 'SSH Host',
+                                    labelText: 'SSH Username',
                                   ),
                                   validator: (value) =>
                                       _useSsh && (value?.isEmpty ?? true)
                                       ? 'Required'
                                       : null,
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _sshPortController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Port',
-                                  ),
-                                  keyboardType: TextInputType.number,
+                                const SizedBox(height: 24),
+                                Text(
+                                  'Authentication Method',
+                                  style: Theme.of(context).textTheme.titleSmall,
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _sshUserController,
-                            decoration: const InputDecoration(
-                              labelText: 'SSH Username',
-                            ),
-                            validator: (value) =>
-                                _useSsh && (value?.isEmpty ?? true)
-                                ? 'Required'
-                                : null,
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Authentication Method',
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          const SizedBox(height: 8),
-                          SegmentedButton<String>(
-                            segments: const [
-                              ButtonSegment(
-                                value: 'password',
-                                label: Text('Password'),
-                              ),
-                              ButtonSegment(
-                                value: 'key',
-                                label: Text('Private Key'),
-                              ),
-                              // ButtonSegment(value: 'agent', label: Text('Agent')), // Scope creep for now
-                            ],
-                            selected: {_sshAuthMethod},
-                            onSelectionChanged: (Set<String> newSelection) {
-                              setState(() {
-                                _sshAuthMethod = newSelection.first;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 16),
-
-                          if (_sshAuthMethod == 'password')
-                            TextFormField(
-                              controller: _sshPasswordController,
-                              decoration: const InputDecoration(
-                                labelText: 'SSH Password',
-                              ),
-                              obscureText: true,
-                              validator: (value) =>
-                                  _useSsh && (value?.isEmpty ?? true)
-                                  ? 'Required'
-                                  : null,
-                            ),
-
-                          if (_sshAuthMethod == 'key') ...[
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _sshKeyPathController,
-                                    decoration: InputDecoration(
-                                      labelText:
-                                          _sshKeyPathController.text ==
-                                              '<Private Key>'
-                                          ? 'Private Key (saved)'
-                                          : (_sshKeyPathController
-                                                    .text
-                                                    .isNotEmpty
-                                                ? 'Private Key (loaded)'
-                                                : 'Private Key'),
-                                      hintText: 'Pick a file or paste key',
-                                      suffixIcon:
-                                          _sshKeyPathController.text ==
-                                              '<Private Key>'
-                                          ? Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                IconButton(
-                                                  icon: const Icon(
-                                                    Icons.paste,
-                                                    size: 20,
-                                                  ),
-                                                  onPressed: _pasteKey,
-                                                  tooltip: 'Paste new key',
-                                                ),
-                                              ],
-                                            )
-                                          : (_sshKeyPathController
-                                                    .text
-                                                    .isNotEmpty
-                                                ? IconButton(
-                                                    icon: const Icon(
-                                                      Icons.clear,
-                                                      size: 20,
-                                                    ),
-                                                    onPressed: _clearKey,
-                                                    tooltip: 'Clear key',
-                                                  )
-                                                : null),
+                                const SizedBox(height: 8),
+                                SegmentedButton<String>(
+                                  segments: const [
+                                    ButtonSegment(
+                                      value: 'password',
+                                      label: Text('Password'),
                                     ),
-                                    style: const TextStyle(
-                                      fontFamily: 'monospace',
-                                      fontSize: 12,
+                                    ButtonSegment(
+                                      value: 'key',
+                                      label: Text('Private Key'),
                                     ),
-                                    minLines: 1,
-                                    maxLines: 10,
-                                    readOnly:
-                                        _sshKeyPathController.text ==
-                                        '<Private Key>',
-                                    keyboardType: TextInputType.multiline,
-                                    validator: (value) {
-                                      if (_useSsh && (value?.isEmpty ?? true)) {
-                                        return 'Required';
-                                      }
-                                      if (value != null &&
-                                          value.trim().isNotEmpty) {
-                                        final trimmed = value.trim();
-                                        if (trimmed == '<Private Key>') {
-                                          return null;
-                                        }
-                                        if (!trimmed.startsWith('-----BEGIN')) {
-                                          return 'Invalid key format: must start with -----BEGIN';
-                                        }
-                                        if (!trimmed.endsWith('-----END')) {
-                                          return 'Invalid key format: must end with -----END';
-                                        }
-                                      }
-                                      return null;
-                                    },
-                                    onFieldSubmitted: (value) {
-                                      final formatted = _formatSSHKey(value);
-                                      if (formatted != value) {
-                                        _sshKeyPathController.text = formatted;
-                                        _keyModified = true;
-                                      } else if (value != '<Private Key>') {
-                                        _keyModified = true;
-                                      }
-                                    },
-                                    onTapOutside: (_) {
-                                      final formatted = _formatSSHKey(
-                                        _sshKeyPathController.text,
-                                      );
-                                      if (formatted !=
-                                          _sshKeyPathController.text) {
-                                        _sshKeyPathController.text = formatted;
-                                        _keyModified = true;
-                                      }
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 24),
-                                  child: IconButton(
-                                    onPressed: _pickKeyFile,
-                                    icon: const Icon(Icons.folder_open),
-                                    tooltip: 'Pick file',
-                                  ),
+                                  ],
+                                  selected: {_sshAuthMethod},
+                                  onSelectionChanged:
+                                      (Set<String> newSelection) {
+                                        setState(() {
+                                          _sshAuthMethod = newSelection.first;
+                                        });
+                                      },
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _sshKeyPasswordController,
-                              decoration: const InputDecoration(
-                                labelText: 'Key Passphrase (Optional)',
-                              ),
-                              obscureText: true,
-                            ),
+                              const SizedBox(height: 16),
+
+                              if (_sshAuthMethod == 'password')
+                                TextFormField(
+                                  controller: _sshPasswordController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'SSH Password',
+                                  ),
+                                  obscureText: true,
+                                  validator: (value) =>
+                                      _useSsh && (value?.isEmpty ?? true)
+                                      ? 'Required'
+                                      : null,
+                                ),
+
+                              if (_sshAuthMethod == 'key') ...[
+                                if (!useTwoColumn) ...[
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _sshKeyPathController,
+                                          decoration: InputDecoration(
+                                            labelText:
+                                                _sshKeyPathController.text ==
+                                                    '<Private Key>'
+                                                ? 'Private Key (saved)'
+                                                : (_sshKeyPathController
+                                                          .text
+                                                          .isNotEmpty
+                                                      ? 'Private Key (loaded)'
+                                                      : 'Private Key'),
+                                            hintText:
+                                                'Pick a file or paste key',
+                                            suffixIcon:
+                                                _sshKeyPathController.text ==
+                                                    '<Private Key>'
+                                                ? Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                          Icons.paste,
+                                                          size: 20,
+                                                        ),
+                                                        onPressed: _pasteKey,
+                                                        tooltip:
+                                                            'Paste new key',
+                                                      ),
+                                                    ],
+                                                  )
+                                                : (_sshKeyPathController
+                                                          .text
+                                                          .isNotEmpty
+                                                      ? IconButton(
+                                                          icon: const Icon(
+                                                            Icons.clear,
+                                                            size: 20,
+                                                          ),
+                                                          onPressed: _clearKey,
+                                                          tooltip: 'Clear key',
+                                                        )
+                                                      : null),
+                                          ),
+                                          style: const TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontSize: 12,
+                                          ),
+                                          minLines: 1,
+                                          maxLines: 10,
+                                          readOnly:
+                                              _sshKeyPathController.text ==
+                                              '<Private Key>',
+                                          keyboardType: TextInputType.multiline,
+                                          validator: (value) {
+                                            if (_useSsh &&
+                                                (value?.isEmpty ?? true)) {
+                                              return 'Required';
+                                            }
+                                            if (value != null &&
+                                                value.trim().isNotEmpty) {
+                                              final trimmed = value.trim();
+                                              if (trimmed == '<Private Key>') {
+                                                return null;
+                                              }
+                                              if (!trimmed.startsWith(
+                                                '-----BEGIN',
+                                              )) {
+                                                return 'Invalid key format: must start with -----BEGIN';
+                                              }
+                                              if (!trimmed.endsWith(
+                                                '-----END',
+                                              )) {
+                                                return 'Invalid key format: must end with -----END';
+                                              }
+                                            }
+                                            return null;
+                                          },
+                                          onFieldSubmitted: (value) {
+                                            final formatted = _formatSSHKey(
+                                              value,
+                                            );
+                                            if (formatted != value) {
+                                              _sshKeyPathController.text =
+                                                  formatted;
+                                              _keyModified = true;
+                                            } else if (value !=
+                                                '<Private Key>') {
+                                              _keyModified = true;
+                                            }
+                                          },
+                                          onTapOutside: (_) {
+                                            final formatted = _formatSSHKey(
+                                              _sshKeyPathController.text,
+                                            );
+                                            if (formatted !=
+                                                _sshKeyPathController.text) {
+                                              _sshKeyPathController.text =
+                                                  formatted;
+                                              _keyModified = true;
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 24),
+                                        child: IconButton(
+                                          onPressed: _pickKeyFile,
+                                          icon: const Icon(Icons.folder_open),
+                                          tooltip: 'Pick file',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ] else ...[
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        flex: 2,
+                                        child: TextFormField(
+                                          controller: _sshKeyPathController,
+                                          decoration: InputDecoration(
+                                            labelText:
+                                                _sshKeyPathController.text ==
+                                                    '<Private Key>'
+                                                ? 'Private Key (saved)'
+                                                : (_sshKeyPathController
+                                                          .text
+                                                          .isNotEmpty
+                                                      ? 'Private Key (loaded)'
+                                                      : 'Private Key'),
+                                            hintText:
+                                                'Pick a file or paste key',
+                                            suffixIcon:
+                                                _sshKeyPathController.text ==
+                                                    '<Private Key>'
+                                                ? IconButton(
+                                                    icon: const Icon(
+                                                      Icons.paste,
+                                                      size: 20,
+                                                    ),
+                                                    onPressed: _pasteKey,
+                                                    tooltip: 'Paste new key',
+                                                  )
+                                                : (_sshKeyPathController
+                                                          .text
+                                                          .isNotEmpty
+                                                      ? IconButton(
+                                                          icon: const Icon(
+                                                            Icons.clear,
+                                                            size: 20,
+                                                          ),
+                                                          onPressed: _clearKey,
+                                                          tooltip: 'Clear key',
+                                                        )
+                                                      : null),
+                                          ),
+                                          style: const TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontSize: 12,
+                                          ),
+                                          minLines: 1,
+                                          maxLines: 10,
+                                          readOnly:
+                                              _sshKeyPathController.text ==
+                                              '<Private Key>',
+                                          keyboardType: TextInputType.multiline,
+                                          validator: (value) {
+                                            if (_useSsh &&
+                                                (value?.isEmpty ?? true)) {
+                                              return 'Required';
+                                            }
+                                            if (value != null &&
+                                                value.trim().isNotEmpty) {
+                                              final trimmed = value.trim();
+                                              if (trimmed == '<Private Key>') {
+                                                return null;
+                                              }
+                                              if (!trimmed.startsWith(
+                                                '-----BEGIN',
+                                              )) {
+                                                return 'Invalid key format: must start with -----BEGIN';
+                                              }
+                                              if (!trimmed.endsWith(
+                                                '-----END',
+                                              )) {
+                                                return 'Invalid key format: must end with -----END';
+                                              }
+                                            }
+                                            return null;
+                                          },
+                                          onFieldSubmitted: (value) {
+                                            final formatted = _formatSSHKey(
+                                              value,
+                                            );
+                                            if (formatted != value) {
+                                              _sshKeyPathController.text =
+                                                  formatted;
+                                              _keyModified = true;
+                                            } else if (value !=
+                                                '<Private Key>') {
+                                              _keyModified = true;
+                                            }
+                                          },
+                                          onTapOutside: (_) {
+                                            final formatted = _formatSSHKey(
+                                              _sshKeyPathController.text,
+                                            );
+                                            if (formatted !=
+                                                _sshKeyPathController.text) {
+                                              _sshKeyPathController.text =
+                                                  formatted;
+                                              _keyModified = true;
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 32),
+                                        child: IconButton(
+                                          onPressed: _pickKeyFile,
+                                          icon: const Icon(Icons.folder_open),
+                                          tooltip: 'Pick file',
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _sshKeyPasswordController,
+                                          decoration: const InputDecoration(
+                                            labelText:
+                                                'Key Passphrase (Optional)',
+                                          ),
+                                          obscureText: true,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ],
                           ],
-                        ],
-                      ],
+                        );
+                      },
                     ),
                   ],
                 ),

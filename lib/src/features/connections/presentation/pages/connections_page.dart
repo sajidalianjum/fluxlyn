@@ -48,6 +48,9 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth > 800;
+
     final List<Widget> tabs = [
       ConnectionsTab(
         isSortingEnabled: _isSortingMode,
@@ -58,6 +61,64 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       ),
       const SettingsTab(),
     ];
+
+    if (isWideScreen) {
+      return Scaffold(
+        appBar: AppBar(
+          title:
+              _isSearching && (_selectedTabIndex == 0 || _selectedTabIndex == 1)
+              ? _buildSearchBar()
+              : Text(_getAppBarTitle()),
+          actions: _getAppBarActions(),
+        ),
+        body: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: _selectedTabIndex,
+              onDestinationSelected: (index) {
+                setState(() {
+                  _selectedTabIndex = index;
+                  if (_isSearching && index != 0 && index != 1) {
+                    _isSearching = false;
+                    _searchController.clear();
+                  }
+                });
+              },
+              labelType: NavigationRailLabelType.all,
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.dns, semanticLabel: 'View connections'),
+                  label: Text('Connections'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(
+                    Icons.saved_search,
+                    semanticLabel: 'Saved queries',
+                  ),
+                  label: Text('Queries'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(
+                    Icons.settings,
+                    semanticLabel: 'Application settings',
+                  ),
+                  label: Text('Settings'),
+                ),
+              ],
+            ),
+            const VerticalDivider(
+              thickness: 1,
+              width: 1,
+              color: Color(0xFF334155),
+            ),
+            Expanded(
+              child: IndexedStack(index: _selectedTabIndex, children: tabs),
+            ),
+          ],
+        ),
+        floatingActionButton: _getFloatingActionButton(),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -74,7 +135,6 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
         onDestinationSelected: (index) {
           setState(() {
             _selectedTabIndex = index;
-            // Reset search when switching away from search-enabled tabs
             if (_isSearching && index != 0 && index != 1) {
               _isSearching = false;
               _searchController.clear();

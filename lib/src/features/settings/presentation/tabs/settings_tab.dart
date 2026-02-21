@@ -93,9 +93,37 @@ class _SettingsTabState extends State<SettingsTab> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth > 800;
 
     return ListView(
       padding: const EdgeInsets.all(24),
+      children: [
+        if (isWideScreen) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildProtectionSection(theme)),
+              const SizedBox(width: 32),
+              Expanded(child: _buildAIConfigSection(theme)),
+            ],
+          ),
+          const SizedBox(height: 32),
+          _buildAboutCard(theme),
+        ] else ...[
+          _buildProtectionSection(theme),
+          const SizedBox(height: 32),
+          _buildAIConfigSection(theme),
+          const SizedBox(height: 32),
+          _buildAboutCard(theme),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildProtectionSection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Protection',
@@ -121,8 +149,14 @@ class _SettingsTabState extends State<SettingsTab> {
           onChanged: _readOnlyMode ? null : _onLockChanged,
           contentPadding: EdgeInsets.zero,
         ),
-        const SizedBox(height: 32),
+      ],
+    );
+  }
 
+  Widget _buildAIConfigSection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(
           'AI Configuration',
           style: theme.textTheme.titleMedium?.copyWith(
@@ -186,154 +220,154 @@ class _SettingsTabState extends State<SettingsTab> {
           onChanged: (_) => _saveCurrentSettings(),
           onFieldSubmitted: (_) => _saveCurrentSettings(),
         ),
-        const SizedBox(height: 32),
-        const Divider(),
-        const SizedBox(height: 24),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      ],
+    );
+  }
+
+  Widget _buildAboutCard(ThemeData theme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.storage,
-                        size: 32,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Fluxlyn', style: theme.textTheme.headlineSmall),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(
-                                alpha: 0.15,
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'v1.0.0+1',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.storage,
+                    size: 32,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'A modern database management tool for developers',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.person,
-                      size: 18,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.8),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Developed by ',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey,
-                      ),
-                    ),
-                    Text(
-                      'Sajid Ali Anjum',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.verified,
-                      size: 18,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.8),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Licensed under ',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey,
-                      ),
-                    ),
-                    Text(
-                      'GPLv3',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                InkWell(
-                  onTap: () async {
-                    final Uri url = Uri.parse(
-                      'https://github.com/sajidalianjum/fluxlyn',
-                    );
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url);
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.code,
-                          size: 20,
-                          color: theme.colorScheme.primary,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Fluxlyn', style: theme.textTheme.headlineSmall),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'GitHub',
-                          style: theme.textTheme.bodyMedium?.copyWith(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.15,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'v1.0.0+1',
+                          style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.primary,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 16),
+            Text(
+              'A modern database management tool for developers',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Icon(
+                  Icons.person,
+                  size: 18,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Developed by ',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey,
+                  ),
+                ),
+                Text(
+                  'Sajid Ali Anjum',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  Icons.verified,
+                  size: 18,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Licensed under ',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey,
+                  ),
+                ),
+                Text(
+                  'GPLv3',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            InkWell(
+              onTap: () async {
+                final Uri url = Uri.parse(
+                  'https://github.com/sajidalianjum/fluxlyn',
+                );
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url);
+                }
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.code,
+                      size: 20,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'GitHub',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

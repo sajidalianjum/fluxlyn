@@ -26,6 +26,8 @@ class _SchemaTabState extends State<SchemaTab> {
     final provider = context.watch<DashboardProvider>();
     final connectionName = provider.currentConnectionModel?.name ?? 'Database';
     final isDbSelected = provider.selectedDatabase != null;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth > 1000;
 
     if (isDbSelected && _needsSearchReset) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -106,7 +108,42 @@ class _SchemaTabState extends State<SchemaTab> {
             ],
           ],
         ),
-        body: isDbSelected
+        body: isWideScreen && isDbSelected
+            ? Row(
+                children: [
+                  SizedBox(
+                    width: 300,
+                    child: _buildTableList(context, provider),
+                  ),
+                  Container(width: 1, color: const Color(0xFF334155)),
+                  Expanded(
+                    child: Container(
+                      color: const Color(0xFF1E293B),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.touch_app,
+                              size: 64,
+                              color: Colors.grey.withValues(alpha: 0.3),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Select a table to view data',
+                              style: TextStyle(
+                                color: Colors.grey.withValues(alpha: 0.6),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : isDbSelected
             ? _buildTableList(context, provider)
             : _buildDatabaseList(context, provider),
       ),

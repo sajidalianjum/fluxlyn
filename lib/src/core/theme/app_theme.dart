@@ -76,6 +76,23 @@ class AppTheme {
         elevation: 8,
         height: 80,
       ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: _background,
+        indicatorColor: _primary.withValues(alpha: 0.2),
+        selectedLabelTextStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: _textPrimary,
+        ),
+        unselectedLabelTextStyle: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: Colors.grey[600],
+        ),
+        selectedIconTheme: const IconThemeData(color: _primary),
+        unselectedIconTheme: IconThemeData(color: Colors.grey[600]),
+        elevation: 0,
+      ),
     );
   }
 }
