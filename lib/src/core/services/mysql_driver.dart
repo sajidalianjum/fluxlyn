@@ -81,8 +81,17 @@ class MySQLDriver implements DatabaseDriver {
 
   @override
   Future<void> disconnect() async {
-    await _sshTunnel.disconnect();
-    await _connection?.close();
+    try {
+      await _sshTunnel.disconnect();
+    } catch (_) {}
+
+    if (_connection != null) {
+      try {
+        await _connection!.close();
+      } catch (_) {
+        // Connection may be in invalid state, ignore close error
+      }
+    }
     _connection = null;
   }
 

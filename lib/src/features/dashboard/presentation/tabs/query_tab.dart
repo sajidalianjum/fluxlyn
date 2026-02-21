@@ -948,8 +948,12 @@ class _QueryTabState extends State<QueryTab> {
           FilledButton(
             onPressed: () async {
               Navigator.of(context).pop();
-              await provider.disconnect();
-              if (context.mounted) {
+              try {
+                await provider.disconnect();
+              } catch (_) {
+                // Ignore disconnect errors - connection may already be invalid
+              }
+              if (mounted) {
                 Navigator.of(context).pop();
               }
             },

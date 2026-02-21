@@ -158,7 +158,11 @@ class DashboardPage extends StatelessWidget {
           FilledButton(
             onPressed: () async {
               Navigator.of(context).pop();
-              await provider.disconnect();
+              try {
+                await provider.disconnect();
+              } catch (_) {
+                // Ignore disconnect errors - connection may already be invalid
+              }
               if (context.mounted) {
                 Navigator.of(context).pop();
               }
