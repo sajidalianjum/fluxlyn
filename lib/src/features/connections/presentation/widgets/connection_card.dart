@@ -134,24 +134,6 @@ class ConnectionCard extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                            if (connection.useSsh)
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.lock,
-                                    size: 14,
-                                    color: Colors.green,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'SSH',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                ],
-                              ),
                           ],
                         )
                       else
@@ -163,8 +145,8 @@ class ConnectionCard extends StatelessWidget {
                         ),
                       const SizedBox(height: 4),
                       Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -186,6 +168,40 @@ class ConnectionCard extends StatelessWidget {
                               ),
                             ),
                           ),
+                          if (connection.useSsh)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: Colors.green,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.lock,
+                                    size: 10,
+                                    color: Colors.green,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    'SSH',
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           if (connection.tag != null &&
                               connection.tag != ConnectionTag.none)
                             Container(
