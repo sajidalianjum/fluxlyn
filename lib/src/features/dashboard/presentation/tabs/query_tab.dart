@@ -136,20 +136,6 @@ class _QueryTabState extends State<QueryTab> {
       if (provider.tables.isNotEmpty) {
         _preloadSchema();
       }
-      // Load pending query if any
-      final pendingQuery = provider.pendingQuery;
-      final pendingDatabase = provider.pendingDatabase;
-      if (pendingQuery != null && pendingQuery.isNotEmpty) {
-        _controller.text = pendingQuery;
-        provider.clearPendingQuery();
-
-        // Select database if specified and not already selected
-        if (pendingDatabase != null &&
-            (provider.selectedDatabase == null ||
-             provider.selectedDatabase != pendingDatabase)) {
-          await provider.selectDatabase(pendingDatabase);
-        }
-      }
     });
   }
 
@@ -171,6 +157,21 @@ class _QueryTabState extends State<QueryTab> {
     if (_lastDatabase != currentDatabase) {
       _lastDatabase = currentDatabase;
       _reloadSchemaOnDatabaseChange();
+    }
+
+    // Load pending query if any (runs every time this tab becomes visible)
+    final pendingQuery = provider.pendingQuery;
+    final pendingDatabase = provider.pendingDatabase;
+    if (pendingQuery != null && pendingQuery.isNotEmpty) {
+      _controller.text = pendingQuery;
+      provider.clearPendingQuery();
+
+      // Select database if specified and not already selected
+      if (pendingDatabase != null &&
+          (provider.selectedDatabase == null ||
+              provider.selectedDatabase != pendingDatabase)) {
+        provider.selectDatabase(pendingDatabase);
+      }
     }
   }
 
