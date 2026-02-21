@@ -131,16 +131,24 @@ class _QueryTabState extends State<QueryTab> {
     _controller.addListener(_onTextChange);
 
     // Preload schema info after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = Provider.of<DashboardProvider>(context, listen: false);
       if (provider.tables.isNotEmpty) {
         _preloadSchema();
       }
       // Load pending query if any
       final pendingQuery = provider.pendingQuery;
+      final pendingDatabase = provider.pendingDatabase;
       if (pendingQuery != null && pendingQuery.isNotEmpty) {
         _controller.text = pendingQuery;
         provider.clearPendingQuery();
+
+        // Select database if specified and not already selected
+        if (pendingDatabase != null &&
+            (provider.selectedDatabase == null ||
+             provider.selectedDatabase != pendingDatabase)) {
+          await provider.selectDatabase(pendingDatabase);
+        }
       }
     });
   }

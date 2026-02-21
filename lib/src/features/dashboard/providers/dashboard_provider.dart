@@ -30,9 +30,11 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   int _selectedTabIndex = 0;
   ConnectionStep _connectionStep = ConnectionStep.initializing;
   String? _pendingQuery;
+  String? _pendingDatabase;
 
   ConnectionModel? get currentConnectionModel => _currentConnectionModel;
   String? get pendingQuery => _pendingQuery;
+  String? get pendingDatabase => _pendingDatabase;
   DatabaseDriver? get driver => _driver;
   List<String> get databases => _databases;
   String? get selectedDatabase => _selectedDatabase;
@@ -48,8 +50,18 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  void setPendingDatabase(String? database) {
+    _pendingDatabase = database;
+    notifyListeners();
+  }
+
   void clearPendingQuery() {
     _pendingQuery = null;
+    _pendingDatabase = null;
+  }
+
+  void clearPendingDatabase() {
+    _pendingDatabase = null;
   }
 
   void setTabIndex(int index) {

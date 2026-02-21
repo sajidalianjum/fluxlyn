@@ -66,16 +66,17 @@ class ConnectionQueriesTab extends StatelessWidget {
                 return _HistoryQueryCard(
                   entry: entry,
                   connectionModel: connectionModel,
-                  onTap: () => _loadQuery(context, entry.query),
+                  onTap: () => _loadQuery(context, entry),
                 );
               },
             ),
     );
   }
 
-  void _loadQuery(BuildContext context, String query) {
+  void _loadQuery(BuildContext context, QueryHistoryEntry entry) {
     final provider = context.read<DashboardProvider>();
-    provider.setPendingQuery(query);
+    provider.setPendingQuery(entry.query);
+    provider.setPendingDatabase(entry.databaseName);
     provider.setTabIndex(1);
   }
 }
