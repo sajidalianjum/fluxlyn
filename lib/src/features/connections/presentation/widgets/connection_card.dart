@@ -5,12 +5,14 @@ class ConnectionCard extends StatelessWidget {
   final ConnectionModel connection;
   final VoidCallback onTap;
   final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   const ConnectionCard({
     super.key,
     required this.connection,
     required this.onTap,
     required this.onEdit,
+    required this.onDelete,
   });
 
   @override
@@ -219,15 +221,50 @@ class ConnectionCard extends StatelessWidget {
                   ),
                 ),
 
-                // Chevron & Edit
+                // Chevron & Menu
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit, size: 20),
-                      color: Colors.white.withValues(alpha: 0.3),
-                      tooltip: 'Edit Connection',
+                    PopupMenuButton<String>(
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: Colors.white.withValues(alpha: 0.3),
+                      ),
+                      onSelected: (choice) {
+                        switch (choice) {
+                          case 'edit':
+                            onEdit();
+                            break;
+                          case 'delete':
+                            onDelete();
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 20),
+                              SizedBox(width: 12),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 20, color: Colors.red),
+                              SizedBox(width: 12),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(width: 4),
                     Icon(

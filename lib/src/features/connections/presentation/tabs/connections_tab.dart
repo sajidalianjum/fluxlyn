@@ -4,6 +4,7 @@ import '../../providers/connections_provider.dart';
 import '../../models/connection_model.dart';
 import 'package:fluxlyn/src/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:fluxlyn/src/features/dashboard/providers/dashboard_provider.dart';
+import 'package:fluxlyn/src/features/settings/providers/settings_provider.dart';
 import '../widgets/connection_card.dart';
 import '../dialogs/connection_dialog.dart';
 
@@ -74,6 +75,111 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
         },
       ),
     );
+  }
+
+  Future<void> _showDeleteConfirmation(
+    BuildContext context,
+    ConnectionModel connection,
+  ) async {
+    final settingsProvider = context.read<SettingsProvider>();
+    final requireConfirm = settingsProvider.settings.lock;
+
+    if (!requireConfirm) {
+      final provider = context.read<ConnectionsProvider>();
+      await provider.removeConnection(connection.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Connection "${connection.name}" deleted')),
+        );
+      }
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('Delete Connection'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete "${connection.name}"?',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'This will permanently remove all connection settings, including:',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (connection.password != null &&
+                      connection.password!.isNotEmpty)
+                    const Text('• Stored password'),
+                  if (connection.useSsh) ...[
+                    const Text('• SSH credentials'),
+                    if (connection.sshPrivateKey != null &&
+                        connection.sshPrivateKey!.isNotEmpty)
+                      const Text('• SSH private key path'),
+                  ],
+                  const Text('• Connection preferences'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.red, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This action cannot be undone.',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final provider = context.read<ConnectionsProvider>();
+      await provider.removeConnection(connection.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Connection "${connection.name}" deleted')),
+        );
+      }
+    }
   }
 
   String _getConnectionMessage(ConnectionStep step) {
@@ -275,6 +381,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
             },
             onEdit: () =>
                 _showConnectionDialog(context, connection: connection),
+            onDelete: () => _showDeleteConfirmation(context, connection),
           );
         },
       );
@@ -342,6 +449,8 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                     },
                     onEdit: () =>
                         _showConnectionDialog(context, connection: connection),
+                    onDelete: () =>
+                        _showDeleteConfirmation(context, connection),
                   ),
                 ),
               ],
@@ -377,6 +486,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
             }
           },
           onEdit: () => _showConnectionDialog(context, connection: connection),
+          onDelete: () => _showDeleteConfirmation(context, connection),
         );
       },
     );
