@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:crypto/crypto.dart';
+import 'package:uuid/uuid.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
 import '../../features/connections/models/connection_model.dart';
 import '../../features/queries/models/query_model.dart';
 import '../../core/models/settings_model.dart';
@@ -189,5 +192,92 @@ class StorageService {
     } catch (e) {
       return AppSettings.defaultSettings();
     }
+  }
+
+  Future<void> exportConnections(
+    String savePath,
+    String password,
+    List<ConnectionModel> connections,
+  ) async {
+    final key = encrypt.Key.fromUtf8(_padPassword(password));
+    final iv = encrypt.IV.fromLength(16);
+    final encrypter = encrypt.Encrypter(encrypt.AES(key));
+
+    final connectionsJson = {
+      'version': '1.0',
+      'exportedAt': DateTime.now().toIso8601String(),
+      'connections': connections.map((c) => c.toJson()).toList(),
+    };
+
+    final jsonString = jsonEncode(connectionsJson);
+    final encrypted = encrypter.encrypt(jsonString, iv: iv);
+
+    final fileContent = jsonEncode({'iv': iv.base64, 'data': encrypted.base64});
+
+    final file = File(savePath);
+    await file.writeAsString(fileContent);
+  }
+
+  Future<List<ConnectionModel>> importConnections(
+    String filePath,
+    String password,
+  ) async {
+    final file = File(filePath);
+    final fileContent = await file.readAsString();
+
+    final encryptedData = jsonDecode(fileContent) as Map<String, dynamic>;
+    final iv = encrypt.IV.fromBase64(encryptedData['iv'] as String);
+    final encrypted = encrypt.Encrypted.fromBase64(
+      encryptedData['data'] as String,
+    );
+
+    final key = encrypt.Key.fromUtf8(_padPassword(password));
+    final encrypter = encrypt.Encrypter(encrypt.AES(key));
+
+    try {
+      final decrypted = encrypter.decrypt(encrypted, iv: iv);
+      final connectionsJson = jsonDecode(decrypted) as Map<String, dynamic>;
+      final connectionsList = connectionsJson['connections'] as List;
+
+      final uuid = const Uuid();
+      return connectionsList.map((json) {
+        final connection = ConnectionModel.fromJson(
+          json as Map<String, dynamic>,
+        );
+        return ConnectionModel(
+          id: uuid.v4(),
+          name: connection.name,
+          host: connection.host,
+          port: connection.port,
+          username: connection.username,
+          password: connection.password,
+          type: connection.type,
+          sslEnabled: connection.sslEnabled,
+          isConnected: false,
+          useSsh: connection.useSsh,
+          sshHost: connection.sshHost,
+          sshPort: connection.sshPort,
+          sshUsername: connection.sshUsername,
+          sshPassword: connection.sshPassword,
+          sshPrivateKey: connection.sshPrivateKey,
+          sshKeyPassword: connection.sshKeyPassword,
+          databaseName: connection.databaseName,
+          customTag: connection.customTag,
+          tag: connection.tag,
+          sortOrder: null,
+        );
+      }).toList();
+    } catch (e) {
+      throw Exception(
+        'Failed to decrypt connections. Invalid password or corrupted file.',
+      );
+    }
+  }
+
+  String _padPassword(String password) {
+    if (password.length >= 32) {
+      return password.substring(0, 32);
+    }
+    return password.padRight(32, '0');
   }
 }

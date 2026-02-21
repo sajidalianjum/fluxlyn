@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:file_selector/file_selector.dart';
 import '../../../../core/models/settings_model.dart';
+import '../../../../core/services/storage_service.dart';
+import '../../../../core/widgets/snackbar_helper.dart';
 import '../../providers/settings_provider.dart';
+import '../../../connections/providers/connections_provider.dart';
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
@@ -105,13 +109,17 @@ class _SettingsTabState extends State<SettingsTab> {
             children: [
               Expanded(child: _buildProtectionSection(theme)),
               const SizedBox(width: 32),
-              Expanded(child: _buildAIConfigSection(theme)),
+              Expanded(child: _buildConnectionsSection(theme)),
             ],
           ),
+          const SizedBox(height: 32),
+          _buildAIConfigSection(theme),
           const SizedBox(height: 32),
           _buildAboutCard(theme),
         ] else ...[
           _buildProtectionSection(theme),
+          const SizedBox(height: 32),
+          _buildConnectionsSection(theme),
           const SizedBox(height: 32),
           _buildAIConfigSection(theme),
           const SizedBox(height: 32),
@@ -148,6 +156,45 @@ class _SettingsTabState extends State<SettingsTab> {
           value: _lock,
           onChanged: _readOnlyMode ? null : _onLockChanged,
           contentPadding: EdgeInsets.zero,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConnectionsSection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Connections',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _exportConnections,
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Export'),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _importConnections,
+                icon: const Icon(Icons.download),
+                label: const Text('Import'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Export or import connections securely with a password',
+          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
         ),
       ],
     );
@@ -221,6 +268,160 @@ class _SettingsTabState extends State<SettingsTab> {
           onFieldSubmitted: (_) => _saveCurrentSettings(),
         ),
       ],
+    );
+  }
+
+  Future<void> _exportConnections() async {
+    final provider = context.read<ConnectionsProvider>();
+    final connections = provider.connections;
+
+    if (connections.isEmpty) {
+      SnackbarHelper.showError(context, 'No connections to export');
+      return;
+    }
+
+    final password = await _showPasswordDialog(
+      context,
+      'Export Connections',
+      'Enter a password to encrypt your connections:',
+    );
+
+    if (password == null || password.isEmpty) {
+      return;
+    }
+
+    const XTypeGroup typeGroup = XTypeGroup(
+      label: 'Fluxlyn Connections',
+      extensions: ['fluxlyn'],
+    );
+
+    final saveLocation = await getSaveLocation(
+      suggestedName: 'connections.fluxlyn',
+      acceptedTypeGroups: [typeGroup],
+    );
+
+    if (saveLocation == null) {
+      return;
+    }
+
+    try {
+      final storageService = context.read<StorageService>();
+      await storageService.exportConnections(
+        saveLocation.path,
+        password,
+        connections,
+      );
+      if (mounted) {
+        SnackbarHelper.showSuccess(
+          context,
+          'Connections exported successfully',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackbarHelper.showError(context, 'Failed to export: $e');
+      }
+    }
+  }
+
+  Future<void> _importConnections() async {
+    const XTypeGroup typeGroup = XTypeGroup(
+      label: 'Fluxlyn Connections',
+      extensions: ['fluxlyn'],
+    );
+
+    final file = await openFile(acceptedTypeGroups: [typeGroup]);
+
+    if (file == null) {
+      return;
+    }
+
+    final password = await _showPasswordDialog(
+      context,
+      'Import Connections',
+      'Enter the password to decrypt your connections:',
+    );
+
+    if (password == null || password.isEmpty) {
+      return;
+    }
+
+    try {
+      final storageService = context.read<StorageService>();
+      final connections = await storageService.importConnections(
+        file.path,
+        password,
+      );
+
+      final provider = context.read<ConnectionsProvider>();
+      for (final connection in connections) {
+        await provider.addConnection(connection);
+      }
+
+      if (mounted) {
+        SnackbarHelper.showSuccess(
+          context,
+          'Successfully imported ${connections.length} connection(s)',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackbarHelper.showError(context, 'Failed to import: $e');
+      }
+    }
+  }
+
+  Future<String?> _showPasswordDialog(
+    BuildContext context,
+    String title,
+    String message,
+  ) {
+    final controller = TextEditingController();
+
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: Text(title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              enableSuggestions: false,
+              autocorrect: false,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                border: OutlineInputBorder(),
+              ),
+              onSubmitted: (value) {
+                if (value.isNotEmpty) {
+                  Navigator.of(context).pop(value);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                Navigator.of(context).pop(controller.text);
+              }
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 

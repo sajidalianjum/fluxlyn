@@ -125,15 +125,67 @@ class ConnectionModel extends HiveObject {
       'host': host,
       'port': port,
       'username': username,
+      'password': password,
       'type': type.toString(),
       'sslEnabled': sslEnabled,
       'useSsh': useSsh,
       'sshHost': sshHost,
       'sshPort': sshPort,
       'sshUsername': sshUsername,
+      'sshPassword': sshPassword,
+      'sshPrivateKey': sshPrivateKey,
+      'sshKeyPassword': sshKeyPassword,
       'databaseName': databaseName,
       'tag': tag.toString(),
       'customTag': customTag,
+      'sortOrder': sortOrder,
     };
+  }
+
+  factory ConnectionModel.fromJson(Map<String, dynamic> json) {
+    return ConnectionModel(
+      id: json['id'] as String? ?? const Uuid().v4(),
+      name: json['name'] as String,
+      host: json['host'] as String,
+      port: json['port'] as int,
+      username: json['username'] as String?,
+      password: json['password'] as String?,
+      type: json['type'].toString().contains('postgresql')
+          ? ConnectionType.postgresql
+          : ConnectionType.mysql,
+      sslEnabled: json['sslEnabled'] as bool? ?? false,
+      isConnected: false,
+      useSsh: json['useSsh'] as bool? ?? false,
+      sshHost: json['sshHost'] as String?,
+      sshPort: json['sshPort'] as int?,
+      sshUsername: json['sshUsername'] as String?,
+      sshPassword: json['sshPassword'] as String?,
+      sshPrivateKey: json['sshPrivateKey'] as String?,
+      sshKeyPassword: json['sshKeyPassword'] as String?,
+      databaseName: json['databaseName'] as String?,
+      customTag: json['customTag'] as String?,
+      tag: _parseConnectionTag(json['tag']?.toString()),
+      sortOrder: json['sortOrder'] as int?,
+    );
+  }
+
+  static ConnectionTag _parseConnectionTag(String? tagString) {
+    if (tagString == null) return ConnectionTag.none;
+    switch (tagString) {
+      case 'ConnectionTag.development':
+        return ConnectionTag.development;
+      case 'ConnectionTag.production':
+        return ConnectionTag.production;
+      case 'ConnectionTag.testing':
+        return ConnectionTag.testing;
+      case 'ConnectionTag.staging':
+        return ConnectionTag.staging;
+      case 'ConnectionTag.local':
+        return ConnectionTag.local;
+      case 'ConnectionTag.custom':
+        return ConnectionTag.custom;
+      default:
+        return ConnectionTag.none;
+    }
   }
 }
