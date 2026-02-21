@@ -339,88 +339,114 @@ class _RecentQueryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Icon(
-                    success ? Icons.check_circle : Icons.error,
-                    color: success ? Colors.green : Colors.red,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    relativeTime,
-                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                  ),
-                  const Spacer(),
-                  if (connection != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            dbType,
-                            style: const TextStyle(
-                              color: Color(0xFF3B82F6),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          success ? Icons.check_circle : Icons.error,
+                          color: success ? Colors.green : Colors.red,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          relativeTime,
+                          style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 12,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (connection != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF3B82F6,
+                              ).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  dbType,
+                                  style: const TextStyle(
+                                    color: Color(0xFF3B82F6),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
+                      ],
                     ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  if (connection != null) ...[
-                    Icon(Icons.storage, size: 14, color: Colors.grey[500]),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        connection!.name,
-                        style: TextStyle(color: Colors.grey[500], fontSize: 11),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (databaseName != null) ...[
-                      const SizedBox(width: 4),
-                      Text(
-                        '>',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 11),
-                      ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          databaseName,
-                          style: TextStyle(
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (connection != null) ...[
+                          Icon(
+                            Icons.storage,
+                            size: 14,
                             color: Colors.grey[500],
-                            fontSize: 11,
                           ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              connection!.name,
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 11,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (databaseName != null) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '>',
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 11,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                databaseName,
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 11,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SqlHighlighter(
+                      sql: queryText,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      fontSize: 12,
+                    ),
                   ],
-                ],
+                ),
               ),
-              const SizedBox(height: 10),
-              SqlHighlighter(
-                sql: queryText,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                fontSize: 12,
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right,
+                color: Colors.white.withValues(alpha: 0.3),
               ),
             ],
           ),
@@ -480,98 +506,120 @@ class _SavedQueryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.bookmark, size: 16, color: Colors.amber),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      queryName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Text(
-                    _formatDate(modifiedAt),
-                    style: TextStyle(color: Colors.grey[500], fontSize: 11),
-                  ),
-                  if (connection != null) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        dbType,
-                        style: const TextStyle(
-                          color: Color(0xFF3B82F6),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (connection != null)
-                Row(
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.storage, size: 14, color: Colors.grey[500]),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        connection!.name,
-                        style: TextStyle(color: Colors.grey[500], fontSize: 11),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (databaseName != null) ...[
-                      const SizedBox(width: 4),
-                      Text(
-                        '>',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 11),
-                      ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          databaseName,
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.bookmark,
+                          size: 16,
+                          color: Colors.amber,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            queryName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          _formatDate(modifiedAt),
                           style: TextStyle(
                             color: Colors.grey[500],
                             fontSize: 11,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  ],
-                ),
-              if (connection == null && databaseName != null)
-                Row(
-                  children: [
-                    Text(
-                      databaseName,
-                      style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                        if (connection != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF3B82F6,
+                              ).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              dbType,
+                              style: const TextStyle(
+                                color: Color(0xFF3B82F6),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (connection != null) ...[
+                          Icon(
+                            Icons.storage,
+                            size: 14,
+                            color: Colors.grey[500],
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              connection!.name,
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 11,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (databaseName != null) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '>',
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 11,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                databaseName,
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 11,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SqlHighlighter(
+                      sql: queryText,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      fontSize: 12,
                     ),
                   ],
                 ),
-              const SizedBox(height: 10),
-              SqlHighlighter(
-                sql: queryText,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                fontSize: 12,
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right,
+                color: Colors.white.withValues(alpha: 0.3),
               ),
             ],
           ),
