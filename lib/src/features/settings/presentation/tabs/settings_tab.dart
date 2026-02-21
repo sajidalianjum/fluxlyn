@@ -179,6 +179,9 @@ class _SettingsTabState extends State<SettingsTab> {
                 onPressed: _exportConnections,
                 icon: const Icon(Icons.upload_file),
                 label: const Text('Export'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
               ),
             ),
             const SizedBox(width: 16),
@@ -187,6 +190,9 @@ class _SettingsTabState extends State<SettingsTab> {
                 onPressed: _importConnections,
                 icon: const Icon(Icons.download),
                 label: const Text('Import'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
               ),
             ),
           ],

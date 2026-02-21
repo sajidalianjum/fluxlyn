@@ -40,6 +40,10 @@ class _QueriesTabState extends State<QueriesTab>
       children: [
         TabBar(
           controller: _tabController,
+          indicatorColor: const Color(0xFF3B82F6),
+          dividerColor: const Color(0xFF334155),
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.grey,
           tabs: const [
             Tab(text: 'Saved'),
             Tab(text: 'Recent'),
