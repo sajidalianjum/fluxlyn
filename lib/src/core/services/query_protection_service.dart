@@ -31,11 +31,11 @@ class QueryProtectionService {
 
   static String? checkEditOperation(bool readOnlyMode, bool lock) {
     if (readOnlyMode) {
-      return 'Read-only mode is active. This operation is not allowed.';
+      return 'Read-only mode is active.';
     }
 
     if (lock) {
-      return 'Destructive operations are locked. This operation is not allowed.';
+      return 'Destructive operations are locked.';
     }
 
     return null;
