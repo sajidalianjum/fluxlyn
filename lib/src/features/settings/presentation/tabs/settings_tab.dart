@@ -151,7 +151,7 @@ class _SettingsTabState extends State<SettingsTab> {
         SwitchListTile(
           title: const Text('Lock for Destructive Operations'),
           subtitle: const Text(
-            'Prevent accidental deletion or dropping of items',
+            'Prevent accidental data modification (DELETE, DROP, TRUNCATE, UPDATE, ALTER)',
           ),
           value: _lock,
           onChanged: _readOnlyMode ? null : _onLockChanged,

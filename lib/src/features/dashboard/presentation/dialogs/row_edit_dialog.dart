@@ -751,7 +751,14 @@ class _RowEditDialogState extends State<RowEditDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final canEdit = widget.primaryKeyColumn != null;
+    final settingsProvider = context.read<SettingsProvider>();
+    final settings = settingsProvider.settings;
+    final protectionError = QueryProtectionService.checkEditOperation(
+      settings.readOnlyMode,
+      settings.lock,
+    );
+
+    final canEdit = widget.primaryKeyColumn != null && protectionError == null;
 
     return Dialog.fullscreen(
       backgroundColor: const Color(0xFF0F172A),
@@ -827,7 +834,7 @@ class _RowEditDialogState extends State<RowEditDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Read-only: Table has no primary key',
+                        protectionError ?? 'Editing is not available',
                         style: TextStyle(color: Colors.orange[400]),
                       ),
                     ),

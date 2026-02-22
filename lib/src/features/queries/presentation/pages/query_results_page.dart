@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:excel/excel.dart' hide Border;
 import '../../../../core/widgets/data_table2_widget.dart';
 import '../../../dashboard/presentation/dialogs/row_edit_dialog.dart';
+import '../../../settings/providers/settings_provider.dart';
 import '../../models/query_result.dart';
 
 class QueryResultsPage extends StatefulWidget {
@@ -72,7 +74,7 @@ class _QueryResultsPageState extends State<QueryResultsPage>
   Future<void> _exportToCsvFile(QueryResult result) async {
     final FileSaveLocation? resultLocation = await getSaveLocation(
       acceptedTypeGroups: [
-        const XTypeGroup(label: 'CSV', extensions: ['csv'])
+        const XTypeGroup(label: 'CSV', extensions: ['csv']),
       ],
       suggestedName: 'export.csv',
     );
@@ -89,7 +91,9 @@ class _QueryResultsPageState extends State<QueryResultsPage>
             final value = row[col];
             if (value == null) return '';
             final stringValue = value.toString();
-            if (stringValue.contains(',') || stringValue.contains('"') || stringValue.contains('\n')) {
+            if (stringValue.contains(',') ||
+                stringValue.contains('"') ||
+                stringValue.contains('\n')) {
               return '"${stringValue.replaceAll('"', '""')}"';
             }
             return stringValue;
@@ -98,21 +102,27 @@ class _QueryResultsPageState extends State<QueryResultsPage>
       buffer.writeln(values);
     }
 
-    final Uint8List fileData = Uint8List.fromList(utf8.encode(buffer.toString()));
-    final XFile file = XFile.fromData(fileData, mimeType: 'text/csv', name: 'export.csv');
+    final Uint8List fileData = Uint8List.fromList(
+      utf8.encode(buffer.toString()),
+    );
+    final XFile file = XFile.fromData(
+      fileData,
+      mimeType: 'text/csv',
+      name: 'export.csv',
+    );
     await file.saveTo(resultLocation.path);
 
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Exported to ${resultLocation.path}')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Exported to ${resultLocation.path}')),
+      );
     }
   }
 
   Future<void> _exportToXlsxFile(QueryResult result) async {
     final FileSaveLocation? resultLocation = await getSaveLocation(
       acceptedTypeGroups: [
-        const XTypeGroup(label: 'Excel', extensions: ['xlsx'])
+        const XTypeGroup(label: 'Excel', extensions: ['xlsx']),
       ],
       suggestedName: 'export.xlsx',
     );
@@ -126,25 +136,32 @@ class _QueryResultsPageState extends State<QueryResultsPage>
 
     // Add rows
     for (final row in result.rows) {
-      sheet.appendRow(result.columns.map((col) {
-        final value = row[col];
-        if (value == null) return TextCellValue('');
-        if (value is int) return IntCellValue(value);
-        if (value is double) return DoubleCellValue(value);
-        if (value is bool) return BoolCellValue(value);
-        return TextCellValue(value.toString());
-      }).toList());
+      sheet.appendRow(
+        result.columns.map((col) {
+          final value = row[col];
+          if (value == null) return TextCellValue('');
+          if (value is int) return IntCellValue(value);
+          if (value is double) return DoubleCellValue(value);
+          if (value is bool) return BoolCellValue(value);
+          return TextCellValue(value.toString());
+        }).toList(),
+      );
     }
 
     final List<int>? fileBytes = excel.save();
     if (fileBytes != null) {
-      final XFile file = XFile.fromData(Uint8List.fromList(fileBytes), mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', name: 'export.xlsx');
+      final XFile file = XFile.fromData(
+        Uint8List.fromList(fileBytes),
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        name: 'export.xlsx',
+      );
       await file.saveTo(resultLocation.path);
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Exported to ${resultLocation.path}')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Exported to ${resultLocation.path}')),
+        );
       }
     }
   }
@@ -213,6 +230,50 @@ class _QueryResultsPageState extends State<QueryResultsPage>
         color: const Color(0xFF1E293B),
         child: Row(
           children: [
+            Consumer<SettingsProvider>(
+              builder: (context, settingsProvider, _) {
+                final settings = settingsProvider.settings;
+
+                if (settings.readOnlyMode) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Chip(
+                      avatar: const Icon(Icons.lock, size: 16),
+                      label: const Text(
+                        'Read-Only',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      backgroundColor: Colors.red.withValues(alpha: 0.2),
+                      labelStyle: const TextStyle(color: Colors.red),
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                    ),
+                  );
+                } else if (settings.lock) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Chip(
+                      avatar: const Icon(Icons.security, size: 16),
+                      label: const Text(
+                        'Locked',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      backgroundColor: Colors.orange.withValues(alpha: 0.2),
+                      labelStyle: const TextStyle(color: Colors.orange),
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             Text(
               '${result.rows.length} rows',
               style: const TextStyle(color: Colors.grey, fontSize: 12),

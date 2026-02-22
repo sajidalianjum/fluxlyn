@@ -5,7 +5,7 @@ class QueryProtectionService {
   );
 
   static final RegExp _destructiveOperationPattern = RegExp(
-    r'^\s*(DELETE|DROP|TRUNCATE)\s+',
+    r'^\s*(UPDATE|DELETE|DROP|TRUNCATE|ALTER)\s+',
     caseSensitive: false,
   );
 
@@ -31,7 +31,11 @@ class QueryProtectionService {
 
   static String? checkEditOperation(bool readOnlyMode, bool lock) {
     if (readOnlyMode) {
-      return 'Read-only mode is enabled. Editing is not allowed.';
+      return 'Read-only mode is active. This operation is not allowed.';
+    }
+
+    if (lock) {
+      return 'Destructive operations are locked. This operation is not allowed.';
     }
 
     return null;

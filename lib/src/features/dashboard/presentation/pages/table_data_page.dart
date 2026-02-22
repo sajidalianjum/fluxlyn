@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/widgets/data_table2_widget.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../models/table_search_result.dart';
+import '../../../settings/providers/settings_provider.dart';
 import '../dialogs/row_edit_dialog.dart';
 import '../dialogs/table_search_dialog.dart';
 
@@ -319,9 +320,53 @@ class _TableDataPageState extends State<TableDataPage> {
           ],
         ),
         actions: [
+          Consumer<SettingsProvider>(
+            builder: (context, settingsProvider, _) {
+              final settings = settingsProvider.settings;
+
+              if (settings.readOnlyMode) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Chip(
+                    avatar: const Icon(Icons.lock, size: 16),
+                    label: const Text(
+                      'Read-Only',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    backgroundColor: Colors.red.withValues(alpha: 0.2),
+                    labelStyle: const TextStyle(color: Colors.red),
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                  ),
+                );
+              } else if (settings.lock) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Chip(
+                    avatar: const Icon(Icons.security, size: 16),
+                    label: const Text('Locked', style: TextStyle(fontSize: 11)),
+                    backgroundColor: Colors.orange.withValues(alpha: 0.2),
+                    labelStyle: const TextStyle(color: Colors.orange),
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           IconButton(
             onPressed: _openSearchDialog,
-            icon: const Icon(Icons.filter_list, semanticLabel: 'Search and filter'),
+            icon: const Icon(
+              Icons.filter_list,
+              semanticLabel: 'Search and filter',
+            ),
             tooltip: 'Search & Filter',
           ),
           IconButton(
