@@ -75,7 +75,7 @@ That's it! You're ready to explore your databases. Click the **"+"** button to a
 ## ✨ Features
 
 ### Database Management
-- 🗄️ **MySQL Support** - Full MySQL database connectivity
+- 🗄️ **MySQL & PostgreSQL Support** - Full database connectivity
 - 🔗 **Connection Management** - Save and manage multiple database connections
 - 🔐 **SSL/TLS Support** - Secure database connections
 - 📡 **SSH Tunneling** - Connect to remote databases through SSH tunnels
@@ -85,7 +85,6 @@ That's it! You're ready to explore your databases. Click the **"+"** button to a
 ### Query Editor
 - 📝 **SQL Editor** - Syntax-highlighted SQL query editor
 - 💾 **Save Queries** - Save frequently used queries
-- ⭐ **Favorite Queries** - Mark important queries as favorites
 - 📜 **Query History** - Automatic tracking of executed queries (last 100 per connection)
 - ⚡ **Query Execution** - Execute queries with performance metrics
 
@@ -206,7 +205,7 @@ flutter run --release -d macos
 
 ### Dashboard
 
-Once connected, you'll have access to 4 main tabs:
+Once connected, you'll have access to 3 main tabs:
 
 #### 1. Databases Tab
 - Browse all databases on the server
@@ -218,13 +217,11 @@ Once connected, you'll have access to 4 main tabs:
 - Write SQL queries with syntax highlighting
 - Execute queries and see results
 - Save queries for later use
-- View query history
+- Export query results to CSV, JSON, or XLSX
 
-#### 3. History Tab (Coming Soon)
+#### 3. History Tab
 - Comprehensive query history
-
-#### 4. Settings Tab (Coming Soon)
-- Application settings
+- Clear all history functionality
 
 ### Settings
 
@@ -339,18 +336,13 @@ Fluxlyn uses **Hive** with **AES-256 encryption** for all persistent data:
 ## 🗺️ Roadmap
 
 ### Version 1.1 (Planned)
-- [ ] PostgreSQL support
-- [ ] Query history tab
-- [ ] Settings tab improvements
-- [ ] Export query results to CSV/JSON
-- [ ] Query favorites organization
+- [ ] AI-powered query optimization
+- [ ] Visual query builder
+- [ ] Database backup/restore
 
 ### Version 1.2 (Planned)
 - [ ] iOS support
 - [ ] Linux support
-- [ ] AI-powered query optimization
-- [ ] Visual query builder
-- [ ] Database backup/restore
 
 ### Version 2.0 (Future)
 - [ ] Collaborative features

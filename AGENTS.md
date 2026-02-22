@@ -696,8 +696,8 @@ When adding a new feature, ensure:
 
 ### Connection Support
 
-- **Primary:** MySQL (via mysql_dart)
-- **Secondary:** PostgreSQL (planned)
+- **MySQL:** via mysql_dart
+- **PostgreSQL:** via postgres package
 - **Features:**
   - SSL connections
   - SSH tunnel support
@@ -716,6 +716,7 @@ Key packages from `pubspec.yaml`:
 - `provider` - State management
 - `hive_flutter` - Encrypted local storage
 - `mysql_dart` - MySQL connectivity
+- `postgres` - PostgreSQL connectivity
 - `google_fonts` - Inter font
 - `data_table_2` - Table display component
 
