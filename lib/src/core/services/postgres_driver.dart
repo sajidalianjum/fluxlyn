@@ -258,6 +258,23 @@ class PostgreSQLDriver implements DatabaseDriver {
       return value.toDouble();
     }
 
+    final typeName = value.runtimeType.toString();
+
+    if (typeName.contains('Time') && value is! String) {
+      try {
+        final hour = (value.hour as int).toString().padLeft(2, '0');
+        final minute = (value.minute as int).toString().padLeft(2, '0');
+        final second = (value.second as int).toString().padLeft(2, '0');
+        final microsecond = (value.microsecond as int).toString().padLeft(
+          6,
+          '0',
+        );
+        return '$hour:$minute:$second.$microsecond';
+      } catch (_) {
+        return value.toString();
+      }
+    }
+
     return value.toString();
   }
 
@@ -467,6 +484,68 @@ class PostgreSQLDriver implements DatabaseDriver {
       if (e is DatabaseException) rethrow;
       debugPrint('Error getting primary key for $tableName: $e');
       return null;
+    }
+  }
+
+  @override
+  Future<Map<String, List<String>>> getEnumColumns(String tableName) async {
+    try {
+      final result = await execute('''
+      SELECT 
+        c.column_name,
+        t.typname as enum_type_name
+      FROM information_schema.columns c
+      JOIN pg_type t ON c.udt_name = t.typname
+      WHERE c.table_schema = 'public' 
+        AND c.table_name = '$tableName'
+        AND t.typtype = 'e'
+      ORDER BY c.ordinal_position
+    ''');
+
+      final Map<String, List<String>> enumColumns = {};
+
+      for (final row in result) {
+        final columnName = row['column_name']?.toString();
+        final enumTypeName = row['enum_type_name']?.toString();
+
+        if (columnName != null && enumTypeName != null) {
+          final enumValues = await _getEnumValues(enumTypeName);
+          if (enumValues.isNotEmpty) {
+            enumColumns[columnName] = enumValues;
+          }
+        }
+      }
+
+      return enumColumns;
+    } catch (e) {
+      if (e is DatabaseException) rethrow;
+      debugPrint('Error getting enum columns for $tableName: $e');
+      return {};
+    }
+  }
+
+  Future<List<String>> _getEnumValues(String enumTypeName) async {
+    try {
+      final result = await execute('''
+      SELECT e.enumlabel
+      FROM pg_enum e
+      JOIN pg_type t ON e.enumtypid = t.oid
+      WHERE t.typname = '$enumTypeName'
+      ORDER BY e.enumsortorder
+    ''');
+
+      final List<String> enumValues = [];
+      for (final row in result) {
+        final enumLabel = row['enumlabel']?.toString();
+        if (enumLabel != null && enumLabel.isNotEmpty) {
+          enumValues.add(enumLabel);
+        }
+      }
+
+      return enumValues;
+    } catch (e) {
+      debugPrint('Error getting enum values for $enumTypeName: $e');
+      return [];
     }
   }
 

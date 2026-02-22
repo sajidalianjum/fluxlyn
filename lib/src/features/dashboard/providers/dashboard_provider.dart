@@ -312,11 +312,14 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       final bitColumns = <String>{};
       final enumColumns = <String, List<String>>{};
       final setColumns = <String, List<String>>{};
+      final inetColumns = <String>{};
+      final columnTypes = <String, String>{};
       final allColumns = <String>{};
 
       for (final col in columns) {
         allColumns.add(col.name);
         final colType = col.type.toLowerCase();
+        columnTypes[col.name] = colType;
 
         if (colType == 'bit' || colType.startsWith('bit(')) {
           bitColumns.add(col.name);
@@ -328,6 +331,8 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
             colType.contains('binary') ||
             colType.contains('varbinary')) {
           binaryColumns.add(col.name);
+        } else if (colType == 'inet' || colType == 'cidr') {
+          inetColumns.add(col.name);
         }
       }
 
@@ -348,6 +353,11 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
                 return 'encode($quotedCol::bytea, \'hex\') AS $quotedCol';
               }
               return 'HEX($quotedCol) AS $quotedCol';
+            } else if (inetColumns.contains(col)) {
+              if (isPostgreSQL) {
+                return '$quotedCol::text AS $quotedCol';
+              }
+              return quotedCol;
             }
             return quotedCol;
           })
@@ -471,6 +481,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       final bitColumns = <String>{};
       final enumColumns = <String, List<String>>{};
       final setColumns = <String, List<String>>{};
+      final inetColumns = <String>{};
       final allColumns = <String>{};
 
       for (final col in columns) {
@@ -487,6 +498,8 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
             colType.contains('binary') ||
             colType.contains('varbinary')) {
           binaryColumns.add(col.name);
+        } else if (colType == 'inet' || colType == 'cidr') {
+          inetColumns.add(col.name);
         }
       }
 
@@ -507,6 +520,11 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
                 return 'encode($quotedCol::bytea, \'hex\') AS $quotedCol';
               }
               return 'HEX($quotedCol) AS $quotedCol';
+            } else if (inetColumns.contains(col)) {
+              if (isPostgreSQL) {
+                return '$quotedCol::text AS $quotedCol';
+              }
+              return quotedCol;
             }
             return quotedCol;
           })
@@ -640,19 +658,46 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
           _currentConnectionModel!.type != ConnectionType.mysql;
       final identifierQuote = isPostgreSQL ? '"' : '`';
 
+      var columnTypes = <String, String>{};
+      if (isPostgreSQL) {
+        final columns = await _driver!.getColumns(tableName);
+        columnTypes = {for (var c in columns) c.name: c.type.toLowerCase()};
+      }
+
       final setClauses = <String>[];
       for (final entry in updates.entries) {
         final quotedCol = '$identifierQuote${entry.key}$identifierQuote';
         if (entry.value == null) {
           setClauses.add('$quotedCol = NULL');
-        } else if (entry.value is String) {
-          final escaped = (entry.value as String).replaceAll("'", "''");
-          setClauses.add('$quotedCol = \'$escaped\'');
-        } else if (entry.value is DateTime) {
-          final formatted = (entry.value as DateTime).toIso8601String();
-          setClauses.add('$quotedCol = \'$formatted\'');
+        } else if (isPostgreSQL) {
+          final colType = columnTypes[entry.key] ?? '';
+
+          if (entry.value is String) {
+            final escaped = (entry.value as String).replaceAll("'", "''");
+
+            if (colType == 'inet') {
+              setClauses.add('$quotedCol = \'$escaped\'::inet');
+            } else if (colType == 'cidr') {
+              setClauses.add('$quotedCol = \'$escaped\'::cidr');
+            } else {
+              setClauses.add('$quotedCol = \'$escaped\'');
+            }
+          } else if (entry.value is DateTime) {
+            final formatted = (entry.value as DateTime).toIso8601String();
+            setClauses.add('$quotedCol = \'$formatted\'::timestamp');
+          } else {
+            setClauses.add('$quotedCol = ${entry.value}');
+          }
         } else {
-          setClauses.add('$quotedCol = ${entry.value}');
+          if (entry.value is String) {
+            final escaped = (entry.value as String).replaceAll("'", "''");
+            setClauses.add('$quotedCol = \'$escaped\'');
+          } else if (entry.value is DateTime) {
+            final formatted = (entry.value as DateTime).toIso8601String();
+            setClauses.add('$quotedCol = \'$formatted\'');
+          } else {
+            setClauses.add('$quotedCol = ${entry.value}');
+          }
         }
       }
 
