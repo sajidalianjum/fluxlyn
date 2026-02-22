@@ -97,7 +97,9 @@ That's it! You're ready to explore your databases. Click the **"+"** button to a
 
 ### Security
 - 🔒 **Encrypted Storage** - All sensitive data encrypted with AES-256
-- 🛡️ **Protection Locks** - Optional locks for DELETE and DROP operations
+- 🛡️ **Protection Locks** - Two-tier protection system:
+  - **Read-Only Mode**: Blocks ALL write operations (INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, TRUNCATE, RENAME)
+  - **Destructive Operations Lock**: Blocks irreversible operations (DELETE, DROP, TRUNCATE, ALTER) while allowing data modification (UPDATE)
 - 🔑 **Secure Credentials** - No plaintext password storage
 
 ### AI Integration
@@ -227,9 +229,9 @@ Once connected, you'll have access to 3 main tabs:
 
 Access settings by clicking the settings icon on the connections page:
 
-- **Protection Locks**:
-  - Lock DELETE operations (prevents accidental deletion)
-  - Lock DROP operations (prevents accidental dropping)
+- **Protection**:
+  - **Read-Only Mode**: Prevent all write operations (INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, TRUNCATE, RENAME)
+  - **Lock for Destructive Operations**: Prevent accidental data modification through destructive operations (DELETE, DROP, TRUNCATE, ALTER) while allowing safe updates (UPDATE)
 - **AI Configuration**:
   - Select AI provider
   - Configure API key
