@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-This document provides comprehensive guidance for AI agents and developers working on the Fluxlyn codebase. Fluxlyn is a Flutter desktop application (macOS) for database management with MySQL support, SSH tunneling, and AI-powered features.
+This document provides comprehensive guidance for AI agents and developers working on the Fluxlyn codebase. Fluxlyn is a Flutter cross-platform application (macOS, Android, Windows) for database management with MySQL support, SSH tunneling, and AI-powered features.
 
 **Key Technologies:**
 - Flutter 3.x with Material 3
@@ -12,8 +12,8 @@ This document provides comprehensive guidance for AI agents and developers worki
 - Google Fonts (Inter)
 
 **Target Platforms:**
-- Primary: macOS
-- Future: Windows, Linux
+- Current: macOS, Android, Windows
+- Future: iOS, Linux
 
 ---
 
@@ -602,7 +602,7 @@ try {
 }
 ```
 
-### File Selection (macOS)
+### File Selection (Cross-platform)
 
 ```dart
 import 'package:file_selector/file_selector.dart';
@@ -724,8 +724,16 @@ Key packages from `pubspec.yaml`:
 ## 13. Common Commands
 
 ```bash
-# Run app (macOS)
+# Run app
 flutter run -d macos
+flutter run -d windows
+flutter run -d android
+
+# Build for release
+flutter build macos --release
+flutter build windows --release
+flutter build apk --release
+flutter build appbundle --release
 
 # Clean build
 flutter clean
@@ -784,5 +792,5 @@ flutter pub get
 
 ---
 
-**Last Updated:** 2026-02-07
+**Last Updated:** 2026-02-22
 **Version:** 1.0.0

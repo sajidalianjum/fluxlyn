@@ -4,12 +4,12 @@
 
   # Fluxlyn
 
-  **A Modern DB Explorer for Developers**
+  **A Modern Cross-Platform Database Explorer**
 
   [![Flutter](https://img.shields.io/badge/Flutter-3.x-blue?logo=flutter)](https://flutter.dev)
   [![Dart](https://img.shields.io/badge/Dart-3.10+-blue?logo=dart)](https://dart.dev)
   [![License](https://img.shields.io/badge/license-Dual%20License-blue)](LICENSE)
-  [![Platform](https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple)](https://www.apple.com/macos)
+  [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Android%20%7C%20Windows-lightgrey?logo=flutter)](https://flutter.dev/multi-platform)
 
   [Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Contributing](#-contributing)
 
@@ -19,7 +19,14 @@
 
 ## 📖 About
 
-Fluxlyn is a powerful, cross-platform database explorer built with Flutter, designed specifically for developers. It provides a modern interface for managing MySQL databases with advanced features like SSH tunneling, AI-powered query assistance, and secure encrypted storage of connections.
+Fluxlyn is a powerful, cross-platform database explorer built with Flutter, designed for everyone. It provides a modern interface for managing MySQL databases with advanced features like SSH tunneling, AI-powered query assistance, and secure encrypted storage of connections.
+
+**Supported Platforms:**
+- 🍎 macOS
+- 🤖 Android
+- 🪟 Windows
+- 🔜 iOS (Coming Soon)
+- 🔜 Linux (Coming Soon)
 
 ---
 
@@ -39,7 +46,14 @@ flutter pub get
 flutter pub run build_runner build --delete-conflicting-outputs
 
 # 4. Run the app
+# On macOS
 flutter run -d macos
+
+# On Windows
+flutter run -d windows
+
+# On Android
+flutter run -d android
 ```
 
 That's it! You're ready to explore your databases. Click the **"+"** button to add your first connection.
@@ -115,7 +129,23 @@ Before you begin, ensure you have the following installed:
   flutter --version
   ```
 - **Dart SDK** (3.10.8 or higher)
-- **macOS** (currently supported, Windows and Linux coming soon)
+
+### Platform-Specific Requirements
+
+**macOS:**
+- Xcode command line tools
+  ```bash
+  xcode-select --install
+  ```
+
+**Windows:**
+- Visual Studio 2022 with "Desktop development with C++" workload
+- Windows 10 or later
+
+**Android:**
+- Android Studio
+- Android SDK (API 21 or higher)
+- Enable Developer Mode on your device
 
 ### Step 1: Clone the Repository
 
@@ -141,6 +171,12 @@ flutter pub run build_runner build --delete-conflicting-outputs
 ```bash
 # On macOS
 flutter run -d macos
+
+# On Windows
+flutter run -d windows
+
+# On Android
+flutter run -d android
 
 # Or run in release mode
 flutter run --release -d macos
@@ -245,9 +281,14 @@ lib/
 ```bash
 # Run the app
 flutter run -d macos
+flutter run -d windows
+flutter run -d android
 
 # Build for release
 flutter build macos --release
+flutter build windows --release
+flutter build apk --release
+flutter build appbundle --release
 
 # Run tests
 flutter test
@@ -305,7 +346,7 @@ Fluxlyn uses **Hive** with **AES-256 encryption** for all persistent data:
 - [ ] Query favorites organization
 
 ### Version 1.2 (Planned)
-- [ ] Windows support
+- [ ] iOS support
 - [ ] Linux support
 - [ ] AI-powered query optimization
 - [ ] Visual query builder
@@ -337,7 +378,7 @@ Contributions are welcome! Please follow these steps:
 - Use Provider for state management
 - Use Hive for all persistent storage
 - Ensure Material 3 design compliance
-- Test on macOS before submitting PR
+- Test on all target platforms (macOS, Android, Windows) before submitting PR
 - Update documentation as needed
 
 See [AGENTS.md](AGENTS.md) for comprehensive development guidelines.
