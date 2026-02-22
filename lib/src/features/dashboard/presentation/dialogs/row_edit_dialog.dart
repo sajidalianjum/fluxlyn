@@ -759,6 +759,7 @@ class _RowEditDialogState extends State<RowEditDialog> {
     );
 
     final canEdit = widget.primaryKeyColumn != null && protectionError == null;
+    final readOnlyOnlyError = settings.readOnlyMode && !settings.lock;
 
     return Dialog.fullscreen(
       backgroundColor: const Color(0xFF0F172A),
@@ -802,11 +803,6 @@ class _RowEditDialogState extends State<RowEditDialog> {
                     ),
                     const SizedBox(width: 16),
                   ],
-                  TextButton(
-                    onPressed: widget.onCancel,
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 8),
                   FilledButton(
                     onPressed: _hasChanges && canEdit ? _saveChanges : null,
                     child: const Text('Save'),
@@ -834,7 +830,9 @@ class _RowEditDialogState extends State<RowEditDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        protectionError ?? 'Editing is not available',
+                        readOnlyOnlyError
+                            ? 'Read-only mode is active'
+                            : (protectionError ?? 'Editing is not available'),
                         style: TextStyle(color: Colors.orange[400]),
                       ),
                     ),

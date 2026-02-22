@@ -324,25 +324,7 @@ class _TableDataPageState extends State<TableDataPage> {
             builder: (context, settingsProvider, _) {
               final settings = settingsProvider.settings;
 
-              if (settings.readOnlyMode) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Chip(
-                    avatar: const Icon(Icons.lock, size: 16),
-                    label: const Text(
-                      'Read-Only',
-                      style: TextStyle(fontSize: 11),
-                    ),
-                    backgroundColor: Colors.red.withValues(alpha: 0.2),
-                    labelStyle: const TextStyle(color: Colors.red),
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                  ),
-                );
-              } else if (settings.lock) {
+              if (settings.lock) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Chip(
