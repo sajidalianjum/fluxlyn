@@ -301,8 +301,12 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     try {
-      final primaryKeyColumn = await _driver!.getPrimaryKeyColumn(tableName);
-      final columns = await _driver!.getColumns(tableName);
+      final results = await Future.wait([
+        _driver!.getPrimaryKeyColumn(tableName),
+        _driver!.getColumns(tableName),
+      ]);
+      final primaryKeyColumn = results[0] as String?;
+      final columns = results[1] as List<ColumnInfo>;
 
       final binaryColumns = <String>{};
       final bitColumns = <String>{};
@@ -456,8 +460,12 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     try {
-      String? primaryKeyColumn = await _driver!.getPrimaryKeyColumn(tableName);
-      final columns = await _driver!.getColumns(tableName);
+      final results = await Future.wait([
+        _driver!.getPrimaryKeyColumn(tableName),
+        _driver!.getColumns(tableName),
+      ]);
+      final primaryKeyColumn = results[0] as String?;
+      final columns = results[1] as List<ColumnInfo>;
 
       final binaryColumns = <String>{};
       final bitColumns = <String>{};

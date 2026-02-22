@@ -44,23 +44,25 @@ class StorageService {
       // Derive Encryption Key (32 bytes for AES-256)
       final encryptionKey = _deriveEncryptionKey();
 
-      // Open Encrypted Boxes
-      await Hive.openBox<ConnectionModel>(
-        _connectionsBoxName,
-        encryptionCipher: HiveAesCipher(encryptionKey),
-      );
-      await Hive.openBox<QueryModel>(
-        _queriesBoxName,
-        encryptionCipher: HiveAesCipher(encryptionKey),
-      );
-      await Hive.openBox<QueryHistoryEntry>(
-        _queryHistoryBoxName,
-        encryptionCipher: HiveAesCipher(encryptionKey),
-      );
-      await Hive.openBox(
-        _settingsBoxName,
-        encryptionCipher: HiveAesCipher(encryptionKey),
-      );
+      // Open Encrypted Boxes (parallel for faster startup)
+      await Future.wait([
+        Hive.openBox<ConnectionModel>(
+          _connectionsBoxName,
+          encryptionCipher: HiveAesCipher(encryptionKey),
+        ),
+        Hive.openBox<QueryModel>(
+          _queriesBoxName,
+          encryptionCipher: HiveAesCipher(encryptionKey),
+        ),
+        Hive.openBox<QueryHistoryEntry>(
+          _queryHistoryBoxName,
+          encryptionCipher: HiveAesCipher(encryptionKey),
+        ),
+        Hive.openBox(
+          _settingsBoxName,
+          encryptionCipher: HiveAesCipher(encryptionKey),
+        ),
+      ]);
     } catch (e) {
       throw StorageException(
         'Failed to initialize storage: ${e.toString()}',
