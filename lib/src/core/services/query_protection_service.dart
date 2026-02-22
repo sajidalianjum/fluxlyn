@@ -5,7 +5,7 @@ class QueryProtectionService {
   );
 
   static final RegExp _destructiveOperationPattern = RegExp(
-    r'^\s*(UPDATE|DELETE|DROP|TRUNCATE|ALTER)\s+',
+    r'^\s*(DELETE|DROP|TRUNCATE|ALTER)\s+',
     caseSensitive: false,
   );
 

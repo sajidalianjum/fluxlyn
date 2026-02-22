@@ -88,11 +88,8 @@ class AppSettings {
   }
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
-    final lockDelete = json['lockDelete'] ?? true;
-    final lockDrop = json['lockDrop'] ?? true;
-
     return AppSettings(
-      lock: json['lock'] ?? (lockDelete || lockDrop),
+      lock: json['lock'] ?? true,
       readOnlyMode: json['readOnlyMode'] ?? false,
       provider: AIProvider.fromString(json['provider'] ?? 'openai'),
       apiKey: json['apiKey'] ?? '',
