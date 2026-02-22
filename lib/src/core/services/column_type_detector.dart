@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 import 'sql_analyzer.dart';
+import '../models/exceptions.dart';
 
 enum TypeConfidence { high, low }
 
@@ -292,7 +294,11 @@ class ColumnTypeDetector {
         schemaInfo.putIfAbsent(tableName, () => []);
         schemaInfo[tableName]!.add(info);
       }
+    } on DatabaseException catch (e) {
+      debugPrint('Database error fetching schema info: $e');
+      return {};
     } catch (e) {
+      debugPrint('Error fetching schema info from INFORMATION_SCHEMA: $e');
       // Silent fallback - no error surfaced to user
       // Return empty map to trigger inference from result values
       return {};

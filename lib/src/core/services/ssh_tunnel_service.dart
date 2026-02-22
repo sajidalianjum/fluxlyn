@@ -5,8 +5,12 @@ import 'package:dartssh2/dartssh2.dart';
 import '../../features/connections/models/connection_model.dart';
 import '../../utils/ssh_helper.dart';
 import '../constants/app_constants.dart';
+import '../models/exceptions.dart';
 
 class SSHTunnelService {
+  static const Duration _connectionTimeout = Duration(seconds: 10);
+  static const Duration _forwardTimeout = Duration(seconds: 5);
+
   SSHClient? _sshClient;
   ServerSocket? _serverSocket;
   int _localPort = 0;
@@ -20,41 +24,81 @@ class SSHTunnelService {
     String remoteHost,
     int remotePort,
   ) async {
+    if (_sshClient != null || _serverSocket != null) {
+      await disconnect();
+    }
+
     print(
       'SSH Tunnel: Connecting to ${config.sshHost}:${config.sshPort ?? AppConstants.portSSH}',
     );
 
+    SSHClient? tempClient;
+    ServerSocket? tempSocket;
+
     try {
-      final socket = await SSHSocket.connect(
-        config.sshHost!,
-        config.sshPort ?? AppConstants.portSSH,
-        timeout: const Duration(seconds: 10),
-      );
+      final socket =
+          await SSHSocket.connect(
+            config.sshHost!,
+            config.sshPort ?? AppConstants.portSSH,
+            timeout: _connectionTimeout,
+          ).timeout(
+            _connectionTimeout,
+            onTimeout: () {
+              throw TimeoutException(
+                'SSH connection timeout after ${_connectionTimeout.inSeconds} seconds',
+                timeout: _connectionTimeout,
+                operation: 'connect',
+              );
+            },
+          );
       print('SSH Tunnel: Socket connected');
 
       final List<SSHKeyPair> keys = [];
       if (config.sshPrivateKey != null) {
         final keyText = config.sshPrivateKey!;
         if (keyText.startsWith('-----')) {
-          final decryptedKeys = await compute(decryptSSHKeyPairs, [
-            keyText,
-            config.sshKeyPassword ?? '',
-          ]);
-          keys.addAll(decryptedKeys);
+          try {
+            final decryptedKeys = await compute(decryptSSHKeyPairs, [
+              keyText,
+              config.sshKeyPassword ?? '',
+            ]);
+            keys.addAll(decryptedKeys);
+          } catch (e) {
+            throw SSHException(
+              'Failed to decrypt SSH private key',
+              host: config.sshHost,
+              port: config.sshPort,
+              originalError: e,
+            );
+          }
         } else {
-          final file = File(keyText);
-          if (file.existsSync()) {
+          try {
+            final file = File(keyText);
+            if (!file.existsSync()) {
+              throw SSHException(
+                'SSH private key file not found: $keyText',
+                host: config.sshHost,
+                port: config.sshPort,
+              );
+            }
             final keyContent = await file.readAsString();
             final decryptedKeys = await compute(decryptSSHKeyPairs, [
               keyContent,
               config.sshKeyPassword ?? '',
             ]);
             keys.addAll(decryptedKeys);
+          } catch (e) {
+            throw SSHException(
+              'Failed to read SSH private key file',
+              host: config.sshHost,
+              port: config.sshPort,
+              originalError: e,
+            );
           }
         }
       }
 
-      _sshClient = SSHClient(
+      tempClient = SSHClient(
         socket,
         username: config.sshUsername ?? '',
         onPasswordRequest: () => config.sshPassword,
@@ -64,28 +108,52 @@ class SSHTunnelService {
       );
       print('SSH Tunnel: Client created, waiting for authentication...');
 
-      await _sshClient!.authenticated;
+      await tempClient.authenticated.timeout(
+        _connectionTimeout,
+        onTimeout: () {
+          throw TimeoutException(
+            'SSH authentication timeout after ${_connectionTimeout.inSeconds} seconds',
+            timeout: _connectionTimeout,
+            operation: 'authenticate',
+          );
+        },
+      );
       print('SSH Tunnel: Authenticated successfully');
 
-      _serverSocket = await ServerSocket.bind('127.0.0.1', 0);
-      _localPort = _serverSocket!.port;
+      tempSocket = await ServerSocket.bind('127.0.0.1', 0);
+      _localPort = tempSocket.port;
       print('SSH Tunnel: ServerSocket bound to 127.0.0.1:$_localPort');
 
-      _serverSocket!.listen((socket) async {
+      _sshClient = tempClient;
+      _serverSocket = tempSocket;
+
+      tempSocket.listen((socket) async {
+        final resolvedRemoteHost = remoteHost == 'localhost'
+            ? '127.0.0.1'
+            : remoteHost;
+
         try {
           print(
-            'SSH Tunnel: New connection received, creating forward channel to $remoteHost:$remotePort',
+            'SSH Tunnel: New connection received, creating forward channel to $resolvedRemoteHost:$remotePort',
           );
 
-          final resolvedRemoteHost = remoteHost == 'localhost'
-              ? '127.0.0.1'
-              : remoteHost;
+          dynamic session;
+          dynamic forward;
 
           try {
             print('SSH Tunnel: Attempting connection via netcat...');
-            final session = await _sshClient!.execute(
-              'nc $resolvedRemoteHost $remotePort',
-            );
+            session = await _sshClient!
+                .execute('nc $resolvedRemoteHost $remotePort')
+                .timeout(
+                  _forwardTimeout,
+                  onTimeout: () {
+                    throw TimeoutException(
+                      'Netcat connection timeout',
+                      timeout: _forwardTimeout,
+                      operation: 'netcat',
+                    );
+                  },
+                );
 
             bool ncFailed = false;
             session.stderr.listen((data) {
@@ -123,48 +191,97 @@ class SSHTunnelService {
               'SSH Tunnel: Netcat failed or not found ($e), falling back to direct-tcpip...',
             );
 
-            final forward = await _sshClient!.forwardLocal(
-              resolvedRemoteHost,
-              remotePort,
-            );
-            print('SSH Tunnel: Direct forward channel created');
+            try {
+              forward = await _sshClient!
+                  .forwardLocal(resolvedRemoteHost, remotePort)
+                  .timeout(
+                    _forwardTimeout,
+                    onTimeout: () {
+                      throw TimeoutException(
+                        'SSH forward timeout',
+                        timeout: _forwardTimeout,
+                        operation: 'forwardLocal',
+                      );
+                    },
+                  );
+              print('SSH Tunnel: Direct forward channel created');
 
-            socket.setOption(SocketOption.tcpNoDelay, true);
+              socket.setOption(SocketOption.tcpNoDelay, true);
 
-            forward.stream.listen(
-              (data) => socket.add(data),
-              onDone: () => socket.close(),
-              onError: (e) => socket.close(),
-            );
+              forward.stream.listen(
+                (data) => socket.add(data),
+                onDone: () => socket.close(),
+                onError: (e) => socket.close(),
+              );
 
-            socket.listen(
-              (data) => forward.sink.add(data),
-              onDone: () => forward.sink.close(),
-              onError: (e) => forward.sink.close(),
-            );
+              socket.listen(
+                (data) => forward.sink.add(data),
+                onDone: () => forward.sink.close(),
+                onError: (e) => forward.sink.close(),
+              );
 
-            await forward.done;
-            print('SSH Tunnel: Direct forward channel closed');
+              await forward.done;
+              print('SSH Tunnel: Direct forward channel closed');
+            } catch (forwardError) {
+              debugPrint('SSH Tunnel: Forward error - $forwardError');
+              socket.close();
+            }
           }
         } catch (e) {
-          print('SSH Tunnel: Forward error - $e');
+          debugPrint('SSH Tunnel: Forward error - $e');
           socket.close();
         }
       });
       print('SSH Tunnel: Listener started');
       print('SSH Tunnel: Ready to connect via $localHost:$localPort');
+    } on TimeoutException {
+      await _cleanupTempResources(tempClient, tempSocket);
+      rethrow;
+    } on SSHException {
+      await _cleanupTempResources(tempClient, tempSocket);
+      rethrow;
     } catch (e) {
-      print('SSH Tunnel: Error - $e');
-      await disconnect();
-      throw Exception('SSH Connection Failed: $e');
+      await _cleanupTempResources(tempClient, tempSocket);
+      throw SSHException(
+        'SSH Connection Failed: ${e.toString()}',
+        host: config.sshHost,
+        port: config.sshPort,
+        originalError: e,
+      );
     }
   }
 
+  Future<void> _cleanupTempResources(
+    SSHClient? client,
+    ServerSocket? socket,
+  ) async {
+    try {
+      if (socket != null) {
+        try {
+          await socket.close();
+        } catch (_) {}
+      }
+    } catch (_) {}
+    try {
+      if (client != null) {
+        client.close();
+      }
+    } catch (_) {}
+  }
+
   Future<void> disconnect() async {
-    await _serverSocket?.close();
+    try {
+      await _serverSocket?.close();
+    } catch (e) {
+      debugPrint('Error closing SSH server socket: $e');
+    }
     _serverSocket = null;
     if (_sshClient != null) {
-      _sshClient!.close();
+      try {
+        _sshClient!.close();
+      } catch (e) {
+        debugPrint('Error closing SSH client: $e');
+      }
       _sshClient = null;
     }
     _localPort = 0;

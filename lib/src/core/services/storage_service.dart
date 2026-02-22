@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:crypto/crypto.dart';
 import 'package:uuid/uuid.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -7,6 +8,7 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import '../../features/connections/models/connection_model.dart';
 import '../../features/queries/models/query_model.dart';
 import '../../core/models/settings_model.dart';
+import '../../core/models/exceptions.dart';
 
 class StorageService {
   static const String _connectionsBoxName = 'connections';
@@ -19,45 +21,53 @@ class StorageService {
   static const String _internalSalt = "fluxlyn_key_derivation_v1_2024_internal";
 
   Future<void> init() async {
-    await Hive.initFlutter();
+    try {
+      await Hive.initFlutter();
 
-    // Register Adapters
-    if (!Hive.isAdapterRegistered(1)) {
-      Hive.registerAdapter(ConnectionTypeAdapter());
-    }
-    if (!Hive.isAdapterRegistered(4)) {
-      Hive.registerAdapter(ConnectionTagAdapter());
-    }
-    if (!Hive.isAdapterRegistered(0)) {
-      Hive.registerAdapter(ConnectionModelAdapter());
-    }
-    if (!Hive.isAdapterRegistered(2)) {
-      Hive.registerAdapter(QueryModelAdapter());
-    }
-    if (!Hive.isAdapterRegistered(3)) {
-      Hive.registerAdapter(QueryHistoryEntryAdapter());
-    }
+      // Register Adapters
+      if (!Hive.isAdapterRegistered(1)) {
+        Hive.registerAdapter(ConnectionTypeAdapter());
+      }
+      if (!Hive.isAdapterRegistered(4)) {
+        Hive.registerAdapter(ConnectionTagAdapter());
+      }
+      if (!Hive.isAdapterRegistered(0)) {
+        Hive.registerAdapter(ConnectionModelAdapter());
+      }
+      if (!Hive.isAdapterRegistered(2)) {
+        Hive.registerAdapter(QueryModelAdapter());
+      }
+      if (!Hive.isAdapterRegistered(3)) {
+        Hive.registerAdapter(QueryHistoryEntryAdapter());
+      }
 
-    // Derive Encryption Key (32 bytes for AES-256)
-    final encryptionKey = _deriveEncryptionKey();
+      // Derive Encryption Key (32 bytes for AES-256)
+      final encryptionKey = _deriveEncryptionKey();
 
-    // Open Encrypted Boxes
-    await Hive.openBox<ConnectionModel>(
-      _connectionsBoxName,
-      encryptionCipher: HiveAesCipher(encryptionKey),
-    );
-    await Hive.openBox<QueryModel>(
-      _queriesBoxName,
-      encryptionCipher: HiveAesCipher(encryptionKey),
-    );
-    await Hive.openBox<QueryHistoryEntry>(
-      _queryHistoryBoxName,
-      encryptionCipher: HiveAesCipher(encryptionKey),
-    );
-    await Hive.openBox(
-      _settingsBoxName,
-      encryptionCipher: HiveAesCipher(encryptionKey),
-    );
+      // Open Encrypted Boxes
+      await Hive.openBox<ConnectionModel>(
+        _connectionsBoxName,
+        encryptionCipher: HiveAesCipher(encryptionKey),
+      );
+      await Hive.openBox<QueryModel>(
+        _queriesBoxName,
+        encryptionCipher: HiveAesCipher(encryptionKey),
+      );
+      await Hive.openBox<QueryHistoryEntry>(
+        _queryHistoryBoxName,
+        encryptionCipher: HiveAesCipher(encryptionKey),
+      );
+      await Hive.openBox(
+        _settingsBoxName,
+        encryptionCipher: HiveAesCipher(encryptionKey),
+      );
+    } catch (e) {
+      throw StorageException(
+        'Failed to initialize storage: ${e.toString()}',
+        operation: 'init',
+        originalError: e,
+      );
+    }
   }
 
   List<int> _deriveEncryptionKey() {
@@ -180,8 +190,16 @@ class StorageService {
   Box get settingsBox => Hive.box(_settingsBoxName);
 
   Future<void> saveSettings(AppSettings settings) async {
-    final settingsJson = settings.toJson();
-    await settingsBox.put('settings', jsonEncode(settingsJson));
+    try {
+      final settingsJson = settings.toJson();
+      await settingsBox.put('settings', jsonEncode(settingsJson));
+    } catch (e) {
+      throw StorageException(
+        'Failed to save settings: ${e.toString()}',
+        operation: 'saveSettings',
+        originalError: e,
+      );
+    }
   }
 
   AppSettings loadSettings() {
@@ -194,6 +212,7 @@ class StorageService {
         jsonDecode(settingsJson as String) as Map<String, dynamic>,
       );
     } catch (e) {
+      debugPrint('Failed to load settings, using defaults: $e');
       return AppSettings.defaultSettings();
     }
   }
@@ -203,85 +222,177 @@ class StorageService {
     String password,
     List<ConnectionModel> connections,
   ) async {
-    final key = encrypt.Key.fromUtf8(_padPassword(password));
-    final iv = encrypt.IV.fromLength(16);
-    final encrypter = encrypt.Encrypter(encrypt.AES(key));
+    try {
+      if (password.isEmpty) {
+        throw ValidationException(
+          'Password cannot be empty',
+          field: 'password',
+        );
+      }
 
-    final connectionsJson = {
-      'version': '1.0',
-      'exportedAt': DateTime.now().toIso8601String(),
-      'connections': connections.map((c) => c.toJson()).toList(),
-    };
+      final file = File(savePath);
+      final directory = file.parent;
+      if (!directory.existsSync()) {
+        throw StorageException(
+          'Export directory does not exist: ${directory.path}',
+          filePath: savePath,
+          operation: 'exportConnections',
+        );
+      }
 
-    final jsonString = jsonEncode(connectionsJson);
-    final encrypted = encrypter.encrypt(jsonString, iv: iv);
+      final key = encrypt.Key.fromUtf8(_padPassword(password));
+      final iv = encrypt.IV.fromLength(16);
+      final encrypter = encrypt.Encrypter(encrypt.AES(key));
 
-    final fileContent = jsonEncode({'iv': iv.base64, 'data': encrypted.base64});
+      final connectionsJson = {
+        'version': '1.0',
+        'exportedAt': DateTime.now().toIso8601String(),
+        'connections': connections.map((c) => c.toJson()).toList(),
+      };
 
-    final file = File(savePath);
-    await file.writeAsString(fileContent);
+      final jsonString = jsonEncode(connectionsJson);
+      final encrypted = encrypter.encrypt(jsonString, iv: iv);
+
+      final fileContent = jsonEncode({
+        'iv': iv.base64,
+        'data': encrypted.base64,
+      });
+
+      await file.writeAsString(fileContent);
+    } catch (e) {
+      if (e is StorageException || e is ValidationException) rethrow;
+      throw StorageException(
+        'Failed to export connections: ${e.toString()}',
+        filePath: savePath,
+        operation: 'exportConnections',
+        originalError: e,
+      );
+    }
   }
 
   Future<List<ConnectionModel>> importConnections(
     String filePath,
     String password,
   ) async {
-    final file = File(filePath);
-    final fileContent = await file.readAsString();
-
-    final encryptedData = jsonDecode(fileContent) as Map<String, dynamic>;
-    final iv = encrypt.IV.fromBase64(encryptedData['iv'] as String);
-    final encrypted = encrypt.Encrypted.fromBase64(
-      encryptedData['data'] as String,
-    );
-
-    final key = encrypt.Key.fromUtf8(_padPassword(password));
-    final encrypter = encrypt.Encrypter(encrypt.AES(key));
-
     try {
-      final decrypted = encrypter.decrypt(encrypted, iv: iv);
-      final connectionsJson = jsonDecode(decrypted) as Map<String, dynamic>;
-      final connectionsList = connectionsJson['connections'] as List;
+      if (password.isEmpty) {
+        throw ValidationException(
+          'Password cannot be empty',
+          field: 'password',
+        );
+      }
 
-      final uuid = const Uuid();
-      return connectionsList.map((json) {
-        final connection = ConnectionModel.fromJson(
-          json as Map<String, dynamic>,
+      final file = File(filePath);
+      if (!file.existsSync()) {
+        throw StorageException(
+          'Import file does not exist: $filePath',
+          filePath: filePath,
+          operation: 'importConnections',
         );
-        return ConnectionModel(
-          id: uuid.v4(),
-          name: connection.name,
-          host: connection.host,
-          port: connection.port,
-          username: connection.username,
-          password: connection.password,
-          type: connection.type,
-          sslEnabled: connection.sslEnabled,
-          isConnected: false,
-          useSsh: connection.useSsh,
-          sshHost: connection.sshHost,
-          sshPort: connection.sshPort,
-          sshUsername: connection.sshUsername,
-          sshPassword: connection.sshPassword,
-          sshPrivateKey: connection.sshPrivateKey,
-          sshKeyPassword: connection.sshKeyPassword,
-          databaseName: connection.databaseName,
-          customTag: connection.customTag,
-          tag: connection.tag,
-          sortOrder: null,
+      }
+
+      final fileContent = await file.readAsString();
+
+      if (fileContent.isEmpty) {
+        throw StorageException(
+          'Import file is empty',
+          filePath: filePath,
+          operation: 'importConnections',
         );
-      }).toList();
+      }
+
+      final encryptedData = jsonDecode(fileContent) as Map<String, dynamic>;
+
+      if (!encryptedData.containsKey('iv') ||
+          !encryptedData.containsKey('data')) {
+        throw StorageException(
+          'Invalid export file format',
+          filePath: filePath,
+          operation: 'importConnections',
+        );
+      }
+
+      final iv = encrypt.IV.fromBase64(encryptedData['iv'] as String);
+      final encrypted = encrypt.Encrypted.fromBase64(
+        encryptedData['data'] as String,
+      );
+
+      final key = encrypt.Key.fromUtf8(_padPassword(password));
+      final encrypter = encrypt.Encrypter(encrypt.AES(key));
+
+      try {
+        final decrypted = encrypter.decrypt(encrypted, iv: iv);
+        final connectionsJson = jsonDecode(decrypted) as Map<String, dynamic>;
+
+        if (!connectionsJson.containsKey('connections')) {
+          throw StorageException(
+            'Invalid export file: missing connections',
+            filePath: filePath,
+            operation: 'importConnections',
+          );
+        }
+
+        final connectionsList = connectionsJson['connections'] as List;
+
+        final uuid = const Uuid();
+        return connectionsList.map((json) {
+          final connection = ConnectionModel.fromJson(
+            json as Map<String, dynamic>,
+          );
+          return ConnectionModel(
+            id: uuid.v4(),
+            name: connection.name,
+            host: connection.host,
+            port: connection.port,
+            username: connection.username,
+            password: connection.password,
+            type: connection.type,
+            sslEnabled: connection.sslEnabled,
+            isConnected: false,
+            useSsh: connection.useSsh,
+            sshHost: connection.sshHost,
+            sshPort: connection.sshPort,
+            sshUsername: connection.sshUsername,
+            sshPassword: connection.sshPassword,
+            sshPrivateKey: connection.sshPrivateKey,
+            sshKeyPassword: connection.sshKeyPassword,
+            databaseName: connection.databaseName,
+            customTag: connection.customTag,
+            tag: connection.tag,
+            sortOrder: null,
+          );
+        }).toList();
+      } catch (e) {
+        throw StorageException(
+          'Failed to decrypt connections. Invalid password or corrupted file.',
+          filePath: filePath,
+          operation: 'importConnections',
+          originalError: e,
+        );
+      }
     } catch (e) {
-      throw Exception(
-        'Failed to decrypt connections. Invalid password or corrupted file.',
+      if (e is StorageException || e is ValidationException) rethrow;
+      throw StorageException(
+        'Failed to import connections: ${e.toString()}',
+        filePath: filePath,
+        operation: 'importConnections',
+        originalError: e,
       );
     }
   }
 
   String _padPassword(String password) {
-    if (password.length >= 32) {
-      return password.substring(0, 32);
+    try {
+      if (password.length >= 32) {
+        return password.substring(0, 32);
+      }
+      return password.padRight(32, '0');
+    } catch (e) {
+      throw StorageException(
+        'Failed to pad password: ${e.toString()}',
+        operation: 'padPassword',
+        originalError: e,
+      );
     }
-    return password.padRight(32, '0');
   }
 }

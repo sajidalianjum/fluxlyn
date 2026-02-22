@@ -170,7 +170,15 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     if (file != null) {
       try {
         final fileObj = File(file.path);
+        if (!fileObj.existsSync()) {
+          throw Exception('Selected file does not exist');
+        }
+
         final content = await fileObj.readAsString();
+        if (content.isEmpty) {
+          throw Exception('Selected file is empty');
+        }
+
         final formatted = _formatSSHKey(content);
         setState(() {
           _sshKeyPathController.text = formatted;
@@ -178,7 +186,10 @@ class _ConnectionDialogState extends State<ConnectionDialog>
         });
       } catch (e) {
         if (mounted) {
-          SnackbarHelper.showError(context, 'Failed to read key file: $e');
+          SnackbarHelper.showError(
+            context,
+            'Failed to read key file: ${e.toString()}',
+          );
         }
       }
     }
@@ -204,13 +215,22 @@ class _ConnectionDialogState extends State<ConnectionDialog>
   }
 
   Future<void> _pasteKey() async {
-    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-    if (clipboardData?.text != null) {
-      final formatted = _formatSSHKey(clipboardData!.text!);
-      setState(() {
-        _sshKeyPathController.text = formatted;
-        _keyModified = true;
-      });
+    try {
+      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+      if (clipboardData?.text != null && clipboardData!.text!.isNotEmpty) {
+        final formatted = _formatSSHKey(clipboardData.text!);
+        setState(() {
+          _sshKeyPathController.text = formatted;
+          _keyModified = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackbarHelper.showError(
+          context,
+          'Failed to access clipboard: ${e.toString()}',
+        );
+      }
     }
   }
 

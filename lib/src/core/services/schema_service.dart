@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'database_driver.dart';
 
 class SchemaService {
+  static const Duration _waitTimeout = Duration(seconds: 5);
+  static const Duration _preloadTimeout = Duration(seconds: 30);
+
   final Map<String, List<ColumnInfo>> _columnsCache = {};
   final Set<String> _loadingTables = {};
   final Map<String, List<String>> _tableNamesCache = {};
@@ -17,8 +22,14 @@ class SchemaService {
     }
 
     if (_loadingTables.contains(cacheKey)) {
-      while (_loadingTables.contains(cacheKey)) {
+      final stopwatch = Stopwatch()..start();
+      while (_loadingTables.contains(cacheKey) &&
+          stopwatch.elapsed < _waitTimeout) {
         await Future.delayed(const Duration(milliseconds: 50));
+      }
+      if (_loadingTables.contains(cacheKey)) {
+        debugPrint('Timeout waiting for columns: $cacheKey');
+        return [];
       }
       return _columnsCache[cacheKey] ?? [];
     }
@@ -29,6 +40,9 @@ class SchemaService {
       final columns = await driver.getColumns(tableName);
       _columnsCache[cacheKey] = columns;
       return columns;
+    } catch (e) {
+      debugPrint('Error loading columns for $tableName: $e');
+      return [];
     } finally {
       _loadingTables.remove(cacheKey);
     }
@@ -44,15 +58,21 @@ class SchemaService {
       return !_columnsCache.containsKey(cacheKey);
     }).toList();
 
-    await Future.wait(
-      tablesToLoad.map(
-        (table) => getColumns(
-          driver,
-          databaseName,
-          table,
-        ).catchError((_) => <ColumnInfo>[]),
-      ),
-    );
+    try {
+      await Future.wait(
+        tablesToLoad.map(
+          (table) => getColumns(driver, databaseName, table).timeout(
+            _preloadTimeout,
+            onTimeout: () {
+              debugPrint('Timeout preloading columns for: $table');
+              return <ColumnInfo>[];
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error preloading columns: $e');
+    }
   }
 
   List<String> getAllColumnNames(String databaseName, String? tableName) {

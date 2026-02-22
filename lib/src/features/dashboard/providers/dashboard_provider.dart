@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 import '../../../core/services/database_service.dart';
 import '../../../core/services/database_driver.dart';
+import '../../../core/models/exceptions.dart';
 import '../../connections/models/connection_model.dart';
 import '../models/table_search_result.dart';
 
@@ -17,6 +18,8 @@ enum ConnectionStep {
 }
 
 class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
+  static const Duration _connectionCheckTimeout = Duration(seconds: 5);
+
   ConnectionModel? _currentConnectionModel;
   DatabaseDriver? _driver;
   bool _wasConnectedBeforePause = false;
@@ -129,13 +132,18 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       _databases = await _driver!.getDatabases();
       _error = null;
     } catch (e) {
-      _error = 'Failed to load databases: $e';
+      _error = 'Failed to load databases: ${e.toString()}';
+      debugPrint('Error loading databases: $e');
     }
     notifyListeners();
   }
 
   Future<void> selectDatabase(String dbName) async {
-    if (_driver == null) return;
+    if (_driver == null) {
+      _error = 'Not connected to database';
+      notifyListeners();
+      return;
+    }
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -145,7 +153,8 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       _selectedDatabase = dbName;
       await refreshTables();
     } catch (e) {
-      _error = 'Failed to select database: $e';
+      _error = 'Failed to select database: ${e.toString()}';
+      debugPrint('Error selecting database $dbName: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -158,17 +167,30 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       _tables = await _driver!.getTables();
       _error = null;
     } catch (e) {
-      _error = 'Failed to load tables: $e';
+      _error = 'Failed to load tables: ${e.toString()}';
+      debugPrint('Error loading tables: $e');
     }
     notifyListeners();
   }
 
   Future<dynamic> executeQuery(String sql) async {
-    if (_driver == null) return null;
+    if (_driver == null) {
+      throw DatabaseException(
+        'Not connected to database',
+        operation: 'executeQuery',
+        connectionName: _currentConnectionModel?.name,
+      );
+    }
     try {
       return await _driver!.execute(sql);
     } catch (e) {
-      rethrow;
+      if (e is DatabaseException || e is QueryException) rethrow;
+      throw QueryException(
+        'Failed to execute query: ${e.toString()}',
+        query: sql.length > 200 ? '${sql.substring(0, 200)}...' : sql,
+        database: _selectedDatabase,
+        originalError: e,
+      );
     }
   }
 
@@ -210,11 +232,15 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     try {
-      final isConnected = await _driver!.isConnected();
+      final isConnected = await _driver!.isConnected().timeout(
+        _connectionCheckTimeout,
+        onTimeout: () => false,
+      );
       if (!isConnected) {
         _autoReconnect();
       }
     } catch (e) {
+      debugPrint('Error checking connection: $e');
       _autoReconnect();
     }
   }
@@ -268,6 +294,10 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     if (_driver == null) {
       return TableDataResult(error: 'Not connected to database');
+    }
+
+    if (_currentConnectionModel == null) {
+      return TableDataResult(error: 'Connection model not available');
     }
 
     try {
@@ -419,6 +449,10 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     if (_driver == null) {
       return TableDataResult(error: 'Not connected to database');
+    }
+
+    if (_currentConnectionModel == null) {
+      return TableDataResult(error: 'Connection model not available');
     }
 
     try {
@@ -587,6 +621,10 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   ) async {
     if (_driver == null) {
       return 'Not connected to database';
+    }
+
+    if (_currentConnectionModel == null) {
+      return 'Connection model not available';
     }
 
     try {
