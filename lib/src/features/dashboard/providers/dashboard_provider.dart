@@ -103,7 +103,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (_selectedDatabase != null && _selectedDatabase!.isNotEmpty) {
         _connectionStep = ConnectionStep.loadingTables;
         notifyListeners();
-        await refreshTables();
+        await selectDatabase(_selectedDatabase!);
       }
 
       _selectedTabIndex = 0;
@@ -271,7 +271,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (_selectedDatabase != null && _selectedDatabase!.isNotEmpty) {
         _connectionStep = ConnectionStep.loadingTables;
         notifyListeners();
-        await refreshTables();
+        await selectDatabase(_selectedDatabase!);
       }
 
       _connectionStep = ConnectionStep.completed;
