@@ -85,6 +85,26 @@ class StorageService {
 
   Future<void> deleteConnection(String id) async {
     await connectionsBox.delete(id);
+    await _deleteQueriesForConnection(id);
+    await _deleteHistoryForConnection(id);
+  }
+
+  Future<void> _deleteQueriesForConnection(String connectionId) async {
+    final queries = queriesBox.values
+        .where((q) => q.connectionId == connectionId)
+        .toList();
+    for (final query in queries) {
+      await queriesBox.delete(query.id);
+    }
+  }
+
+  Future<void> _deleteHistoryForConnection(String connectionId) async {
+    final entries = queryHistoryBox.values
+        .where((e) => e.connectionId == connectionId)
+        .toList();
+    for (final entry in entries) {
+      await queryHistoryBox.delete(entry.id);
+    }
   }
 
   List<ConnectionModel> getAllConnections() {
