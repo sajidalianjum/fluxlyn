@@ -11,6 +11,7 @@ abstract class DatabaseDriver {
   Future<bool> isConnected();
   Future<List<ColumnInfo>> getColumns(String tableName);
   Future<String?> getPrimaryKeyColumn(String tableName);
+  Future<Map<String, List<String>>> getEnumColumns(String tableName);
 }
 
 class ColumnInfo {

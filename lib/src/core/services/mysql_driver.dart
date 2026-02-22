@@ -346,5 +346,10 @@ class MySQLDriver implements DatabaseDriver {
     }
   }
 
+  @override
+  Future<Map<String, List<String>>> getEnumColumns(String tableName) async {
+    return {};
+  }
+
   MySQLConnection? get connection => _connection;
 }

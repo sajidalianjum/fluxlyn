@@ -324,7 +324,7 @@ class FieldEditor extends StatelessWidget {
         : null;
 
     return DropdownButtonFormField<String>(
-      initialValue: initialValue,
+      value: initialValue,
       decoration: InputDecoration(
         filled: true,
         fillColor: const Color(0xFF1E293B),

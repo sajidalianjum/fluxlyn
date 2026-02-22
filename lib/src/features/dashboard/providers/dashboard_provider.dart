@@ -340,6 +340,11 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
           _currentConnectionModel!.type != ConnectionType.mysql;
       final identifierQuote = isPostgreSQL ? '"' : '`';
 
+      if (isPostgreSQL) {
+        final postgresEnumColumns = await _driver!.getEnumColumns(tableName);
+        enumColumns.addAll(postgresEnumColumns);
+      }
+
       final selectColumns = allColumns
           .map((col) {
             final quotedCol = '$identifierQuote$col$identifierQuote';
@@ -506,6 +511,11 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       final isPostgreSQL =
           _currentConnectionModel!.type != ConnectionType.mysql;
       final identifierQuote = isPostgreSQL ? '"' : '`';
+
+      if (isPostgreSQL) {
+        final postgresEnumColumns = await _driver!.getEnumColumns(tableName);
+        enumColumns.addAll(postgresEnumColumns);
+      }
 
       final selectColumns = allColumns
           .map((col) {

@@ -260,6 +260,18 @@ class PostgreSQLDriver implements DatabaseDriver {
 
     final typeName = value.runtimeType.toString();
 
+    if (typeName.contains('UndecodedBytes')) {
+      try {
+        final bytes = _extractBytesFromUndecodedBytes(value);
+        if (bytes != null && bytes.isNotEmpty) {
+          return String.fromCharCodes(bytes);
+        }
+      } catch (e) {
+        return value.toString();
+      }
+      return value.toString();
+    }
+
     if (typeName.contains('Time') && value is! String) {
       try {
         final hour = (value.hour as int).toString().padLeft(2, '0');
@@ -276,6 +288,25 @@ class PostgreSQLDriver implements DatabaseDriver {
     }
 
     return value.toString();
+  }
+
+  List<int>? _extractBytesFromUndecodedBytes(dynamic undecodedBytes) {
+    try {
+      if (undecodedBytes is! Map &&
+          undecodedBytes is! List &&
+          undecodedBytes is! String &&
+          undecodedBytes is! num) {
+        try {
+          final dynamic bytesField = (undecodedBytes as dynamic).bytes;
+          if (bytesField is List<int>) {
+            return bytesField;
+          }
+        } catch (_) {}
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 
   @override
