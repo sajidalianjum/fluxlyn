@@ -389,10 +389,10 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 ## 👤 Author
 
-**Sajid Ali Anjum**
+**Softlitude**
 
 - GitHub: [@sajidalianjum](https://github.com/sajidalianjum)
-- Built with passion for making database management easier for developers
+- Built with passion for making database management easier for everyone
 
 ---
 
