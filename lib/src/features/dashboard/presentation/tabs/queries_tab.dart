@@ -117,6 +117,7 @@ class _QueriesTabState extends State<QueriesTab>
           connection: connection,
           onTap: () =>
               _onQueryTap(context, entry.query, connection, entry.databaseName),
+          onDelete: () => _showDeleteRecentQueryDialog(context, entry),
         );
       },
     );
@@ -172,6 +173,7 @@ class _QueriesTabState extends State<QueriesTab>
           connection: connection,
           onTap: () =>
               _onQueryTap(context, query.query, connection, query.databaseName),
+          onDelete: () => _showDeleteSavedQueryDialog(context, query),
         );
       },
     );
@@ -312,17 +314,172 @@ class _QueriesTabState extends State<QueriesTab>
         return 'Connection established!';
     }
   }
+
+  Future<void> _showDeleteSavedQueryDialog(
+    BuildContext context,
+    QueryModel query,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('Delete Saved Query'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete "${query.name}"?',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'This will permanently remove the saved query.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.red, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This action cannot be undone.',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final storageService = context.read<StorageService>();
+      await storageService.deleteQuery(query.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Query "${query.name}" deleted')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showDeleteRecentQueryDialog(
+    BuildContext context,
+    QueryHistoryEntry entry,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text('Delete Query History'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete this query from history?',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                entry.query,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.red, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This action cannot be undone.',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final storageService = context.read<StorageService>();
+      await storageService.deleteHistoryEntry(entry.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Query history entry deleted')),
+        );
+      }
+    }
+  }
 }
 
 class _RecentQueryCard extends StatelessWidget {
   final QueryHistoryEntry entry;
   final ConnectionModel? connection;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
   const _RecentQueryCard({
     required this.entry,
     required this.connection,
     this.onTap,
+    this.onDelete,
   });
 
   @override
@@ -448,10 +605,35 @@ class _RecentQueryCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right,
-                color: Colors.white.withValues(alpha: 0.3),
-              ),
+              if (onDelete != null)
+                PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
+                  onSelected: (choice) {
+                    if (choice == 'delete') {
+                      onDelete!();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 20, color: Colors.red),
+                          SizedBox(width: 12),
+                          Text('Delete', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.white.withValues(alpha: 0.3),
+                ),
             ],
           ),
         ),
@@ -486,11 +668,13 @@ class _SavedQueryCard extends StatelessWidget {
   final QueryModel query;
   final ConnectionModel? connection;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
   const _SavedQueryCard({
     required this.query,
     required this.connection,
     this.onTap,
+    this.onDelete,
   });
 
   @override
@@ -621,10 +805,35 @@ class _SavedQueryCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right,
-                color: Colors.white.withValues(alpha: 0.3),
-              ),
+              if (onDelete != null)
+                PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
+                  onSelected: (choice) {
+                    if (choice == 'delete') {
+                      onDelete!();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 20, color: Colors.red),
+                          SizedBox(width: 12),
+                          Text('Delete', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.white.withValues(alpha: 0.3),
+                ),
             ],
           ),
         ),

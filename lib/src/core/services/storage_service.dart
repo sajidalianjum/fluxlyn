@@ -163,6 +163,10 @@ class StorageService {
       ..sort((a, b) => b.executedAt.compareTo(a.executedAt));
   }
 
+  Future<void> deleteHistoryEntry(String id) async {
+    await queryHistoryBox.delete(id);
+  }
+
   Future<void> clearHistory(String connectionId) async {
     final entries = queryHistoryBox.values
         .where((e) => e.connectionId == connectionId)
