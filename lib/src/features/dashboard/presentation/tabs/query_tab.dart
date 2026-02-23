@@ -857,6 +857,39 @@ class _QueryTabState extends State<QueryTab> {
                   'Describe what you want to query in natural language:',
                   style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFF334155),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Colors.blue,
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Your database schema (table/column names) will be sent to the AI API to generate SQL queries. No actual data will be transmitted.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: promptController,

@@ -379,6 +379,34 @@ See [AGENTS.md](AGENTS.md) for comprehensive development guidelines.
 
 ---
 
+## 🔒 Privacy
+
+### AI Features & Data Usage
+
+Fluxlyn includes AI-powered features to help you generate SQL queries more efficiently. Here's what you need to know about how your data is handled:
+
+**What is sent to AI providers:**
+- ✅ Database schema information (table names and column definitions)
+- ✅ Your natural language query description
+
+**What is NOT sent:**
+- ❌ Actual data from your database
+- ❌ Database credentials or passwords
+- ❌ Connection details (host, port, username)
+- ❌ SSH credentials or keys
+
+**Supported AI providers:**
+- OpenAI (GPT-4, GPT-3.5)
+- Anthropic (Claude)
+- OpenRouter
+- Groq
+- xAI
+- Custom endpoints
+
+Your privacy is important to us. All sensitive data stored locally on your device is encrypted with AES-256, and AI providers only receive the minimum information necessary to generate accurate SQL queries.
+
+---
+
 ## 📄 License
 
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
