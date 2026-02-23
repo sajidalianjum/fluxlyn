@@ -5,10 +5,13 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:path/path.dart' as path;
 import '../../../../core/models/settings_model.dart';
+import '../../../../core/models/export_options.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/widgets/snackbar_helper.dart';
 import '../../providers/settings_provider.dart';
 import '../../../connections/providers/connections_provider.dart';
+import '../dialogs/export_options_dialog.dart';
+import '../dialogs/import_settings_dialog.dart';
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
@@ -288,6 +291,15 @@ class _SettingsTabState extends State<SettingsTab> {
       return;
     }
 
+    final options = await showDialog<ExportOptions>(
+      context: context,
+      builder: (context) => const ExportOptionsDialog(),
+    );
+
+    if (options == null) {
+      return;
+    }
+
     final password = await _showPasswordDialog(
       context,
       'Export Connections',
@@ -325,12 +337,22 @@ class _SettingsTabState extends State<SettingsTab> {
 
     try {
       final storageService = context.read<StorageService>();
-      await storageService.exportConnections(savePath, password, connections);
+      final settingsProvider = context.read<SettingsProvider>();
+      await storageService.exportConnections(
+        savePath,
+        password,
+        connections,
+        includePasswords: options.includePasswords,
+        includeSettings: options.includeSettings,
+        settings: options.includeSettings ? settingsProvider.settings : null,
+      );
+
       if (mounted) {
-        SnackbarHelper.showSuccess(
-          context,
-          'Connections exported successfully',
-        );
+        final parts = ['Connections'];
+        if (options.includePasswords) parts.add('passwords');
+        if (options.includeSettings) parts.add('settings');
+        final message = '${parts.join(' + ')} exported successfully';
+        SnackbarHelper.showSuccess(context, message);
       }
     } catch (e) {
       if (mounted) {
@@ -363,9 +385,25 @@ class _SettingsTabState extends State<SettingsTab> {
 
     try {
       final storageService = context.read<StorageService>();
+      final result = await storageService.checkImportFile(file.path, password);
+
+      bool overwriteSettings = false;
+      if (result.hasSettings) {
+        final settingsProvider = context.read<SettingsProvider>();
+        overwriteSettings =
+            await showDialog<bool>(
+              context: context,
+              builder: (context) => ImportSettingsDialog(
+                currentSettings: settingsProvider.settings,
+              ),
+            ) ??
+            false;
+      }
+
       final connections = await storageService.importConnections(
         file.path,
         password,
+        overwriteSettings: overwriteSettings,
       );
 
       final provider = context.read<ConnectionsProvider>();
@@ -374,10 +412,12 @@ class _SettingsTabState extends State<SettingsTab> {
       }
 
       if (mounted) {
-        SnackbarHelper.showSuccess(
-          context,
-          'Successfully imported ${connections.length} connection(s)',
-        );
+        String message =
+            'Successfully imported ${connections.length} connection(s)';
+        if (result.hasSettings && overwriteSettings) {
+          message += ' and updated settings';
+        }
+        SnackbarHelper.showSuccess(context, message);
       }
     } catch (e) {
       if (mounted) {

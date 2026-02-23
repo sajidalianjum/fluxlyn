@@ -10,6 +10,18 @@ import '../../features/queries/models/query_model.dart';
 import '../../core/models/settings_model.dart';
 import '../../core/models/exceptions.dart';
 
+class ImportResult {
+  final List<ConnectionModel> connections;
+  final bool hasSettings;
+  final AppSettings? settings;
+
+  ImportResult({
+    required this.connections,
+    required this.hasSettings,
+    this.settings,
+  });
+}
+
 class StorageService {
   static const String _connectionsBoxName = 'connections';
   static const String _queriesBoxName = 'queries';
@@ -242,8 +254,11 @@ class StorageService {
   Future<void> exportConnections(
     String savePath,
     String password,
-    List<ConnectionModel> connections,
-  ) async {
+    List<ConnectionModel> connections, {
+    bool includePasswords = true,
+    bool includeSettings = false,
+    AppSettings? settings,
+  }) async {
     try {
       if (password.isEmpty) {
         throw ValidationException(
@@ -262,11 +277,45 @@ class StorageService {
       final iv = encrypt.IV.fromLength(16);
       final encrypter = encrypt.Encrypter(encrypt.AES(key));
 
+      List<ConnectionModel> connectionsToExport = connections;
+      if (!includePasswords) {
+        connectionsToExport = connections.map((c) {
+          return ConnectionModel(
+            id: c.id,
+            name: c.name,
+            host: c.host,
+            port: c.port,
+            username: c.username,
+            password: null,
+            type: c.type,
+            sslEnabled: c.sslEnabled,
+            isConnected: false,
+            useSsh: c.useSsh,
+            sshHost: c.sshHost,
+            sshPort: c.sshPort,
+            sshUsername: c.sshUsername,
+            sshPassword: null,
+            sshPrivateKey: null,
+            sshKeyPassword: null,
+            databaseName: c.databaseName,
+            customTag: c.customTag,
+            tag: c.tag,
+            sortOrder: null,
+          );
+        }).toList();
+      }
+
       final connectionsJson = {
         'version': '1.0',
         'exportedAt': DateTime.now().toIso8601String(),
-        'connections': connections.map((c) => c.toJson()).toList(),
+        'includePasswords': includePasswords,
+        'includeSettings': includeSettings,
+        'connections': connectionsToExport.map((c) => c.toJson()).toList(),
       };
+
+      if (includeSettings && settings != null) {
+        connectionsJson['settings'] = settings.toJson();
+      }
 
       final jsonString = jsonEncode(connectionsJson);
       final encrypted = encrypter.encrypt(jsonString, iv: iv);
@@ -288,10 +337,7 @@ class StorageService {
     }
   }
 
-  Future<List<ConnectionModel>> importConnections(
-    String filePath,
-    String password,
-  ) async {
+  Future<ImportResult> checkImportFile(String filePath, String password) async {
     try {
       if (password.isEmpty) {
         throw ValidationException(
@@ -305,7 +351,7 @@ class StorageService {
         throw StorageException(
           'Import file does not exist: $filePath',
           filePath: filePath,
-          operation: 'importConnections',
+          operation: 'checkImportFile',
         );
       }
 
@@ -315,7 +361,7 @@ class StorageService {
         throw StorageException(
           'Import file is empty',
           filePath: filePath,
-          operation: 'importConnections',
+          operation: 'checkImportFile',
         );
       }
 
@@ -326,7 +372,7 @@ class StorageService {
         throw StorageException(
           'Invalid export file format',
           filePath: filePath,
-          operation: 'importConnections',
+          operation: 'checkImportFile',
         );
       }
 
@@ -346,14 +392,23 @@ class StorageService {
           throw StorageException(
             'Invalid export file: missing connections',
             filePath: filePath,
-            operation: 'importConnections',
+            operation: 'checkImportFile',
+          );
+        }
+
+        final hasSettings = connectionsJson.containsKey('settings');
+        AppSettings? settings;
+
+        if (hasSettings) {
+          settings = AppSettings.fromJson(
+            connectionsJson['settings'] as Map<String, dynamic>,
           );
         }
 
         final connectionsList = connectionsJson['connections'] as List;
 
         final uuid = const Uuid();
-        return connectionsList.map((json) {
+        final connections = connectionsList.map((json) {
           final connection = ConnectionModel.fromJson(
             json as Map<String, dynamic>,
           );
@@ -380,14 +435,44 @@ class StorageService {
             sortOrder: null,
           );
         }).toList();
+
+        return ImportResult(
+          connections: connections,
+          hasSettings: hasSettings,
+          settings: settings,
+        );
       } catch (e) {
         throw StorageException(
           'Failed to decrypt connections. Invalid password or corrupted file.',
           filePath: filePath,
-          operation: 'importConnections',
+          operation: 'checkImportFile',
           originalError: e,
         );
       }
+    } catch (e) {
+      if (e is StorageException || e is ValidationException) rethrow;
+      throw StorageException(
+        'Failed to check import file: ${e.toString()}',
+        filePath: filePath,
+        operation: 'checkImportFile',
+        originalError: e,
+      );
+    }
+  }
+
+  Future<List<ConnectionModel>> importConnections(
+    String filePath,
+    String password, {
+    bool overwriteSettings = false,
+  }) async {
+    try {
+      final result = await checkImportFile(filePath, password);
+
+      if (overwriteSettings && result.settings != null) {
+        await saveSettings(result.settings!);
+      }
+
+      return result.connections;
     } catch (e) {
       if (e is StorageException || e is ValidationException) rethrow;
       throw StorageException(
