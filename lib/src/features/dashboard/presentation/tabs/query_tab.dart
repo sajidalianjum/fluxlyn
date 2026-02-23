@@ -1032,22 +1032,6 @@ class _QueryTabState extends State<QueryTab> {
               )
             : _buildEditorPanel(provider),
       ),
-      floatingActionButton: !isWideScreen
-          ? FloatingActionButton.extended(
-              onPressed: _isExecuting ? null : _executeQuery,
-              icon: _isExecuting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.play_arrow),
-              label: Text(_isExecuting ? 'Running...' : 'Run Query'),
-            )
-          : null,
     );
   }
 
@@ -1236,27 +1220,6 @@ class _QueryTabState extends State<QueryTab> {
                     color: Colors.grey,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const Spacer(),
-                FilledButton.icon(
-                  onPressed: _isExecuting ? null : _executeQuery,
-                  icon: _isExecuting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.play_arrow, size: 18),
-                  label: Text(_isExecuting ? 'Running...' : 'Run'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
                   ),
                 ),
               ],
