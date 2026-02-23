@@ -28,5 +28,17 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+
+	<!-- Network permissions for SSH tunnel and database connections -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>This app needs network access to connect to databases via SSH tunnel</string>
+
+	<!-- File access permissions -->
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>This app needs access to documents to read SSH private keys and export query results</string>
+
+	<!-- Camera access (if needed for future features) -->
+	<key>NSCameraUsageDescription</key>
+	<string>This app may need camera access for future features</string>
 </dict>
 </plist>

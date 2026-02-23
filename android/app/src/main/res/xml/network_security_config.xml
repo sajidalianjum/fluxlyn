@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext traffic for SSH tunneling and database connections -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <!-- Trust system certificates -->
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+
+    <!-- Domain-specific configurations can be added here if needed -->
+    <!-- Example:
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">your-ssh-server.com</domain>
+    </domain-config>
+    -->
+</network-security-config>

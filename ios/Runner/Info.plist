@@ -45,5 +45,40 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- Network permissions for SSH tunnel and database connections -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>This app needs network access to connect to databases via SSH tunnel</string>
+
+	<!-- Allow arbitrary network loads for SSH connections -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+
+	<!-- File access permissions -->
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>This app needs access to documents to read SSH private keys and export query results</string>
+	<key>NSDocumentsFolderAddUsageDescription</key>
+	<string>This app needs access to save query results and exports to documents</string>
+
+	<!-- Photo library access for exporting results as images (if needed) -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to photo library to save exported data</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app needs access to save exported data to photo library</string>
+
+	<!-- File sharing to allow files to be accessed via iTunes -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+
+	<!-- Camera access (if needed for future features) -->
+	<key>NSCameraUsageDescription</key>
+	<string>This app may need camera access for future features</string>
 </dict>
 </plist>
