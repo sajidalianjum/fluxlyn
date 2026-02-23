@@ -17,13 +17,18 @@ class QueryResultsWidget extends StatefulWidget {
 class _QueryResultsWidgetState extends State<QueryResultsWidget> {
   void _openRowView(int rowIndex) {
     final row = widget.result.rows[rowIndex];
+    final primaryKeyValue = widget.result.primaryKeyColumn != null
+        ? row[widget.result.primaryKeyColumn!]
+        : null;
+
     showDialog(
       context: context,
       builder: (context) => RowEditDialog(
         tableName: 'Query Result',
         columns: widget.result.columns,
         row: row,
-        primaryKeyColumn: null,
+        primaryKeyColumn: widget.result.primaryKeyColumn,
+        primaryKeyValue: primaryKeyValue,
         binaryColumns: widget.result.binaryColumns,
         bitColumns: widget.result.bitColumns,
         enumColumns: widget.result.enumColumns,

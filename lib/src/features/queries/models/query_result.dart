@@ -9,6 +9,7 @@ class QueryResult {
   final List<String> bitColumns;
   final Map<String, List<String>> enumColumns;
   final Map<String, List<String>> setColumns;
+  final String? primaryKeyColumn;
 
   QueryResult({
     required this.query,
@@ -21,5 +22,6 @@ class QueryResult {
     this.bitColumns = const [],
     this.enumColumns = const {},
     this.setColumns = const {},
+    this.primaryKeyColumn,
   });
 }

@@ -24,13 +24,18 @@ class _QueryResultsPageState extends State<QueryResultsPage>
 
   void _openRowView(int rowIndex, QueryResult result) {
     final row = result.rows[rowIndex];
+    final primaryKeyValue = result.primaryKeyColumn != null
+        ? row[result.primaryKeyColumn!]
+        : null;
+
     showDialog(
       context: context,
       builder: (context) => RowEditDialog(
         tableName: 'Query Result',
         columns: result.columns,
         row: row,
-        primaryKeyColumn: null,
+        primaryKeyColumn: result.primaryKeyColumn,
+        primaryKeyValue: primaryKeyValue,
         binaryColumns: result.binaryColumns,
         bitColumns: result.bitColumns,
         enumColumns: result.enumColumns,

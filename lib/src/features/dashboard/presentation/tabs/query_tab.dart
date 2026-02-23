@@ -15,6 +15,7 @@ import '../../../../core/services/sql_formatter.dart';
 import '../../../../core/services/query_protection_service.dart';
 import '../../../../core/services/column_type_detector.dart';
 import '../../../../core/services/mysql_driver.dart';
+import '../../../../core/services/sql_analyzer.dart';
 import '../../../../core/widgets/snackbar_helper.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../../settings/providers/settings_provider.dart';
@@ -437,6 +438,19 @@ class _QueryTabState extends State<QueryTab> {
             return formattedRow;
           }).toList();
 
+          String? primaryKeyColumn;
+          final tableNames = SqlAnalyzer.extractTableNames(singleQuery);
+          if (tableNames.length == 1 && driver != null) {
+            try {
+              final pk = await driver.getPrimaryKeyColumn(tableNames.first);
+              if (pk != null && columns.contains(pk)) {
+                primaryKeyColumn = pk;
+              }
+            } catch (e) {
+              debugPrint('Error detecting primary key: $e');
+            }
+          }
+
           results.add(
             QueryResult(
               query: singleQuery,
@@ -448,6 +462,7 @@ class _QueryTabState extends State<QueryTab> {
               bitColumns: bitColumns,
               enumColumns: enumColumns,
               setColumns: setColumns,
+              primaryKeyColumn: primaryKeyColumn,
             ),
           );
 
