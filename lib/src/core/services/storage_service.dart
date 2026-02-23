@@ -255,11 +255,7 @@ class StorageService {
       final file = File(savePath);
       final directory = file.parent;
       if (!directory.existsSync()) {
-        throw StorageException(
-          'Export directory does not exist: ${directory.path}',
-          filePath: savePath,
-          operation: 'exportConnections',
-        );
+        directory.createSync(recursive: true);
       }
 
       final key = encrypt.Key.fromUtf8(_padPassword(password));

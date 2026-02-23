@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:path/path.dart' as path;
 import '../../../../core/models/settings_model.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/widgets/snackbar_helper.dart';
@@ -296,27 +298,34 @@ class _SettingsTabState extends State<SettingsTab> {
       return;
     }
 
-    const XTypeGroup typeGroup = XTypeGroup(
-      label: 'Fluxlyn Connections',
-      extensions: ['fluxlyn'],
-    );
+    String savePath;
 
-    final saveLocation = await getSaveLocation(
-      suggestedName: 'connections.fluxlyn',
-      acceptedTypeGroups: [typeGroup],
-    );
+    if (Platform.isAndroid) {
+      final directoryPath = await getDirectoryPath();
+      if (directoryPath == null) {
+        return;
+      }
+      savePath = path.join(directoryPath, 'connections.fluxlyn');
+    } else {
+      const XTypeGroup typeGroup = XTypeGroup(
+        label: 'Fluxlyn Connections',
+        extensions: ['fluxlyn'],
+      );
 
-    if (saveLocation == null) {
-      return;
+      final saveLocation = await getSaveLocation(
+        suggestedName: 'connections.fluxlyn',
+        acceptedTypeGroups: [typeGroup],
+      );
+
+      if (saveLocation == null) {
+        return;
+      }
+      savePath = saveLocation.path;
     }
 
     try {
       final storageService = context.read<StorageService>();
-      await storageService.exportConnections(
-        saveLocation.path,
-        password,
-        connections,
-      );
+      await storageService.exportConnections(savePath, password, connections);
       if (mounted) {
         SnackbarHelper.showSuccess(
           context,

@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:excel/excel.dart' hide Border;
+import 'package:path/path.dart' as path;
 import '../../../../core/widgets/data_table2_widget.dart';
 import '../../../dashboard/presentation/dialogs/row_edit_dialog.dart';
 import '../../../settings/providers/settings_provider.dart';
@@ -77,13 +79,22 @@ class _QueryResultsPageState extends State<QueryResultsPage>
   }
 
   Future<void> _exportToCsvFile(QueryResult result) async {
-    final FileSaveLocation? resultLocation = await getSaveLocation(
-      acceptedTypeGroups: [
-        const XTypeGroup(label: 'CSV', extensions: ['csv']),
-      ],
-      suggestedName: 'export.csv',
-    );
-    if (resultLocation == null) return;
+    String savePath;
+
+    if (Platform.isAndroid) {
+      final directoryPath = await getDirectoryPath();
+      if (directoryPath == null) return;
+      savePath = path.join(directoryPath, 'export.csv');
+    } else {
+      final FileSaveLocation? resultLocation = await getSaveLocation(
+        acceptedTypeGroups: [
+          const XTypeGroup(label: 'CSV', extensions: ['csv']),
+        ],
+        suggestedName: 'export.csv',
+      );
+      if (resultLocation == null) return;
+      savePath = resultLocation.path;
+    }
 
     final buffer = StringBuffer();
     // Add UTF-8 BOM
@@ -115,23 +126,32 @@ class _QueryResultsPageState extends State<QueryResultsPage>
       mimeType: 'text/csv',
       name: 'export.csv',
     );
-    await file.saveTo(resultLocation.path);
+    await file.saveTo(savePath);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exported to ${resultLocation.path}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Exported to $savePath')));
     }
   }
 
   Future<void> _exportToXlsxFile(QueryResult result) async {
-    final FileSaveLocation? resultLocation = await getSaveLocation(
-      acceptedTypeGroups: [
-        const XTypeGroup(label: 'Excel', extensions: ['xlsx']),
-      ],
-      suggestedName: 'export.xlsx',
-    );
-    if (resultLocation == null) return;
+    String savePath;
+
+    if (Platform.isAndroid) {
+      final directoryPath = await getDirectoryPath();
+      if (directoryPath == null) return;
+      savePath = path.join(directoryPath, 'export.xlsx');
+    } else {
+      final FileSaveLocation? resultLocation = await getSaveLocation(
+        acceptedTypeGroups: [
+          const XTypeGroup(label: 'Excel', extensions: ['xlsx']),
+        ],
+        suggestedName: 'export.xlsx',
+      );
+      if (resultLocation == null) return;
+      savePath = resultLocation.path;
+    }
 
     final excel = Excel.createExcel();
     final sheet = excel['Sheet1'];
@@ -161,12 +181,12 @@ class _QueryResultsPageState extends State<QueryResultsPage>
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         name: 'export.xlsx',
       );
-      await file.saveTo(resultLocation.path);
+      await file.saveTo(savePath);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Exported to ${resultLocation.path}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Exported to $savePath')));
       }
     }
   }
