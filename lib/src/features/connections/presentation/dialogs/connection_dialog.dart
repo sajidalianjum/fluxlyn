@@ -785,6 +785,14 @@ class _ConnectionDialogState extends State<ConnectionDialog>
                                       ),
                                     ],
                                   ),
+                                  const SizedBox(height: 16),
+                                  TextFormField(
+                                    controller: _sshKeyPasswordController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Key Passphrase (Optional)',
+                                    ),
+                                    obscureText: true,
+                                  ),
                                 ] else ...[
                                   Row(
                                     crossAxisAlignment:
