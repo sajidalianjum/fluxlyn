@@ -48,6 +48,46 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get selectedTabIndex => _selectedTabIndex;
   ConnectionStep get connectionStep => _connectionStep;
 
+  String _formatConnectionError(String errorMessage) {
+    final lowerError = errorMessage.toLowerCase();
+
+    if (lowerError.contains('caching_sha2_password')) {
+      return 'Authentication Failed: MySQL requires a secure connection for this user. Please try enabling "SSL" in your connection settings.';
+    }
+    if (lowerError.contains('errno=61') ||
+        lowerError.contains('connection refused')) {
+      return 'Connection Refused: Ensure your database is running and accepting remote connections on the specified port.';
+    }
+    if (lowerError.contains('errno=111') ||
+        lowerError.contains('no route to host')) {
+      return 'Host Unreachable: The specified host could not be reached. Please check host address and network connectivity.';
+    }
+    if (lowerError.contains('errno=113')) {
+      return 'No Route to Host: The host is not reachable from this network.';
+    }
+    if (lowerError.contains('access denied') ||
+        lowerError.contains('authentication failed')) {
+      return 'Authentication Failed: Check your username and password credentials.';
+    }
+    if (lowerError.contains('timeout') || lowerError.contains('timed out')) {
+      return 'Connection Timeout: The connection attempt timed out. Please check your network and try again.';
+    }
+    if (lowerError.contains('unknown database')) {
+      return 'Database Not Found: The specified database does not exist or you do not have access to it.';
+    }
+    if (lowerError.contains('ssl') &&
+        (lowerError.contains('error') || lowerError.contains('failed'))) {
+      return 'SSL Error: There was an SSL/TLS connection issue. Please verify SSL settings.';
+    }
+
+    return errorMessage
+        .replaceFirst('ConnectionException: ', '')
+        .replaceFirst('ReconnectException: ', '')
+        .replaceFirst('Failed to connect to MySQL: ', '')
+        .replaceFirst('Failed to connect to PostgreSQL: ', '')
+        .trim();
+  }
+
   void setPendingQuery(String? query) {
     _pendingQuery = query;
     notifyListeners();
@@ -109,15 +149,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       _selectedTabIndex = 0;
       _connectionStep = ConnectionStep.completed;
     } catch (e) {
-      String errorMessage = e.toString();
-      if (errorMessage.contains('caching_sha2_password')) {
-        errorMessage =
-            'Authentication Failed: MySQL requires a secure connection for this user. Please try enabling "SSL" in your connection settings.';
-      } else if (errorMessage.contains('errno=61')) {
-        errorMessage =
-            'Connection Refused: Ensure your database is running and accepting remote connections on the specified port.';
-      }
-      _error = errorMessage;
+      _error = _formatConnectionError(e.toString());
       _currentConnectionModel = null;
       _connectionStep = ConnectionStep.initializing;
     } finally {

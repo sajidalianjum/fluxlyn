@@ -125,8 +125,11 @@ class ConnectionException implements Exception {
     ];
     if (connectionName != null) parts.add('Connection: $connectionName');
     if (host != null || port != null) parts.add('Host: $host:$port');
-    if (originalError != null) parts.add('Original: $originalError');
     return parts.join(' | ');
+  }
+
+  String toUserFriendlyString() {
+    return message;
   }
 }
 
