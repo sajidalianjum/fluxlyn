@@ -383,17 +383,23 @@ See [AGENTS.md](AGENTS.md) for comprehensive development guidelines.
 
 ### AI Features & Data Usage
 
-Fluxlyn includes AI-powered features to help you generate SQL queries more efficiently. Here's what you need to know about how your data is handled:
+Fluxlyn includes AI-powered features to help you generate SQL queries more efficiently. Here's how it works:
 
-**What is sent to AI providers:**
-- ✅ Database schema information (table names and column definitions)
-- ✅ Your natural language query description
+**Direct Integration with AI Providers**
+- Requests are sent **directly** to the AI provider you configure (OpenAI, Anthropic, Groq, xAI, OpenRouter, or custom endpoint)
+- Fluxlyn acts only as a conduit - it forwards your query and schema information to your chosen provider
+- **Fluxlyn does NOT store, log, or process** any AI requests or responses
+- All communication is between your device and the AI provider
+
+**What is sent to your AI provider:**
+- Database schema information (table names and column definitions)
+- Your natural language query description
 
 **What is NOT sent:**
-- ❌ Actual data from your database
-- ❌ Database credentials or passwords
-- ❌ Connection details (host, port, username)
-- ❌ SSH credentials or keys
+- Actual data from your database
+- Database credentials or passwords
+- Connection details (host, port, username)
+- SSH credentials or keys
 
 **Supported AI providers:**
 - OpenAI (GPT-4, GPT-3.5)
@@ -403,7 +409,7 @@ Fluxlyn includes AI-powered features to help you generate SQL queries more effic
 - xAI
 - Custom endpoints
 
-Your privacy is important to us. All sensitive data stored locally on your device is encrypted with AES-256, and AI providers only receive the minimum information necessary to generate accurate SQL queries.
+Your privacy is important to us. All sensitive data stored locally on your device is encrypted with AES-256, and AI requests go directly to your configured provider without any intermediation.
 
 ---
 
