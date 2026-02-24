@@ -7,7 +7,6 @@ import 'package:flutter_highlight/themes/monokai-sublime.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/schema_service.dart';
 import '../../../../core/services/sql_context_analyzer.dart';
-import '../../../../core/services/sql_formatter.dart';
 import '../../../../core/widgets/snackbar_helper.dart';
 import '../../../../core/services/query_protection_service.dart';
 import '../../providers/dashboard_provider.dart';
@@ -17,7 +16,6 @@ typedef OnExecuteQuery =
     Future<List<Map<String, dynamic>>?> Function(String query);
 typedef OnShowDatabaseSelector = Future<void> Function();
 typedef OnShowAIQueryDialog = Future<void> Function();
-typedef OnFormatSQL = VoidCallback;
 
 class QueryEditorWidget extends StatefulWidget {
   final String? initialQuery;
@@ -29,7 +27,6 @@ class QueryEditorWidget extends StatefulWidget {
   final OnExecuteQuery onExecuteQuery;
   final OnShowDatabaseSelector? onShowDatabaseSelector;
   final OnShowAIQueryDialog? onShowAIQueryDialog;
-  final OnFormatSQL? onFormatSQL;
   final VoidCallback? onSaveQuery;
   final VoidCallback? onLoadQuery;
   final VoidCallback? onShowHistory;
@@ -46,7 +43,6 @@ class QueryEditorWidget extends StatefulWidget {
     required this.onExecuteQuery,
     this.onShowDatabaseSelector,
     this.onShowAIQueryDialog,
-    this.onFormatSQL,
     this.onSaveQuery,
     this.onLoadQuery,
     this.onShowHistory,
@@ -354,20 +350,6 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
     }
   }
 
-  void _formatSQL() {
-    if (widget.onFormatSQL != null) {
-      widget.onFormatSQL!();
-    } else {
-      final sql = _controller.text;
-      if (sql.isEmpty) return;
-
-      final formatted = SQLFormatter.format(sql);
-      setState(() {
-        _controller.text = formatted;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -465,26 +447,6 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
                         ),
                       ),
                     if (widget.showAIQuery) const SizedBox(width: 8),
-                    OutlinedButton.icon(
-                      onPressed: _formatSQL,
-                      icon: const Icon(
-                        Icons.format_align_left,
-                        size: 18,
-                        color: Colors.green,
-                      ),
-                      label: const Text('Format'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Color(0xFF334155)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
                     const SizedBox(width: 8),
                     if (widget.showSaveQuery)
                       OutlinedButton.icon(
