@@ -1026,13 +1026,8 @@ class _QueryTabState extends State<QueryTab> {
         title: const Text('SQL Editor'),
         actions: [
           IconButton(
-            onPressed: _showHistory,
-            icon: const Icon(Icons.history),
-            tooltip: 'Query History',
-          ),
-          IconButton(
             onPressed: _clearEditor,
-            icon: const Icon(Icons.clear_all),
+            icon: const Icon(Icons.delete_outline),
             tooltip: 'Clear Editor',
           ),
           IconButton(
