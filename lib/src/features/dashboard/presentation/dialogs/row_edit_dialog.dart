@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'edit_confirmation_dialog.dart';
 import '../../../../core/services/query_protection_service.dart';
@@ -19,6 +20,7 @@ class FieldEditor extends StatelessWidget {
   final VoidCallback onUnsetNull;
   final VoidCallback onShowSetNullDialog;
   final VoidCallback onCheckForChanges;
+  final VoidCallback? onCopy;
 
   const FieldEditor({
     super.key,
@@ -36,6 +38,7 @@ class FieldEditor extends StatelessWidget {
     required this.onUnsetNull,
     required this.onShowSetNullDialog,
     required this.onCheckForChanges,
+    this.onCopy,
   });
 
   bool get isPK =>
@@ -102,6 +105,15 @@ class FieldEditor extends StatelessWidget {
           const SizedBox(width: 4),
           const Icon(Icons.check_box, size: 14, color: Color(0xFF4ADE80)),
         ],
+        if (onCopy != null && !isBinary && !isNull)
+          IconButton(
+            icon: const Icon(Icons.copy, size: 14, color: Color(0xFF9CA3AF)),
+            onPressed: onCopy,
+            tooltip: 'Copy to clipboard',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+            splashRadius: 16,
+          ),
         const Spacer(),
         if (isNull)
           Container(
@@ -748,6 +760,25 @@ class _RowEditDialogState extends State<RowEditDialog> {
     _checkForChanges();
   }
 
+  void _copyFieldValue(String column) {
+    final value = widget.row[column];
+    String textToCopy;
+
+    if (value == null) {
+      textToCopy = 'NULL';
+    } else if (widget.setColumns.containsKey(column)) {
+      final selectedValues = _setSelectedValues[column] ?? <String>{};
+      textToCopy = selectedValues.join(',');
+    } else {
+      textToCopy = _controllers[column]?.text ?? value.toString();
+    }
+
+    Clipboard.setData(ClipboardData(text: textToCopy));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$column copied to clipboard')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -883,6 +914,7 @@ class _RowEditDialogState extends State<RowEditDialog> {
                       onUnsetNull: () => _unsetNull(col),
                       onShowSetNullDialog: () => _showSetNullDialog(col),
                       onCheckForChanges: _checkForChanges,
+                      onCopy: () => _copyFieldValue(col),
                     ),
                   );
                 },
