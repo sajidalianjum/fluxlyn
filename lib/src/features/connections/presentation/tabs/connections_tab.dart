@@ -11,11 +11,21 @@ import '../dialogs/connection_dialog.dart';
 class ConnectionsTab extends StatefulWidget {
   final bool isSortingEnabled;
   final String searchQuery;
+  final bool isSelectionMode;
+  final Set<String> selectedConnectionIds;
+  final VoidCallback onSelectionModeChanged;
+  final ValueChanged<String> onSelectionToggled;
+  final VoidCallback onSelectionCleared;
 
   const ConnectionsTab({
     super.key,
     this.isSortingEnabled = false,
     this.searchQuery = '',
+    this.isSelectionMode = false,
+    required this.selectedConnectionIds,
+    required this.onSelectionModeChanged,
+    required this.onSelectionToggled,
+    required this.onSelectionCleared,
   });
 
   @override
@@ -24,6 +34,7 @@ class ConnectionsTab extends StatefulWidget {
 
 class _ConnectionsTabState extends State<ConnectionsTab> {
   ConnectionTag _selectedFilterTag = ConnectionTag.none;
+  String? _lastSearchQuery;
 
   Set<ConnectionTag> _getAvailableTags(List<ConnectionModel> connections) {
     return connections
@@ -212,6 +223,14 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
             setState(() {
               _selectedFilterTag = ConnectionTag.none;
             });
+            widget.onSelectionCleared();
+          });
+        }
+
+        if (_lastSearchQuery != widget.searchQuery) {
+          _lastSearchQuery = widget.searchQuery;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            widget.onSelectionCleared();
           });
         }
 
@@ -360,28 +379,39 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
           final connection = connections[index];
           return ConnectionCard(
             connection: connection,
-            onTap: () async {
-              final dashboardProvider = context.read<DashboardProvider>();
-              await dashboardProvider.connect(connection);
+            onTap: widget.isSelectionMode
+                ? null
+                : () async {
+                    final dashboardProvider = context.read<DashboardProvider>();
+                    await dashboardProvider.connect(connection);
 
-              if (context.mounted) {
-                if (dashboardProvider.error != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: ${dashboardProvider.error}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                } else {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const DashboardPage()),
-                  );
-                }
-              }
-            },
+                    if (context.mounted) {
+                      if (dashboardProvider.error != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: ${dashboardProvider.error}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      } else {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const DashboardPage(),
+                          ),
+                        );
+                      }
+                    }
+                  },
             onEdit: () =>
                 _showConnectionDialog(context, connection: connection),
             onDelete: () => _showDeleteConfirmation(context, connection),
+            onLongPress: () {
+              widget.onSelectionModeChanged();
+              widget.onSelectionToggled(connection.id);
+            },
+            isSelected: widget.selectedConnectionIds.contains(connection.id),
+            isSelectionMode: widget.isSelectionMode,
+            onSelect: () => widget.onSelectionToggled(connection.id),
           );
         },
       );
@@ -423,34 +453,45 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                 Expanded(
                   child: ConnectionCard(
                     connection: connection,
-                    onTap: () async {
-                      final dashboardProvider = context
-                          .read<DashboardProvider>();
-                      await dashboardProvider.connect(connection);
+                    onTap: widget.isSelectionMode
+                        ? null
+                        : () async {
+                            final dashboardProvider = context
+                                .read<DashboardProvider>();
+                            await dashboardProvider.connect(connection);
 
-                      if (context.mounted) {
-                        if (dashboardProvider.error != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Error: ${dashboardProvider.error}',
-                              ),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        } else {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const DashboardPage(),
-                            ),
-                          );
-                        }
-                      }
-                    },
+                            if (context.mounted) {
+                              if (dashboardProvider.error != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Error: ${dashboardProvider.error}',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              } else {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const DashboardPage(),
+                                  ),
+                                );
+                              }
+                            }
+                          },
                     onEdit: () =>
                         _showConnectionDialog(context, connection: connection),
                     onDelete: () =>
                         _showDeleteConfirmation(context, connection),
+                    onLongPress: () {
+                      widget.onSelectionModeChanged();
+                      widget.onSelectionToggled(connection.id);
+                    },
+                    isSelected: widget.selectedConnectionIds.contains(
+                      connection.id,
+                    ),
+                    isSelectionMode: widget.isSelectionMode,
+                    onSelect: () => widget.onSelectionToggled(connection.id),
                   ),
                 ),
               ],
@@ -466,27 +507,38 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
         final connection = connections[index];
         return ConnectionCard(
           connection: connection,
-          onTap: () async {
-            final dashboardProvider = context.read<DashboardProvider>();
-            await dashboardProvider.connect(connection);
+          onTap: widget.isSelectionMode
+              ? null
+              : () async {
+                  final dashboardProvider = context.read<DashboardProvider>();
+                  await dashboardProvider.connect(connection);
 
-            if (context.mounted) {
-              if (dashboardProvider.error != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error: ${dashboardProvider.error}'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              } else {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const DashboardPage()),
-                );
-              }
-            }
-          },
+                  if (context.mounted) {
+                    if (dashboardProvider.error != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: ${dashboardProvider.error}'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    } else {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const DashboardPage(),
+                        ),
+                      );
+                    }
+                  }
+                },
           onEdit: () => _showConnectionDialog(context, connection: connection),
           onDelete: () => _showDeleteConfirmation(context, connection),
+          onLongPress: () {
+            widget.onSelectionModeChanged();
+            widget.onSelectionToggled(connection.id);
+          },
+          isSelected: widget.selectedConnectionIds.contains(connection.id),
+          isSelectionMode: widget.isSelectionMode,
+          onSelect: () => widget.onSelectionToggled(connection.id),
         );
       },
     );
@@ -503,6 +555,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
         setState(() {
           _selectedFilterTag = tag;
         });
+        widget.onSelectionCleared();
       },
       selectedColor: color.withValues(alpha: 0.3),
       checkmarkColor: color,

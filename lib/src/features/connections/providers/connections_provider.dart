@@ -130,6 +130,14 @@ class ConnectionsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> removeConnections(Set<String> ids) async {
+    _connections.removeWhere((c) => ids.contains(c.id));
+    for (final id in ids) {
+      await _storageService.deleteConnection(id);
+    }
+    notifyListeners();
+  }
+
   Future<void> reorderConnections(int oldIndex, int newIndex) async {
     if (oldIndex == newIndex) return;
 

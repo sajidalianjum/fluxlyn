@@ -3,9 +3,13 @@ import '../../models/connection_model.dart';
 
 class ConnectionCard extends StatelessWidget {
   final ConnectionModel connection;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback? onLongPress;
+  final bool isSelected;
+  final bool isSelectionMode;
+  final VoidCallback? onSelect;
 
   const ConnectionCard({
     super.key,
@@ -13,6 +17,10 @@ class ConnectionCard extends StatelessWidget {
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
+    this.onLongPress,
+    this.isSelected = false,
+    this.isSelectionMode = false,
+    this.onSelect,
   });
 
   @override
@@ -24,273 +32,296 @@ class ConnectionCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
+      shape: isSelected
+          ? RoundedRectangleBorder(
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.primary,
+                width: 2,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            )
+          : null,
       child: Semantics(
         label:
             'Connection card for ${connection.name}, ${connection.type.name} database',
         button: true,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: EdgeInsets.all(isWideScreen ? 20 : 16),
-            child: Row(
-              children: [
-                // Icon Container
-                Container(
-                  width: isWideScreen ? 56 : 48,
-                  height: isWideScreen ? 56 : 48,
-                  decoration: BoxDecoration(
-                    color: isMysql
-                        ? const Color(0xFF3E2C28)
-                        : const Color(
-                            0xFF1E3A5F,
-                          ), // Brownish for MySQL, Blueish for PG
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.dns, // Generic storage icon
-                    color: isMysql ? Colors.orange : Colors.blue,
-                    semanticLabel: '${connection.type.name} database icon',
-                    size: isWideScreen ? 28 : 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              connection.name,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ),
-                        ],
+        selected: isSelected,
+        child: GestureDetector(
+          onLongPress: onLongPress,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: EdgeInsets.all(isWideScreen ? 20 : 16),
+              child: Row(
+                children: [
+                  if (isSelectionMode)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12.0),
+                      child: Checkbox(
+                        value: isSelected,
+                        onChanged: (_) => onSelect?.call(),
+                        visualDensity: VisualDensity.compact,
                       ),
-                      const SizedBox(height: 4),
-                      if (isWideScreen)
-                        Wrap(
-                          spacing: 16,
-                          runSpacing: 4,
+                    ),
+                  // Icon Container
+                  Container(
+                    width: isWideScreen ? 56 : 48,
+                    height: isWideScreen ? 56 : 48,
+                    decoration: BoxDecoration(
+                      color: isMysql
+                          ? const Color(0xFF3E2C28)
+                          : const Color(
+                              0xFF1E3A5F,
+                            ), // Brownish for MySQL, Blueish for PG
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.dns, // Generic storage icon
+                      color: isMysql ? Colors.orange : Colors.blue,
+                      semanticLabel: '${connection.type.name} database icon',
+                      size: isWideScreen ? 28 : 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+
+                  // Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.dns,
-                                  size: 14,
-                                  color: Colors.grey[600],
+                            Expanded(
+                              child: Text(
+                                connection.name,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  connection.host,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
                             ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.settings_ethernet,
-                                  size: 14,
-                                  color: Colors.grey[600],
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  ':${connection.port}',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (connection.username != null &&
-                                connection.username!.isNotEmpty)
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        if (isWideScreen)
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 4,
+                            children: [
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.person,
+                                    Icons.dns,
                                     size: 14,
                                     color: Colors.grey[600],
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    connection.username!,
+                                    connection.host,
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: Colors.grey,
                                     ),
                                   ),
                                 ],
                               ),
-                          ],
-                        )
-                      else
-                        Text(
-                          connection.host,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey,
-                          ),
-                        ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              connection.type == ConnectionType.mysql
-                                  ? 'MYSQL'
-                                  : 'POSTGRESQL',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: Colors.blueGrey,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                          if (connection.useSsh)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: Colors.green,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
+                              Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.lock,
-                                    size: 10,
-                                    color: Colors.green,
+                                    Icons.settings_ethernet,
+                                    size: 14,
+                                    color: Colors.grey[600],
                                   ),
-                                  const SizedBox(width: 2),
+                                  const SizedBox(width: 4),
                                   Text(
-                                    'SSH',
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.3,
+                                    ':${connection.port}',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: Colors.grey,
                                     ),
                                   ),
                                 ],
                               ),
+                              if (connection.username != null &&
+                                  connection.username!.isNotEmpty)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.person,
+                                      size: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      connection.username!,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          )
+                        else
+                          Text(
+                            connection.host,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey,
                             ),
-                          if (connection.tag != null &&
-                              connection.tag != ConnectionTag.none)
+                          ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 6,
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: _getTagColor(
-                                  connection.tag!,
-                                ).withValues(alpha: 0.15),
+                                color: Colors.white.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: _getTagColor(connection.tag!),
-                                  width: 1,
-                                ),
                               ),
                               child: Text(
-                                connection.tag == ConnectionTag.custom
-                                    ? (connection.customTag ?? 'Custom')
-                                    : connection.tag!.name[0].toUpperCase() +
-                                          connection.tag!.name.substring(1),
+                                connection.type == ConnectionType.mysql
+                                    ? 'MYSQL'
+                                    : 'POSTGRESQL',
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: _getTagColor(connection.tag!),
+                                  color: Colors.blueGrey,
                                   fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.3,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                             ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Chevron & Menu
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    PopupMenuButton<String>(
-                      icon: Icon(
-                        Icons.more_vert,
-                        color: Colors.white.withValues(alpha: 0.3),
-                      ),
-                      onSelected: (choice) {
-                        switch (choice) {
-                          case 'edit':
-                            onEdit();
-                            break;
-                          case 'delete':
-                            onDelete();
-                            break;
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, size: 20),
-                              SizedBox(width: 12),
-                              Text('Edit'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, size: 20, color: Colors.red),
-                              SizedBox(width: 12),
-                              Text(
-                                'Delete',
-                                style: TextStyle(color: Colors.red),
+                            if (connection.useSsh)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: Colors.green,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.lock,
+                                      size: 10,
+                                      color: Colors.green,
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      'SSH',
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color: Colors.green,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.3,
+                                          ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ],
-                          ),
+                            if (connection.tag != null &&
+                                connection.tag != ConnectionTag.none)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getTagColor(
+                                    connection.tag!,
+                                  ).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: _getTagColor(connection.tag!),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  connection.tag == ConnectionTag.custom
+                                      ? (connection.customTag ?? 'Custom')
+                                      : connection.tag!.name[0].toUpperCase() +
+                                            connection.tag!.name.substring(1),
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: _getTagColor(connection.tag!),
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ],
                     ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.chevron_right,
-                      color: Colors.white.withValues(alpha: 0.3),
-                      semanticLabel: 'Connect to ${connection.name}',
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+
+                  // Chevron & Menu
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PopupMenuButton<String>(
+                        icon: Icon(
+                          Icons.more_vert,
+                          color: Colors.white.withValues(alpha: 0.3),
+                        ),
+                        onSelected: (choice) {
+                          switch (choice) {
+                            case 'edit':
+                              onEdit();
+                              break;
+                            case 'delete':
+                              onDelete();
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit, size: 20),
+                                SizedBox(width: 12),
+                                Text('Edit'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, size: 20, color: Colors.red),
+                                SizedBox(width: 12),
+                                Text(
+                                  'Delete',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 4),
+                      if (onTap != null)
+                        Icon(
+                          Icons.chevron_right,
+                          color: Colors.white.withValues(alpha: 0.3),
+                          semanticLabel: 'Connect to ${connection.name}',
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
