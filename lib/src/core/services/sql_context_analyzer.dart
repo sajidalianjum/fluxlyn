@@ -162,7 +162,7 @@ class SQLContextAnalyzer {
 
     final lowerCurrentWord = currentWord.toLowerCase();
     return suggestions
-        .where((s) => s.toLowerCase().startsWith(lowerCurrentWord))
+        .where((s) => s.toLowerCase().contains(lowerCurrentWord))
         .toList();
   }
 
