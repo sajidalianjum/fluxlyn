@@ -22,7 +22,7 @@ class ImportResult {
   });
 }
 
-class StorageService {
+class StorageService extends ChangeNotifier {
   static const String _connectionsBoxName = 'connections';
   static const String _queriesBoxName = 'queries';
   static const String _queryHistoryBoxName = 'query_history';
@@ -95,12 +95,14 @@ class StorageService {
 
   Future<void> saveConnection(ConnectionModel connection) async {
     await connectionsBox.put(connection.id, connection);
+    notifyListeners();
   }
 
   Future<void> deleteConnection(String id) async {
     await connectionsBox.delete(id);
     await _deleteQueriesForConnection(id);
     await _deleteHistoryForConnection(id);
+    notifyListeners();
   }
 
   Future<void> _deleteQueriesForConnection(String connectionId) async {
@@ -147,10 +149,12 @@ class StorageService {
 
   Future<void> saveQuery(QueryModel query) async {
     await queriesBox.put(query.id, query);
+    notifyListeners();
   }
 
   Future<void> deleteQuery(String id) async {
     await queriesBox.delete(id);
+    notifyListeners();
   }
 
   List<QueryModel> getSavedQueries(String connectionId) {
@@ -178,6 +182,7 @@ class StorageService {
     await queryHistoryBox.put(entry.id, entry);
     // Keep only last 100 entries per connection
     await _cleanupHistory(entry.connectionId);
+    notifyListeners();
   }
 
   Future<void> _cleanupHistory(String connectionId) async {
@@ -209,6 +214,7 @@ class StorageService {
 
   Future<void> deleteHistoryEntry(String id) async {
     await queryHistoryBox.delete(id);
+    notifyListeners();
   }
 
   Future<void> clearHistory(String connectionId) async {
@@ -218,6 +224,7 @@ class StorageService {
     for (final entry in entries) {
       await queryHistoryBox.delete(entry.id);
     }
+    notifyListeners();
   }
 
   // Settings
@@ -227,6 +234,7 @@ class StorageService {
     try {
       final settingsJson = settings.toJson();
       await settingsBox.put('settings', jsonEncode(settingsJson));
+      notifyListeners();
     } catch (e) {
       throw StorageException(
         'Failed to save settings: ${e.toString()}',

@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider.value(value: storageService),
+        ChangeNotifierProvider.value(value: storageService),
         ChangeNotifierProvider(
           create: (_) => ConnectionsProvider(storageService),
         ),
