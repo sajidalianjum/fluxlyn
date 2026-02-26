@@ -1169,6 +1169,7 @@ class _QueryTabState extends State<QueryTab> {
                 ),
                 cursorColor: Colors.blue,
                 background: const Color(0xFF0F172A),
+                expands: true,
               ),
             ),
           ),

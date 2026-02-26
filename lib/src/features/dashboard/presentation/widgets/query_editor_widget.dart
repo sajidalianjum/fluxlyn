@@ -508,6 +508,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
                     ),
                     cursorColor: Colors.blue,
                     background: const Color(0xFF0F172A),
+                    expands: true,
                   ),
                 ),
               ),
