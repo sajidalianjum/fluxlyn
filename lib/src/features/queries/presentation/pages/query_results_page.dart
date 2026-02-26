@@ -7,6 +7,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:path/path.dart' as path;
 import '../../../../core/widgets/data_table2_widget.dart';
+import '../../../../core/services/sql_analyzer.dart';
 import '../../../dashboard/presentation/dialogs/row_edit_dialog.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../models/query_result.dart';
@@ -23,6 +24,53 @@ class QueryResultsPage extends StatefulWidget {
 class _QueryResultsPageState extends State<QueryResultsPage>
     with TickerProviderStateMixin {
   late TabController _tabController;
+
+  Text _getSuccessMessage(QueryResult result) {
+    switch (result.queryType) {
+      case SqlQueryType.select:
+        return const Text(
+          'No rows returned',
+          style: TextStyle(color: Colors.grey),
+        );
+      case SqlQueryType.dml:
+        if (result.affectedRows != null) {
+          return Text(
+            '${result.affectedRows} row${result.affectedRows == 1 ? '' : 's'} affected',
+            style: const TextStyle(color: Colors.grey),
+          );
+        }
+        return const Text(
+          'Query executed successfully',
+          style: TextStyle(color: Colors.grey),
+        );
+      case SqlQueryType.ddl:
+        return const Text(
+          'Schema updated successfully',
+          style: TextStyle(color: Colors.grey),
+        );
+      default:
+        return const Text(
+          'Query executed successfully',
+          style: TextStyle(color: Colors.grey),
+        );
+    }
+  }
+
+  String _getRowInfo(QueryResult result) {
+    switch (result.queryType) {
+      case SqlQueryType.select:
+        return '${result.rows.length} rows';
+      case SqlQueryType.dml:
+        if (result.affectedRows != null) {
+          return '${result.affectedRows} row${result.affectedRows == 1 ? '' : 's'} affected';
+        }
+        return 'Query executed';
+      case SqlQueryType.ddl:
+        return 'Schema updated';
+      default:
+        return 'Query executed';
+    }
+  }
 
   void _openRowView(int rowIndex, QueryResult result) {
     final row = result.rows[rowIndex];
@@ -220,18 +268,19 @@ class _QueryResultsPageState extends State<QueryResultsPage>
     }
 
     if (result.rows.isEmpty) {
-      return const Center(
+      final message = _getSuccessMessage(result);
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 64),
-            SizedBox(height: 16),
-            Text(
+            const Icon(Icons.check_circle, color: Colors.green, size: 64),
+            const SizedBox(height: 16),
+            const Text(
               'Query executed successfully',
               style: TextStyle(color: Colors.green),
             ),
-            SizedBox(height: 8),
-            Text('No rows returned', style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 8),
+            message,
           ],
         ),
       );
@@ -300,7 +349,7 @@ class _QueryResultsPageState extends State<QueryResultsPage>
               },
             ),
             Text(
-              '${result.rows.length} rows',
+              _getRowInfo(result),
               style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
             const SizedBox(width: 16),

@@ -368,6 +368,7 @@ class _QueryTabState extends State<QueryTab> {
 
           List<String> columns;
           List<Map<String, dynamic>> rawRows;
+          int? affectedRows;
 
           if (provider.currentConnectionModel!.type == ConnectionType.mysql) {
             final mysqlResult = result as IResultSet;
@@ -382,13 +383,23 @@ class _QueryTabState extends State<QueryTab> {
               }
               return rowMap;
             }).toList();
+
+            if (rawRows.isEmpty) {
+              affectedRows = mysqlResult.affectedRows.toInt();
+            }
           } else {
-            final pgResult = result as List<Map<String, dynamic>>;
-            columns = pgResult.isNotEmpty
-                ? pgResult.first.keys.toList()
+            final pgResult = result as dynamic;
+            columns = pgResult.rows.isNotEmpty
+                ? pgResult.rows.first.keys.toList()
                 : <String>[];
-            rawRows = pgResult;
+            rawRows = pgResult.rows;
+
+            if (rawRows.isEmpty && pgResult.affectedRowCount != null) {
+              affectedRows = pgResult.affectedRowCount;
+            }
           }
+
+          final queryType = SqlAnalyzer.getQueryType(singleQuery);
 
           final driver = provider.driver;
           final database = provider.selectedDatabase;
@@ -462,6 +473,8 @@ class _QueryTabState extends State<QueryTab> {
               enumColumns: enumColumns,
               setColumns: setColumns,
               primaryKeyColumn: primaryKeyColumn,
+              affectedRows: affectedRows,
+              queryType: queryType,
             ),
           );
 
@@ -472,7 +485,7 @@ class _QueryTabState extends State<QueryTab> {
               query: singleQuery,
               executedAt: DateTime.now(),
               executionTimeMs: stopwatch.elapsedMilliseconds,
-              rowCount: rows.length,
+              rowCount: affectedRows ?? rows.length,
               success: true,
               connectionId: connectionModel!.id,
               databaseName: provider.selectedDatabase,
@@ -480,6 +493,7 @@ class _QueryTabState extends State<QueryTab> {
           );
         } catch (e) {
           stopwatch.stop();
+          final queryType = SqlAnalyzer.getQueryType(singleQuery);
 
           results.add(
             QueryResult(
@@ -489,6 +503,8 @@ class _QueryTabState extends State<QueryTab> {
               executionTimeMs: stopwatch.elapsedMilliseconds,
               success: false,
               errorMessage: e.toString(),
+              affectedRows: null,
+              queryType: queryType,
             ),
           );
 

@@ -6,6 +6,13 @@ import 'database_driver.dart';
 import 'ssh_tunnel_service.dart';
 import '../models/exceptions.dart';
 
+class PostgresExecutionResult {
+  final List<Map<String, dynamic>> rows;
+  final int? affectedRowCount;
+
+  PostgresExecutionResult({required this.rows, this.affectedRowCount});
+}
+
 class PostgreSQLDriver implements DatabaseDriver {
   static const Duration _defaultTimeout = Duration(seconds: 10);
   static const Duration _sshTimeout = Duration(seconds: 30);
@@ -197,7 +204,7 @@ class PostgreSQLDriver implements DatabaseDriver {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> execute(String sql) async {
+  Future<PostgresExecutionResult> execute(String sql) async {
     if (_connection == null) {
       throw DatabaseException(
         'Not connected to database',
@@ -221,6 +228,8 @@ class PostgreSQLDriver implements DatabaseDriver {
           );
 
       final List<Map<String, dynamic>> rows = [];
+      int? affectedRowCount;
+
       for (final row in results) {
         final rowMap = <String, dynamic>{};
         for (final column in row.toColumnMap().entries) {
@@ -229,7 +238,11 @@ class PostgreSQLDriver implements DatabaseDriver {
         }
         rows.add(rowMap);
       }
-      return rows;
+
+      return PostgresExecutionResult(
+        rows: rows,
+        affectedRowCount: affectedRowCount,
+      );
     } on TimeoutException {
       rethrow;
     } catch (e) {
@@ -324,7 +337,7 @@ class PostgreSQLDriver implements DatabaseDriver {
         "SELECT tablename FROM pg_tables WHERE schemaname = 'public'",
       );
       final List<String> tables = [];
-      for (final row in result) {
+      for (final row in result.rows) {
         final tableName = row['tablename']?.toString() ?? '';
         if (tableName.isNotEmpty) {
           tables.add(tableName);
@@ -349,7 +362,7 @@ class PostgreSQLDriver implements DatabaseDriver {
         "SELECT datname FROM pg_database WHERE datistemplate = false",
       );
       final List<String> databases = [];
-      for (final row in result) {
+      for (final row in result.rows) {
         final dbName = row['datname']?.toString() ?? '';
         if (dbName.isNotEmpty &&
             dbName != 'postgres' &&
@@ -452,18 +465,18 @@ class PostgreSQLDriver implements DatabaseDriver {
   Future<List<ColumnInfo>> getColumns(String tableName) async {
     try {
       final result = await execute('''
-      SELECT 
-        column_name, 
-        data_type, 
-        is_nullable, 
+      SELECT
+        column_name,
+        data_type,
+        is_nullable,
         column_default
       FROM information_schema.columns
-      WHERE table_schema = 'public' 
+      WHERE table_schema = 'public'
         AND table_name = '$tableName'
       ORDER BY ordinal_position
     ''');
       final List<ColumnInfo> columns = [];
-      for (final row in result) {
+      for (final row in result.rows) {
         final colName = row['column_name']?.toString();
         final colType = row['data_type']?.toString() ?? '';
         final isNullable = row['is_nullable']?.toString() == 'YES';
@@ -507,8 +520,8 @@ class PostgreSQLDriver implements DatabaseDriver {
       LIMIT 1
     ''');
 
-      if (result.isNotEmpty) {
-        return result.first['column_name']?.toString();
+      if (result.rows.isNotEmpty) {
+        return result.rows.first['column_name']?.toString();
       }
       return null;
     } catch (e) {
@@ -522,12 +535,12 @@ class PostgreSQLDriver implements DatabaseDriver {
   Future<Map<String, List<String>>> getEnumColumns(String tableName) async {
     try {
       final result = await execute('''
-      SELECT 
+      SELECT
         c.column_name,
         t.typname as enum_type_name
       FROM information_schema.columns c
       JOIN pg_type t ON c.udt_name = t.typname
-      WHERE c.table_schema = 'public' 
+      WHERE c.table_schema = 'public'
         AND c.table_name = '$tableName'
         AND t.typtype = 'e'
       ORDER BY c.ordinal_position
@@ -535,7 +548,7 @@ class PostgreSQLDriver implements DatabaseDriver {
 
       final Map<String, List<String>> enumColumns = {};
 
-      for (final row in result) {
+      for (final row in result.rows) {
         final columnName = row['column_name']?.toString();
         final enumTypeName = row['enum_type_name']?.toString();
 
@@ -566,7 +579,7 @@ class PostgreSQLDriver implements DatabaseDriver {
     ''');
 
       final List<String> enumValues = [];
-      for (final row in result) {
+      for (final row in result.rows) {
         final enumLabel = row['enumlabel']?.toString();
         if (enumLabel != null && enumLabel.isNotEmpty) {
           enumValues.add(enumLabel);

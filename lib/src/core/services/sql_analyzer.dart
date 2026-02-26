@@ -1,4 +1,26 @@
+enum SqlQueryType { select, dml, ddl, unknown }
+
 class SqlAnalyzer {
+  static SqlQueryType getQueryType(String sql) {
+    final normalized = sql.trim().toLowerCase();
+
+    if (normalized.startsWith('select') || normalized.startsWith('with')) {
+      return SqlQueryType.select;
+    } else if (normalized.startsWith('insert') ||
+        normalized.startsWith('update') ||
+        normalized.startsWith('delete') ||
+        normalized.startsWith('replace') ||
+        normalized.startsWith('truncate')) {
+      return SqlQueryType.dml;
+    } else if (normalized.startsWith('alter') ||
+        normalized.startsWith('create') ||
+        normalized.startsWith('drop')) {
+      return SqlQueryType.ddl;
+    }
+
+    return SqlQueryType.unknown;
+  }
+
   /// Extract table names from a SELECT query
   /// Returns list of table names that might appear in query
   static List<String> extractTableNames(String sql) {

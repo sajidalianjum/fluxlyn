@@ -1,3 +1,5 @@
+import '../../../core/services/sql_analyzer.dart';
+
 class QueryResult {
   final String query;
   final List<String> columns;
@@ -10,6 +12,8 @@ class QueryResult {
   final Map<String, List<String>> enumColumns;
   final Map<String, List<String>> setColumns;
   final String? primaryKeyColumn;
+  final int? affectedRows;
+  final SqlQueryType queryType;
 
   QueryResult({
     required this.query,
@@ -23,5 +27,7 @@ class QueryResult {
     this.enumColumns = const {},
     this.setColumns = const {},
     this.primaryKeyColumn,
+    this.affectedRows,
+    required this.queryType,
   });
 }
