@@ -21,6 +21,8 @@
 
 Fluxlyn is a powerful, cross-platform database explorer built with Flutter, designed for everyone. It provides a modern interface for managing MySQL databases with advanced features like SSH tunneling, AI-powered query assistance, and secure encrypted storage of connections.
 
+> **Note:** This project is primarily built using vibe coding. If you discover any vulnerabilities or security issues, please report them responsibly.
+
 **Supported Platforms:**
 - 🍎 macOS
 - 🤖 Android
@@ -332,6 +334,16 @@ Fluxlyn uses **Hive** with **AES-256 encryption** for all persistent data:
 - **Operation Locks**: Optional confirmation dialogs for DELETE and DROP operations
 - **Secure Connections**: SSL/TLS support for database connections
 - **SSH Tunneling**: Secure connectivity through SSH tunnels
+
+### Reporting Security Vulnerabilities
+
+This project is primarily built using vibe coding. If you discover any security vulnerabilities:
+
+- **Do not** open a public issue for security vulnerabilities
+- Please report security issues by opening a [GitHub Security Advisory](https://github.com/sajidalianjum/fluxlyn/security/advisories/new)
+- Or contact the maintainer directly via GitHub
+
+We appreciate responsible disclosure and will respond promptly to security reports.
 
 ---
 
