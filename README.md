@@ -1,6 +1,6 @@
 <div align="center">
 
-  ![Fluxlyn Logo](assets/icon/app_icon.png)
+  <img src="assets/icon/app_icon.png" alt="Fluxlyn Logo" width="120">
 
   # Fluxlyn
 
