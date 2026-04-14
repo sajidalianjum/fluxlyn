@@ -437,10 +437,10 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 ## 👤 Author
 
-**Softlitude**
+**Sajid Ali Anjum**
 
 - GitHub: [@sajidalianjum](https://github.com/sajidalianjum)
-- Built with passion for making database management easier for everyone
+- Built as an internal tool to make database management easier for everyone
 
 ---
 
