@@ -154,20 +154,17 @@ class _QueryTabState extends State<QueryTab> {
     final provider = Provider.of<DashboardProvider>(context, listen: true);
     final currentDatabase = provider.selectedDatabase;
 
-    // Reload schema when database changes
     if (_lastDatabase != currentDatabase) {
       _lastDatabase = currentDatabase;
       _reloadSchemaOnDatabaseChange();
     }
 
-    // Load pending query if any (runs every time this tab becomes visible)
     final pendingQuery = provider.pendingQuery;
     final pendingDatabase = provider.pendingDatabase;
     if (pendingQuery != null && pendingQuery.isNotEmpty) {
       _controller.text = pendingQuery;
       provider.clearPendingQuery();
 
-      // Select database if specified and not already selected
       if (pendingDatabase != null &&
           (provider.selectedDatabase == null ||
               provider.selectedDatabase != pendingDatabase)) {
@@ -301,6 +298,13 @@ class _QueryTabState extends State<QueryTab> {
 
   Future<void> _executeQuery() async {
     if (_isExecuting) return;
+
+    final provider = Provider.of<DashboardProvider>(context, listen: false);
+
+    if (provider.selectedDatabase == null) {
+      SnackbarHelper.showWarning(context, 'Please select a database first');
+      return;
+    }
 
     final query = _controller.text.trim();
     if (query.isEmpty) {

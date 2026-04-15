@@ -36,6 +36,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   ConnectionStep _connectionStep = ConnectionStep.initializing;
   String? _pendingQuery;
   String? _pendingDatabase;
+  final Map<String, String> _selectedDatabasePerConnection = {};
 
   ConnectionModel? get currentConnectionModel => _currentConnectionModel;
   String? get pendingQuery => _pendingQuery;
@@ -135,7 +136,11 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       _driver = DatabaseService.createDriver(config.type);
       await _driver!.connect(config);
       _currentConnectionModel = config;
-      _selectedDatabase = config.databaseName;
+      if (_selectedDatabasePerConnection.containsKey(config.id)) {
+        _selectedDatabase = _selectedDatabasePerConnection[config.id];
+      } else {
+        _selectedDatabase = config.databaseName;
+      }
       _wasConnectedBeforePause = true;
 
       _connectionStep = ConnectionStep.loadingDatabases;
@@ -190,6 +195,9 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await _driver!.useDatabase(dbName);
       _selectedDatabase = dbName;
+      if (_currentConnectionModel != null) {
+        _selectedDatabasePerConnection[_currentConnectionModel!.id] = dbName;
+      }
       await refreshTables();
     } catch (e, stackTrace) {
       _error = 'Failed to select database: ${e.toString()}';
@@ -321,6 +329,14 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       _connectionStep = ConnectionStep.loadingDatabases;
       notifyListeners();
       await refreshDatabases();
+
+      if (_selectedDatabase == null &&
+          _selectedDatabasePerConnection.containsKey(
+            _currentConnectionModel!.id,
+          )) {
+        _selectedDatabase =
+            _selectedDatabasePerConnection[_currentConnectionModel!.id];
+      }
 
       if (_selectedDatabase != null && _selectedDatabase!.isNotEmpty) {
         _connectionStep = ConnectionStep.loadingTables;
