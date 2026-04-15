@@ -6,6 +6,7 @@ import '../../features/connections/models/connection_model.dart';
 import '../../utils/ssh_helper.dart';
 import '../constants/app_constants.dart';
 import '../models/exceptions.dart';
+import '../utils/error_reporter.dart';
 
 class SSHTunnelService {
   static const Duration _connectionTimeout = Duration(seconds: 10);
@@ -28,8 +29,10 @@ class SSHTunnelService {
       await disconnect();
     }
 
-    print(
+    ErrorReporter.info(
       'SSH Tunnel: Connecting to ${config.sshHost}:${config.sshPort ?? AppConstants.portSSH}',
+      'SSHTunnelService.connect',
+      'ssh_tunnel_service.dart:31',
     );
 
     SSHClient? tempClient;
@@ -51,7 +54,11 @@ class SSHTunnelService {
               );
             },
           );
-      print('SSH Tunnel: Socket connected');
+      ErrorReporter.info(
+        'SSH Tunnel: Socket connected',
+        'SSHTunnelService.connect',
+        'ssh_tunnel_service.dart:54',
+      );
 
       final List<SSHKeyPair> keys = [];
       if (config.sshPrivateKey != null) {
@@ -106,7 +113,11 @@ class SSHTunnelService {
         onVerifyHostKey: (host, key) => true,
         keepAliveInterval: const Duration(seconds: 30),
       );
-      print('SSH Tunnel: Client created, waiting for authentication...');
+      ErrorReporter.info(
+        'SSH Tunnel: Client created, waiting for authentication',
+        'SSHTunnelService.connect',
+        'ssh_tunnel_service.dart:109',
+      );
 
       await tempClient.authenticated.timeout(
         _connectionTimeout,
@@ -118,11 +129,19 @@ class SSHTunnelService {
           );
         },
       );
-      print('SSH Tunnel: Authenticated successfully');
+      ErrorReporter.info(
+        'SSH Tunnel: Authenticated successfully',
+        'SSHTunnelService.connect',
+        'ssh_tunnel_service.dart:121',
+      );
 
       tempSocket = await ServerSocket.bind('127.0.0.1', 0);
       _localPort = tempSocket.port;
-      print('SSH Tunnel: ServerSocket bound to 127.0.0.1:$_localPort');
+      ErrorReporter.info(
+        'SSH Tunnel: ServerSocket bound to 127.0.0.1:$localPort',
+        'SSHTunnelService.connect',
+        'ssh_tunnel_service.dart:125',
+      );
 
       _sshClient = tempClient;
       _serverSocket = tempSocket;
@@ -133,15 +152,21 @@ class SSHTunnelService {
             : remoteHost;
 
         try {
-          print(
+          ErrorReporter.info(
             'SSH Tunnel: New connection received, creating forward channel to $resolvedRemoteHost:$remotePort',
+            'SSHTunnelService.connect',
+            'ssh_tunnel_service.dart:136',
           );
 
           dynamic session;
           dynamic forward;
 
           try {
-            print('SSH Tunnel: Attempting connection via netcat...');
+            ErrorReporter.info(
+              'SSH Tunnel: Attempting connection via netcat',
+              'SSHTunnelService.connect',
+              'ssh_tunnel_service.dart:144',
+            );
             session = await _sshClient!
                 .execute('nc $resolvedRemoteHost $remotePort')
                 .timeout(
@@ -169,7 +194,11 @@ class SSHTunnelService {
               throw Exception('nc not found');
             }
 
-            print('SSH Tunnel: Netcat session started');
+            ErrorReporter.info(
+              'SSH Tunnel: Netcat session started',
+              'SSHTunnelService.connect',
+              'ssh_tunnel_service.dart:172',
+            );
             socket.setOption(SocketOption.tcpNoDelay, true);
 
             session.stdout.listen(
@@ -185,10 +214,16 @@ class SSHTunnelService {
             );
 
             await session.done;
-            print('SSH Tunnel: Netcat session closed');
+            ErrorReporter.info(
+              'SSH Tunnel: Netcat session closed',
+              'SSHTunnelService.connect',
+              'ssh_tunnel_service.dart:188',
+            );
           } catch (e) {
-            print(
-              'SSH Tunnel: Netcat failed or not found ($e), falling back to direct-tcpip...',
+            ErrorReporter.info(
+              'SSH Tunnel: Netcat failed or not found ($e), falling back to direct-tcpip',
+              'SSHTunnelService.connect',
+              'ssh_tunnel_service.dart:190',
             );
 
             try {
@@ -204,7 +239,11 @@ class SSHTunnelService {
                       );
                     },
                   );
-              print('SSH Tunnel: Direct forward channel created');
+              ErrorReporter.info(
+                'SSH Tunnel: Direct forward channel created',
+                'SSHTunnelService.connect',
+                'ssh_tunnel_service.dart:207',
+              );
 
               socket.setOption(SocketOption.tcpNoDelay, true);
 
@@ -221,19 +260,41 @@ class SSHTunnelService {
               );
 
               await forward.done;
-              print('SSH Tunnel: Direct forward channel closed');
-            } catch (forwardError) {
-              debugPrint('SSH Tunnel: Forward error - $forwardError');
+              ErrorReporter.info(
+                'SSH Tunnel: Direct forward channel closed',
+                'SSHTunnelService.connect',
+                'ssh_tunnel_service.dart:224',
+              );
+            } catch (forwardError, stackTrace) {
+              ErrorReporter.warning(
+                'SSH Tunnel: Forward error - $forwardError',
+                stackTrace,
+                'SSHTunnelService.connect',
+                'ssh_tunnel_service.dart:226',
+              );
               socket.close();
             }
           }
-        } catch (e) {
-          debugPrint('SSH Tunnel: Forward error - $e');
+        } catch (e, stackTrace) {
+          ErrorReporter.warning(
+            'SSH Tunnel: Forward error - $e',
+            stackTrace,
+            'SSHTunnelService.connect',
+            'ssh_tunnel_service.dart:231',
+          );
           socket.close();
         }
       });
-      print('SSH Tunnel: Listener started');
-      print('SSH Tunnel: Ready to connect via $localHost:$localPort');
+      ErrorReporter.info(
+        'SSH Tunnel: Listener started',
+        'SSHTunnelService.connect',
+        'ssh_tunnel_service.dart:235',
+      );
+      ErrorReporter.info(
+        'SSH Tunnel: Ready to connect via $localHost:$localPort',
+        'SSHTunnelService.connect',
+        'ssh_tunnel_service.dart:236',
+      );
     } on TimeoutException {
       await _cleanupTempResources(tempClient, tempSocket);
       rethrow;
@@ -272,15 +333,25 @@ class SSHTunnelService {
   Future<void> disconnect() async {
     try {
       await _serverSocket?.close();
-    } catch (e) {
-      debugPrint('Error closing SSH server socket: $e');
+    } catch (e, stackTrace) {
+      ErrorReporter.warning(
+        'Error closing SSH server socket: $e',
+        stackTrace,
+        'SSHTunnelService.disconnect',
+        'ssh_tunnel_service.dart:276',
+      );
     }
     _serverSocket = null;
     if (_sshClient != null) {
       try {
         _sshClient!.close();
-      } catch (e) {
-        debugPrint('Error closing SSH client: $e');
+      } catch (e, stackTrace) {
+        ErrorReporter.warning(
+          'Error closing SSH client: $e',
+          stackTrace,
+          'SSHTunnelService.disconnect',
+          'ssh_tunnel_service.dart:283',
+        );
       }
       _sshClient = null;
     }

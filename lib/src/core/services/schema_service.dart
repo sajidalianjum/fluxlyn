@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'database_driver.dart';
+import '../utils/error_reporter.dart';
 
 class SchemaService {
   static const Duration _waitTimeout = Duration(seconds: 5);
@@ -28,7 +28,12 @@ class SchemaService {
         await Future.delayed(const Duration(milliseconds: 50));
       }
       if (_loadingTables.contains(cacheKey)) {
-        debugPrint('Timeout waiting for columns: $cacheKey');
+        ErrorReporter.warning(
+          'Timeout waiting for columns: $cacheKey',
+          null,
+          'SchemaService.getColumns',
+          'schema_service.dart:31',
+        );
         return [];
       }
       return _columnsCache[cacheKey] ?? [];
@@ -40,8 +45,13 @@ class SchemaService {
       final columns = await driver.getColumns(tableName);
       _columnsCache[cacheKey] = columns;
       return columns;
-    } catch (e) {
-      debugPrint('Error loading columns for $tableName: $e');
+    } catch (e, stackTrace) {
+      ErrorReporter.warning(
+        'Error loading columns for $tableName: $e',
+        stackTrace,
+        'SchemaService.getColumns',
+        'schema_service.dart:44',
+      );
       return [];
     } finally {
       _loadingTables.remove(cacheKey);
@@ -64,14 +74,24 @@ class SchemaService {
           (table) => getColumns(driver, databaseName, table).timeout(
             _preloadTimeout,
             onTimeout: () {
-              debugPrint('Timeout preloading columns for: $table');
+              ErrorReporter.warning(
+                'Timeout preloading columns for: $table',
+                null,
+                'SchemaService.preloadColumns',
+                'schema_service.dart:67',
+              );
               return <ColumnInfo>[];
             },
           ),
         ),
       );
-    } catch (e) {
-      debugPrint('Error preloading columns: $e');
+    } catch (e, stackTrace) {
+      ErrorReporter.warning(
+        'Error preloading columns: $e',
+        stackTrace,
+        'SchemaService.preloadColumns',
+        'schema_service.dart:74',
+      );
     }
   }
 

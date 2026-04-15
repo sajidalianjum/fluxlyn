@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 import '../../../../core/services/storage_service.dart';
+import '../../../../core/utils/error_reporter.dart';
 import '../../../../core/services/schema_service.dart';
 import '../../../../core/services/ai_service.dart';
 import '../../../../core/services/sql_context_analyzer.dart';
@@ -456,8 +457,13 @@ class _QueryTabState extends State<QueryTab> {
               if (pk != null && columns.contains(pk)) {
                 primaryKeyColumn = pk;
               }
-            } catch (e) {
-              debugPrint('Error detecting primary key: $e');
+            } catch (e, stackTrace) {
+              ErrorReporter.warning(
+                'Error detecting primary key: $e',
+                stackTrace,
+                'QueryTab._executeQuery',
+                'query_tab.dart:460',
+              );
             }
           }
 

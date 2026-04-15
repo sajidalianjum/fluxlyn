@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:postgres/postgres.dart';
 import '../../features/connections/models/connection_model.dart';
 import 'database_driver.dart';
 import 'ssh_tunnel_service.dart';
 import '../models/exceptions.dart';
+import '../utils/error_reporter.dart';
 
 class PostgresExecutionResult {
   final List<Map<String, dynamic>> rows;
@@ -27,7 +27,11 @@ class PostgreSQLDriver implements DatabaseDriver {
   @override
   Future<void> testConnection(ConnectionModel config) async {
     _currentConnectionName = config.name;
-    print('Testing PostgreSQL connection to ${config.host}:${config.port}...');
+    ErrorReporter.info(
+      'Testing PostgreSQL connection to ${config.host}:${config.port}',
+      'PostgreSQLDriver.testConnection',
+      'postgres_driver.dart:30',
+    );
     String host = config.host;
     int port = config.port;
 
@@ -38,7 +42,11 @@ class PostgreSQLDriver implements DatabaseDriver {
         port = _sshTunnel.localPort;
       }
 
-      print('PostgreSQL: Creating connection to $host:$port');
+      ErrorReporter.info(
+        'PostgreSQL: Creating connection to $host:$port',
+        'PostgreSQLDriver.testConnection',
+        'postgres_driver.dart:41',
+      );
       final conn = await Connection.open(
         Endpoint(
           host: host,
@@ -66,11 +74,24 @@ class PostgreSQLDriver implements DatabaseDriver {
                 );
               },
             );
-        print('PostgreSQL: Connected successfully');
+        ErrorReporter.info(
+          'PostgreSQL: Connected successfully',
+          'PostgreSQLDriver.testConnection',
+          'postgres_driver.dart:69',
+        );
         await conn.close();
-        print('PostgreSQL: Connection closed');
+        ErrorReporter.info(
+          'PostgreSQL: Connection closed',
+          'PostgreSQLDriver.testConnection',
+          'postgres_driver.dart:71',
+        );
       } catch (e) {
-        print('PostgreSQL: Connection error - $e');
+        ErrorReporter.error(
+          'PostgreSQL: Connection error - $e',
+          StackTrace.current,
+          'PostgreSQLDriver.testConnection',
+          'postgres_driver.dart:73',
+        );
         await conn.close().catchError((_) {});
         throw ConnectionException(
           'Failed to connect to PostgreSQL: ${e.toString()}',
@@ -108,7 +129,11 @@ class PostgreSQLDriver implements DatabaseDriver {
 
     _isConnecting = true;
     _currentConnectionName = config.name;
-    print('Connecting to PostgreSQL...');
+    ErrorReporter.info(
+      'Connecting to PostgreSQL',
+      'PostgreSQLDriver.connect',
+      'postgres_driver.dart:111',
+    );
     String host = config.host;
     int port = config.port;
 
@@ -123,7 +148,11 @@ class PostgreSQLDriver implements DatabaseDriver {
         port = _sshTunnel.localPort;
       }
 
-      print('PostgreSQL: Creating connection to $host:$port');
+      ErrorReporter.info(
+        'PostgreSQL: Creating connection to $host:$port',
+        'PostgreSQLDriver.connect',
+        'postgres_driver.dart:126',
+      );
       _connection = await Connection.open(
         Endpoint(
           host: host,
@@ -154,7 +183,11 @@ class PostgreSQLDriver implements DatabaseDriver {
 
       _currentDatabase = config.databaseName ?? 'postgres';
       _config = config;
-      print('PostgreSQL: Connected successfully');
+      ErrorReporter.info(
+        'PostgreSQL: Connected successfully',
+        'PostgreSQLDriver.connect',
+        'postgres_driver.dart:157',
+      );
     } on TimeoutException {
       await _cleanupResources();
       rethrow;
@@ -178,13 +211,23 @@ class PostgreSQLDriver implements DatabaseDriver {
   Future<void> disconnect() async {
     try {
       await _sshTunnel.disconnect();
-    } catch (e) {
-      debugPrint('Error disconnecting SSH tunnel: $e');
+    } catch (e, stackTrace) {
+      ErrorReporter.warning(
+        'Error disconnecting SSH tunnel: $e',
+        stackTrace,
+        'PostgreSQLDriver.disconnect',
+        'postgres_driver.dart:182',
+      );
     }
     try {
       await _connection?.close();
-    } catch (e) {
-      debugPrint('Error closing PostgreSQL connection: $e');
+    } catch (e, stackTrace) {
+      ErrorReporter.warning(
+        'Error closing PostgreSQL connection: $e',
+        stackTrace,
+        'PostgreSQLDriver.disconnect',
+        'postgres_driver.dart:187',
+      );
     }
     _connection = null;
     _currentDatabase = null;
@@ -435,7 +478,11 @@ class PostgreSQLDriver implements DatabaseDriver {
 
       _connection = conn;
       _currentDatabase = databaseName;
-      print('PostgreSQL: Switched to database $databaseName');
+      ErrorReporter.info(
+        'PostgreSQL: Switched to database $databaseName',
+        'PostgreSQLDriver.useDatabase',
+        'postgres_driver.dart:438',
+      );
     } on TimeoutException {
       await _cleanupResources();
       rethrow;
@@ -524,9 +571,14 @@ class PostgreSQLDriver implements DatabaseDriver {
         return result.rows.first['column_name']?.toString();
       }
       return null;
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (e is DatabaseException) rethrow;
-      debugPrint('Error getting primary key for $tableName: $e');
+      ErrorReporter.warning(
+        'Error getting primary key for $tableName: $e',
+        stackTrace,
+        'PostgreSQLDriver.getPrimaryKeyColumn',
+        'postgres_driver.dart:529',
+      );
       return null;
     }
   }
@@ -561,9 +613,14 @@ class PostgreSQLDriver implements DatabaseDriver {
       }
 
       return enumColumns;
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (e is DatabaseException) rethrow;
-      debugPrint('Error getting enum columns for $tableName: $e');
+      ErrorReporter.warning(
+        'Error getting enum columns for $tableName: $e',
+        stackTrace,
+        'PostgreSQLDriver.getEnumColumns',
+        'postgres_driver.dart:566',
+      );
       return {};
     }
   }
@@ -587,8 +644,13 @@ class PostgreSQLDriver implements DatabaseDriver {
       }
 
       return enumValues;
-    } catch (e) {
-      debugPrint('Error getting enum values for $enumTypeName: $e');
+    } catch (e, stackTrace) {
+      ErrorReporter.warning(
+        'Error getting enum values for $enumTypeName: $e',
+        stackTrace,
+        'PostgreSQLDriver._getEnumValues',
+        'postgres_driver.dart:591',
+      );
       return [];
     }
   }

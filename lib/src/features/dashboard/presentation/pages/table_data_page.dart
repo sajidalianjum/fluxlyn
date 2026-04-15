@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/widgets/data_table2_widget.dart';
+import '../../../../core/utils/error_reporter.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../models/table_search_result.dart';
 import '../dialogs/row_edit_dialog.dart';
@@ -41,50 +42,65 @@ class _TableDataPageState extends State<TableDataPage> {
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    final provider = Provider.of<DashboardProvider>(context, listen: false);
-    TableDataResult result;
-
-    if (_searchResult != null &&
-        (_searchResult!.hasFilters || _searchResult!.hasSort)) {
-      result = await provider.fetchTableDataWithFilter(
-        tableName: widget.tableName,
-        searchColumn: _searchResult!.searchColumn,
-        searchText: _searchResult!.searchText,
-        sortColumn: _searchResult!.sortColumn,
-        sortDirection: _searchResult!.sortDirection,
-        limit: _limit,
-        offset: _offset,
-      );
-    } else {
-      result = await provider.fetchTableData(
-        widget.tableName,
-        limit: _limit,
-        offset: _offset,
-      );
-    }
-
-    if (mounted) {
+    try {
       setState(() {
-        _isLoading = false;
-        if (result.hasError) {
-          _error = result.error;
-        } else {
-          _columns = result.columns;
-          _binaryColumns = result.binaryColumns;
-          _bitColumns = result.bitColumns;
-          _enumColumns = result.enumColumns;
-          _setColumns = result.setColumns;
-          _rows = result.rows;
-          _primaryKeyColumn = result.primaryKeyColumn;
-          _isEditable = result.isEditable;
-          _hasNextPage = result.hasNextPage;
-        }
+        _isLoading = true;
+        _error = null;
       });
+
+      final provider = Provider.of<DashboardProvider>(context, listen: false);
+      TableDataResult result;
+
+      if (_searchResult != null &&
+          (_searchResult!.hasFilters || _searchResult!.hasSort)) {
+        result = await provider.fetchTableDataWithFilter(
+          tableName: widget.tableName,
+          searchColumn: _searchResult!.searchColumn,
+          searchText: _searchResult!.searchText,
+          sortColumn: _searchResult!.sortColumn,
+          sortDirection: _searchResult!.sortDirection,
+          limit: _limit,
+          offset: _offset,
+        );
+      } else {
+        result = await provider.fetchTableData(
+          widget.tableName,
+          limit: _limit,
+          offset: _offset,
+        );
+      }
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          if (result.hasError) {
+            _error = result.error;
+          } else {
+            _columns = result.columns;
+            _binaryColumns = result.binaryColumns;
+            _bitColumns = result.bitColumns;
+            _enumColumns = result.enumColumns;
+            _setColumns = result.setColumns;
+            _rows = result.rows;
+            _primaryKeyColumn = result.primaryKeyColumn;
+            _isEditable = result.isEditable;
+            _hasNextPage = result.hasNextPage;
+          }
+        });
+      }
+    } catch (e, stackTrace) {
+      ErrorReporter.error(
+        'Unexpected error loading table data: $e',
+        stackTrace,
+        'TableDataPage._loadData',
+        'table_data_page.dart:43',
+      );
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Unexpected error: $e';
+        });
+      }
     }
   }
 

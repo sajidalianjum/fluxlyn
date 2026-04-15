@@ -8,6 +8,7 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import '../../features/connections/models/connection_model.dart';
 import '../../features/queries/models/query_model.dart';
 import '../../core/models/settings_model.dart';
+import '../utils/error_reporter.dart';
 import '../../core/models/exceptions.dart';
 
 class ImportResult {
@@ -253,8 +254,13 @@ class StorageService extends ChangeNotifier {
       return AppSettings.fromJson(
         jsonDecode(settingsJson as String) as Map<String, dynamic>,
       );
-    } catch (e) {
-      debugPrint('Failed to load settings, using defaults: $e');
+    } catch (e, stackTrace) {
+      ErrorReporter.warning(
+        'Failed to load settings, using defaults: $e',
+        stackTrace,
+        'StorageService.loadSettings',
+        'storage_service.dart:257',
+      );
       return AppSettings.defaultSettings();
     }
   }

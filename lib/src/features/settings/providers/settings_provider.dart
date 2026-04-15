@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/models/settings_model.dart';
 import '../../../core/services/storage_service.dart';
+import '../../../core/utils/error_reporter.dart';
 
 class SettingsProvider extends ChangeNotifier {
   final StorageService _storageService;
@@ -31,9 +32,14 @@ class SettingsProvider extends ChangeNotifier {
     try {
       _settings = _storageService.loadSettings();
       _error = null;
-    } catch (e) {
+    } catch (e, stackTrace) {
       _error = e.toString();
-      debugPrint('Error loading settings: $e');
+      ErrorReporter.warning(
+        'Error loading settings: $e',
+        stackTrace,
+        'SettingsProvider.loadSettings',
+        'settings_provider.dart:36',
+      );
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -61,9 +67,14 @@ class SettingsProvider extends ChangeNotifier {
     try {
       await _storageService.saveSettings(_settings);
       _error = null;
-    } catch (e) {
+    } catch (e, stackTrace) {
       _error = e.toString();
-      debugPrint('Error saving settings: $e');
+      ErrorReporter.warning(
+        'Error saving settings: $e',
+        stackTrace,
+        'SettingsProvider.updateSettings',
+        'settings_provider.dart:66',
+      );
       notifyListeners();
     }
   }

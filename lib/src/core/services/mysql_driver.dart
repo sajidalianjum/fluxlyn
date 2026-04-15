@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 import '../../features/connections/models/connection_model.dart';
 import 'database_driver.dart';
 import 'ssh_tunnel_service.dart';
 import '../models/exceptions.dart';
+import '../utils/error_reporter.dart';
 
 class MySQLDriver implements DatabaseDriver {
   static const Duration _defaultTimeout = Duration(seconds: 10);
@@ -18,7 +18,11 @@ class MySQLDriver implements DatabaseDriver {
   @override
   Future<void> testConnection(ConnectionModel config) async {
     _currentConnectionName = config.name;
-    print('Testing MySQL connection to ${config.host}:${config.port}...');
+    ErrorReporter.info(
+      'Testing MySQL connection to ${config.host}:${config.port}',
+      'MySQLDriver.testConnection',
+      'mysql_driver.dart:21',
+    );
     String host = config.host;
     int port = config.port;
 
@@ -41,11 +45,24 @@ class MySQLDriver implements DatabaseDriver {
       try {
         final timeoutMs = config.useSsh ? _sshTimeout : _defaultTimeout;
         await conn.connect(timeoutMs: timeoutMs.inMilliseconds);
-        print('MySQL: Connected successfully');
+        ErrorReporter.info(
+          'MySQL: Connected successfully',
+          'MySQLDriver.testConnection',
+          'mysql_driver.dart:44',
+        );
         await conn.close();
-        print('MySQL: Connection closed');
+        ErrorReporter.info(
+          'MySQL: Connection closed',
+          'MySQLDriver.testConnection',
+          'mysql_driver.dart:46',
+        );
       } catch (e) {
-        print('MySQL: Connection error - $e');
+        ErrorReporter.error(
+          'MySQL: Connection error - $e',
+          StackTrace.current,
+          'MySQLDriver.testConnection',
+          'mysql_driver.dart:48',
+        );
         await conn.close().catchError((_) {});
         throw ConnectionException(
           'Failed to connect to MySQL: ${e.toString()}',
@@ -83,7 +100,11 @@ class MySQLDriver implements DatabaseDriver {
 
     _isConnecting = true;
     _currentConnectionName = config.name;
-    print('Connecting to MySQL...');
+    ErrorReporter.info(
+      'Connecting to MySQL',
+      'MySQLDriver.connect',
+      'mysql_driver.dart:86',
+    );
     String host = config.host;
     int port = config.port;
 
@@ -98,7 +119,11 @@ class MySQLDriver implements DatabaseDriver {
         port = _sshTunnel.localPort;
       }
 
-      print('MySQL: Creating connection to $host:$port');
+      ErrorReporter.info(
+        'MySQL: Creating connection to $host:$port',
+        'MySQLDriver.connect',
+        'mysql_driver.dart:101',
+      );
       _connection = await MySQLConnection.createConnection(
         host: host,
         port: port,
@@ -122,7 +147,11 @@ class MySQLDriver implements DatabaseDriver {
             },
           );
 
-      print('MySQL: Connected successfully');
+      ErrorReporter.info(
+        'MySQL: Connected successfully',
+        'MySQLDriver.connect',
+        'mysql_driver.dart:125',
+      );
     } on TimeoutException {
       await _cleanupResources();
       rethrow;
@@ -146,15 +175,25 @@ class MySQLDriver implements DatabaseDriver {
   Future<void> disconnect() async {
     try {
       await _sshTunnel.disconnect();
-    } catch (e) {
-      debugPrint('Error disconnecting SSH tunnel: $e');
+    } catch (e, stackTrace) {
+      ErrorReporter.warning(
+        'Error disconnecting SSH tunnel: $e',
+        stackTrace,
+        'MySQLDriver.disconnect',
+        'mysql_driver.dart:150',
+      );
     }
 
     if (_connection != null) {
       try {
         await _connection!.close();
-      } catch (e) {
-        debugPrint('Error closing MySQL connection: $e');
+      } catch (e, stackTrace) {
+        ErrorReporter.warning(
+          'Error closing MySQL connection: $e',
+          stackTrace,
+          'MySQLDriver.disconnect',
+          'mysql_driver.dart:157',
+        );
       }
     }
     _connection = null;
@@ -339,9 +378,14 @@ class MySQLDriver implements DatabaseDriver {
         }
       }
       return null;
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (e is DatabaseException) rethrow;
-      debugPrint('Error getting primary key for $tableName: $e');
+      ErrorReporter.warning(
+        'Error getting primary key for $tableName: $e',
+        stackTrace,
+        'MySQLDriver.getPrimaryKeyColumn',
+        'mysql_driver.dart:344',
+      );
       return null;
     }
   }

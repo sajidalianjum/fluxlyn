@@ -4,6 +4,7 @@ import 'package:mysql_dart/mysql_dart.dart';
 import '../../../core/services/database_service.dart';
 import '../../../core/services/database_driver.dart';
 import '../../../core/models/exceptions.dart';
+import '../../../core/utils/error_reporter.dart';
 import '../../connections/models/connection_model.dart';
 import '../models/table_search_result.dart';
 
@@ -163,9 +164,14 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       _databases = await _driver!.getDatabases();
       _error = null;
-    } catch (e) {
+    } catch (e, stackTrace) {
       _error = 'Failed to load databases: ${e.toString()}';
-      debugPrint('Error loading databases: $e');
+      ErrorReporter.warning(
+        'Error loading databases: $e',
+        stackTrace,
+        'DashboardProvider.refreshDatabases',
+        'dashboard_provider.dart:168',
+      );
     }
     notifyListeners();
   }
@@ -184,9 +190,14 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       await _driver!.useDatabase(dbName);
       _selectedDatabase = dbName;
       await refreshTables();
-    } catch (e) {
+    } catch (e, stackTrace) {
       _error = 'Failed to select database: ${e.toString()}';
-      debugPrint('Error selecting database $dbName: $e');
+      ErrorReporter.warning(
+        'Error selecting database $dbName: $e',
+        stackTrace,
+        'DashboardProvider.selectDatabase',
+        'dashboard_provider.dart:189',
+      );
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -198,9 +209,14 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       _tables = await _driver!.getTables();
       _error = null;
-    } catch (e) {
+    } catch (e, stackTrace) {
       _error = 'Failed to load tables: ${e.toString()}';
-      debugPrint('Error loading tables: $e');
+      ErrorReporter.warning(
+        'Error loading tables: $e',
+        stackTrace,
+        'DashboardProvider.refreshTables',
+        'dashboard_provider.dart:203',
+      );
     }
     notifyListeners();
   }
@@ -271,8 +287,13 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (!isConnected) {
         _autoReconnect();
       }
-    } catch (e) {
-      debugPrint('Error checking connection: $e');
+    } catch (e, stackTrace) {
+      ErrorReporter.warning(
+        'Error checking connection: $e',
+        stackTrace,
+        'DashboardProvider._checkAndReconnect',
+        'dashboard_provider.dart:275',
+      );
       _autoReconnect();
     }
   }
@@ -484,7 +505,13 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
         limit: limit,
         hasNextPage: hasNextPage,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      ErrorReporter.error(
+        'Failed to fetch table data: $e',
+        stackTrace,
+        'DashboardProvider.fetchTableData',
+        'dashboard_provider.dart:509',
+      );
       return TableDataResult(error: 'Failed to fetch table data: $e');
     }
   }
@@ -676,7 +703,13 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
         limit: limit,
         hasNextPage: hasNextPage,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      ErrorReporter.error(
+        'Failed to fetch filtered table data: $e',
+        stackTrace,
+        'DashboardProvider.fetchTableDataWithFilter',
+        'dashboard_provider.dart:707',
+      );
       return TableDataResult(error: 'Failed to fetch filtered table data: $e');
     }
   }
@@ -760,7 +793,13 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       await executeQuery(sql);
 
       return null;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      ErrorReporter.error(
+        'Failed to update row: $e',
+        stackTrace,
+        'DashboardProvider.updateRow',
+        'dashboard_provider.dart:797',
+      );
       return 'Failed to update row: $e';
     }
   }
