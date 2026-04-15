@@ -93,6 +93,26 @@ class AppTheme {
         unselectedIconTheme: IconThemeData(color: Colors.grey[600]),
         elevation: 0,
       ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return Colors.grey.shade600;
+          }
+          if (states.contains(WidgetState.selected)) {
+            return Colors.white;
+          }
+          return Colors.grey.shade400;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return Colors.grey.shade800;
+          }
+          if (states.contains(WidgetState.selected)) {
+            return _primary.withValues(alpha: 0.6);
+          }
+          return Colors.grey.shade700;
+        }),
+      ),
     );
   }
 }
