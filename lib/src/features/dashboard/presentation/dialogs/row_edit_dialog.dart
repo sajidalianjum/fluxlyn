@@ -168,7 +168,6 @@ class FieldEditor extends StatelessWidget {
           fontFamily: value is String && value.length > 50 ? 'monospace' : null,
         ),
         maxLines: value is String && value.length > 100 ? 3 : 1,
-        onTap: !isReadOnly && isNull ? onUnsetNull : null,
         decoration: InputDecoration(
           hintText: isReadOnly
               ? (isPK ? 'Primary Key (read-only)' : 'Binary data (read-only)')
