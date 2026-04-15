@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 import '../../../core/services/database_service.dart';
 import '../../../core/services/database_driver.dart';
+import '../../../core/services/postgres_driver.dart';
 import '../../../core/models/exceptions.dart';
 import '../../../core/utils/error_reporter.dart';
 import '../../connections/models/connection_model.dart';
@@ -484,10 +485,10 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
           }
         }
       } else {
-        final pgResult = result as List<Map<String, dynamic>>;
-        if (pgResult.isNotEmpty) {
-          columnNames = pgResult.first.keys.toList();
-          rows = pgResult;
+        final pgResult = result as PostgresExecutionResult;
+        if (pgResult.rows.isNotEmpty) {
+          columnNames = pgResult.rows.first.keys.toList();
+          rows = pgResult.rows;
         }
       }
 
@@ -682,10 +683,10 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
           }
         }
       } else {
-        final pgResult = result as List<Map<String, dynamic>>;
-        if (pgResult.isNotEmpty) {
-          columnNames = pgResult.first.keys.toList();
-          rows = pgResult;
+        final pgResult = result as PostgresExecutionResult;
+        if (pgResult.rows.isNotEmpty) {
+          columnNames = pgResult.rows.first.keys.toList();
+          rows = pgResult.rows;
         }
       }
 
