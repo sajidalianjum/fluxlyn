@@ -168,7 +168,9 @@ class _QueryTabState extends State<QueryTab> {
       if (pendingDatabase != null &&
           (provider.selectedDatabase == null ||
               provider.selectedDatabase != pendingDatabase)) {
-        provider.selectDatabase(pendingDatabase);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          provider.selectDatabase(pendingDatabase);
+        });
       }
     }
   }
