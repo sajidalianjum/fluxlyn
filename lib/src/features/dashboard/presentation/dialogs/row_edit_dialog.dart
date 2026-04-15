@@ -581,6 +581,7 @@ class _RowEditDialogState extends State<RowEditDialog> {
             final selectedValues = value
                 .split(',')
                 .map((v) => v.trim())
+                .where((v) => v.isNotEmpty)
                 .toSet();
             _setSelectedValues[col] = selectedValues
                 .where((v) => setValues.contains(v))
@@ -637,7 +638,11 @@ class _RowEditDialogState extends State<RowEditDialog> {
           break;
         } else if (originalValue != null && !isNowNull) {
           final originalSetValues = originalValue is String
-              ? originalValue.split(',').map((v) => v.trim()).toSet()
+              ? originalValue
+                    .split(',')
+                    .map((v) => v.trim())
+                    .where((v) => v.isNotEmpty)
+                    .toSet()
               : <String>{};
           if (!_setEquals(originalSetValues, _setSelectedValues[col]!)) {
             hasChanges = true;
@@ -697,7 +702,11 @@ class _RowEditDialogState extends State<RowEditDialog> {
           changes[col] = null;
         } else if (originalValue != null && !isNowNull) {
           final originalSetValues = originalValue is String
-              ? originalValue.split(',').map((v) => v.trim()).toSet()
+              ? originalValue
+                    .split(',')
+                    .map((v) => v.trim())
+                    .where((v) => v.isNotEmpty)
+                    .toSet()
               : <String>{};
           if (!_setEquals(originalSetValues, _setSelectedValues[col]!)) {
             changes[col] = _setSelectedValues[col]!.join(',');
