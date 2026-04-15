@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:crypto/crypto.dart';
 import 'package:uuid/uuid.dart';
@@ -28,10 +29,7 @@ class StorageService extends ChangeNotifier {
   static const String _queriesBoxName = 'queries';
   static const String _queryHistoryBoxName = 'query_history';
   static const String _settingsBoxName = 'settings';
-  // Note: This salt is stored in the binary. For extreme security,
-  // a hardware-backed keychain is better. But this overcomes
-  // sandbox entitlement issues while keeping data encrypted as requested.
-  static const String _internalSalt = "fluxlyn_key_derivation_v1_2024_internal";
+  static const String _keyBoxName = 'encryption_key';
 
   Future<void> init() async {
     try {
@@ -54,8 +52,8 @@ class StorageService extends ChangeNotifier {
         Hive.registerAdapter(QueryHistoryEntryAdapter());
       }
 
-      // Derive Encryption Key (32 bytes for AES-256)
-      final encryptionKey = _deriveEncryptionKey();
+      // Get or create device-specific encryption key
+      final encryptionKey = await _getOrCreateEncryptionKey();
 
       // Open Encrypted Boxes (parallel for faster startup)
       await Future.wait([
@@ -85,9 +83,34 @@ class StorageService extends ChangeNotifier {
     }
   }
 
-  List<int> _deriveEncryptionKey() {
-    // Generate a consistent 32-byte key from our internal salt
-    return sha256.convert(utf8.encode(_internalSalt)).bytes;
+  Future<List<int>> _getOrCreateEncryptionKey() async {
+    // Open key storage box (unencrypted - stores the key itself)
+    // This is acceptable because:
+    // 1. The key is a random 32-byte value with no intrinsic meaning
+    // 2. Each device/installation gets a unique key
+    // 3. The actual sensitive data is encrypted with this key
+    final keyBox = await Hive.openBox(_keyBoxName);
+
+    // Check if key already exists (from previous runs)
+    final existingKey = keyBox.get('device_key');
+    if (existingKey != null && existingKey is List) {
+      return existingKey.cast<int>();
+    }
+
+    // Generate new cryptographically secure random 32-byte key
+    final random = Random.secure();
+    final newKey = List<int>.generate(32, (_) => random.nextInt(256));
+
+    // Store for future use
+    await keyBox.put('device_key', newKey);
+
+    ErrorReporter.info(
+      'Generated new device-specific encryption key',
+      'StorageService._getOrCreateEncryptionKey',
+      'storage_service.dart:72',
+    );
+
+    return newKey;
   }
 
   // Connections

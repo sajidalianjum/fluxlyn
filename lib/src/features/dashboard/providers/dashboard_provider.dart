@@ -619,7 +619,8 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       final conditions = <String>[];
       if (searchColumn != null && searchText != null && searchText.isNotEmpty) {
         final quotedCol = '$identifierQuote$searchColumn$identifierQuote';
-        conditions.add('$quotedCol LIKE \'%$searchText%\'');
+        final escapedSearch = _escapeSqlString(searchText, isPostgreSQL);
+        conditions.add('$quotedCol LIKE \'%$escapedSearch%\'');
       }
 
       final orderByClauses = <String>[];
@@ -765,7 +766,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
           final colType = columnTypes[entry.key] ?? '';
 
           if (entry.value is String) {
-            final escaped = (entry.value as String).replaceAll("'", "''");
+            final escaped = _escapeSqlString(entry.value as String, true);
 
             if (colType == 'inet') {
               setClauses.add('$quotedCol = \'$escaped\'::inet');
@@ -782,11 +783,12 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
           }
         } else {
           if (entry.value is String) {
-            final escaped = (entry.value as String).replaceAll("'", "''");
+            final escaped = _escapeSqlString(entry.value as String, false);
             setClauses.add('$quotedCol = \'$escaped\'');
           } else if (entry.value is DateTime) {
             final formatted = (entry.value as DateTime).toIso8601String();
-            setClauses.add('$quotedCol = \'$formatted\'');
+            final escaped = _escapeSqlString(formatted, false);
+            setClauses.add('$quotedCol = \'$escaped\'');
           } else {
             setClauses.add('$quotedCol = ${entry.value}');
           }
@@ -798,7 +800,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (primaryKeyValue == null) {
         return 'Cannot update row: primary key value is null';
       } else if (primaryKeyValue is String) {
-        final escaped = primaryKeyValue.replaceAll("'", "''");
+        final escaped = _escapeSqlString(primaryKeyValue, isPostgreSQL);
         whereClause = '$quotedPkCol = \'$escaped\'';
       } else {
         whereClause = '$quotedPkCol = $primaryKeyValue';
@@ -887,4 +889,23 @@ List<String> _parseEnumSetValues(String typeString) {
 
   values.add(buffer.toString());
   return values;
+}
+
+String _escapeSqlString(String value, bool isPostgreSQL) {
+  if (isPostgreSQL) {
+    // PostgreSQL: escape single quotes by doubling them
+    // Also escape backslashes in standard_conforming_strings = off mode
+    // Modern PostgreSQL (9.1+) uses standard_conforming_strings = on by default
+    return value.replaceAll("'", "''");
+  } else {
+    // MySQL: escape using backslash notation
+    // Order matters: escape backslashes FIRST, then other characters
+    return value
+        .replaceAll('\\', '\\\\')
+        .replaceAll("'", "\\'")
+        .replaceAll('\x00', '\\0')
+        .replaceAll('\n', '\\n')
+        .replaceAll('\r', '\\r')
+        .replaceAll('\x1a', '\\Z');
+  }
 }
