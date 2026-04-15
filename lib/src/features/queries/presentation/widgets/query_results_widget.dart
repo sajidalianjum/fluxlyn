@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/widgets/data_table2_widget.dart';
 import '../../../dashboard/presentation/dialogs/row_edit_dialog.dart';
+import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../models/query_result.dart';
 
 class QueryResultsWidget extends StatefulWidget {
@@ -24,7 +26,7 @@ class _QueryResultsWidgetState extends State<QueryResultsWidget> {
     showDialog(
       context: context,
       builder: (context) => RowEditDialog(
-        tableName: 'Query Result',
+        tableName: widget.result.tableName ?? 'Query Result',
         columns: widget.result.columns,
         row: row,
         primaryKeyColumn: widget.result.primaryKeyColumn,
@@ -50,11 +52,52 @@ class _QueryResultsWidgetState extends State<QueryResultsWidget> {
         onCancel: () {
           Navigator.of(context).pop();
         },
-        onSave: (_) {
+        onSave: (changes) {
           Navigator.of(context).pop();
+          _commitChanges(rowIndex, changes);
         },
       ),
     );
+  }
+
+  Future<void> _commitChanges(
+    int rowIndex,
+    Map<String, dynamic> changes,
+  ) async {
+    if (widget.result.primaryKeyColumn == null ||
+        widget.result.tableName == null) {
+      return;
+    }
+
+    final row = widget.result.rows[rowIndex];
+    final primaryKeyValue = row[widget.result.primaryKeyColumn!];
+
+    final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final error = await provider.updateRow(
+      widget.result.tableName!,
+      widget.result.primaryKeyColumn!,
+      primaryKeyValue,
+      changes,
+    );
+
+    if (mounted) {
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $error'), backgroundColor: Colors.red),
+        );
+      } else {
+        for (final entry in changes.entries) {
+          widget.result.rows[rowIndex][entry.key] = entry.value;
+        }
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Row updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
   }
 
   void _exportToCsv() {

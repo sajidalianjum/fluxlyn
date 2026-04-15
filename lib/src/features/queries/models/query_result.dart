@@ -12,6 +12,7 @@ class QueryResult {
   final Map<String, List<String>> enumColumns;
   final Map<String, List<String>> setColumns;
   final String? primaryKeyColumn;
+  final String? tableName;
   final int? affectedRows;
   final SqlQueryType queryType;
 
@@ -27,6 +28,7 @@ class QueryResult {
     this.enumColumns = const {},
     this.setColumns = const {},
     this.primaryKeyColumn,
+    this.tableName,
     this.affectedRows,
     required this.queryType,
   });

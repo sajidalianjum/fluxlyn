@@ -34,10 +34,6 @@ class QueryProtectionService {
       return 'Read-only mode is active.';
     }
 
-    if (lock) {
-      return 'Destructive operations are locked.';
-    }
-
     return null;
   }
 }

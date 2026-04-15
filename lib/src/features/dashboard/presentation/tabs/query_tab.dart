@@ -450,8 +450,10 @@ class _QueryTabState extends State<QueryTab> {
           }).toList();
 
           String? primaryKeyColumn;
+          String? tableName;
           final tableNames = SqlAnalyzer.extractTableNames(singleQuery);
           if (tableNames.length == 1 && driver != null) {
+            tableName = tableNames.first;
             try {
               final pk = await driver.getPrimaryKeyColumn(tableNames.first);
               if (pk != null && columns.contains(pk)) {
@@ -479,6 +481,7 @@ class _QueryTabState extends State<QueryTab> {
               enumColumns: enumColumns,
               setColumns: setColumns,
               primaryKeyColumn: primaryKeyColumn,
+              tableName: tableName,
               affectedRows: affectedRows,
               queryType: queryType,
             ),

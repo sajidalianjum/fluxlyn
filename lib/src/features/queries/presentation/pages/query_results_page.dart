@@ -9,6 +9,7 @@ import 'package:path/path.dart' as path;
 import '../../../../core/widgets/data_table2_widget.dart';
 import '../../../../core/services/sql_analyzer.dart';
 import '../../../dashboard/presentation/dialogs/row_edit_dialog.dart';
+import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../models/query_result.dart';
 
@@ -81,7 +82,7 @@ class _QueryResultsPageState extends State<QueryResultsPage>
     showDialog(
       context: context,
       builder: (context) => RowEditDialog(
-        tableName: 'Query Result',
+        tableName: result.tableName ?? 'Query Result',
         columns: result.columns,
         row: row,
         primaryKeyColumn: result.primaryKeyColumn,
@@ -107,11 +108,50 @@ class _QueryResultsPageState extends State<QueryResultsPage>
         onCancel: () {
           Navigator.of(context).pop();
         },
-        onSave: (_) {
+        onSave: (changes) {
           Navigator.of(context).pop();
+          _commitChanges(rowIndex, result, changes);
         },
       ),
     );
+  }
+
+  Future<void> _commitChanges(
+    int rowIndex,
+    QueryResult result,
+    Map<String, dynamic> changes,
+  ) async {
+    if (result.primaryKeyColumn == null || result.tableName == null) return;
+
+    final row = result.rows[rowIndex];
+    final primaryKeyValue = row[result.primaryKeyColumn!];
+
+    final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final error = await provider.updateRow(
+      result.tableName!,
+      result.primaryKeyColumn!,
+      primaryKeyValue,
+      changes,
+    );
+
+    if (mounted) {
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $error'), backgroundColor: Colors.red),
+        );
+      } else {
+        for (final entry in changes.entries) {
+          result.rows[rowIndex][entry.key] = entry.value;
+        }
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Row updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -319,24 +359,6 @@ class _QueryResultsPageState extends State<QueryResultsPage>
                       ),
                       backgroundColor: Colors.red.withValues(alpha: 0.2),
                       labelStyle: const TextStyle(color: Colors.red),
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                    ),
-                  );
-                } else if (settings.lock) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: Chip(
-                      avatar: const Icon(Icons.security, size: 16),
-                      label: const Text(
-                        'Locked',
-                        style: TextStyle(fontSize: 11),
-                      ),
-                      backgroundColor: Colors.orange.withValues(alpha: 0.2),
-                      labelStyle: const TextStyle(color: Colors.orange),
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
