@@ -9,21 +9,17 @@ import '../widgets/connection_card.dart';
 import '../dialogs/connection_dialog.dart';
 
 class ConnectionsTab extends StatefulWidget {
-  final bool isSortingEnabled;
+  final bool isEditMode;
   final String searchQuery;
-  final bool isSelectionMode;
   final Set<String> selectedConnectionIds;
-  final VoidCallback onSelectionModeChanged;
   final ValueChanged<String> onSelectionToggled;
   final VoidCallback onSelectionCleared;
 
   const ConnectionsTab({
     super.key,
-    this.isSortingEnabled = false,
+    this.isEditMode = false,
     this.searchQuery = '',
-    this.isSelectionMode = false,
     required this.selectedConnectionIds,
-    required this.onSelectionModeChanged,
     required this.onSelectionToggled,
     required this.onSelectionCleared,
   });
@@ -311,7 +307,8 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                             : _buildConnectionsList(
                                 provider,
                                 filteredConnections,
-                                _selectedFilterTag == ConnectionTag.none &&
+                                widget.isEditMode &&
+                                    _selectedFilterTag == ConnectionTag.none &&
                                     widget.searchQuery.isEmpty,
                                 isWideScreen,
                               ),
@@ -379,7 +376,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
           final connection = connections[index];
           return ConnectionCard(
             connection: connection,
-            onTap: widget.isSelectionMode
+            onTap: widget.isEditMode
                 ? null
                 : () async {
                     final dashboardProvider = context.read<DashboardProvider>();
@@ -405,12 +402,9 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
             onEdit: () =>
                 _showConnectionDialog(context, connection: connection),
             onDelete: () => _showDeleteConfirmation(context, connection),
-            onLongPress: () {
-              widget.onSelectionModeChanged();
-              widget.onSelectionToggled(connection.id);
-            },
+            onLongPress: null,
             isSelected: widget.selectedConnectionIds.contains(connection.id),
-            isSelectionMode: widget.isSelectionMode,
+            isSelectionMode: widget.isEditMode,
             onSelect: () => widget.onSelectionToggled(connection.id),
           );
         },
@@ -439,7 +433,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
             key: ValueKey(connection.id),
             child: Row(
               children: [
-                if (widget.isSortingEnabled)
+                if (widget.isEditMode)
                   ReorderableDragStartListener(
                     index: index,
                     child: Padding(
@@ -453,7 +447,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                 Expanded(
                   child: ConnectionCard(
                     connection: connection,
-                    onTap: widget.isSelectionMode
+                    onTap: widget.isEditMode
                         ? null
                         : () async {
                             final dashboardProvider = context
@@ -483,14 +477,11 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                         _showConnectionDialog(context, connection: connection),
                     onDelete: () =>
                         _showDeleteConfirmation(context, connection),
-                    onLongPress: () {
-                      widget.onSelectionModeChanged();
-                      widget.onSelectionToggled(connection.id);
-                    },
+                    onLongPress: null,
                     isSelected: widget.selectedConnectionIds.contains(
                       connection.id,
                     ),
-                    isSelectionMode: widget.isSelectionMode,
+                    isSelectionMode: widget.isEditMode,
                     onSelect: () => widget.onSelectionToggled(connection.id),
                   ),
                 ),
@@ -507,7 +498,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
         final connection = connections[index];
         return ConnectionCard(
           connection: connection,
-          onTap: widget.isSelectionMode
+          onTap: widget.isEditMode
               ? null
               : () async {
                   final dashboardProvider = context.read<DashboardProvider>();
@@ -532,12 +523,9 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                 },
           onEdit: () => _showConnectionDialog(context, connection: connection),
           onDelete: () => _showDeleteConfirmation(context, connection),
-          onLongPress: () {
-            widget.onSelectionModeChanged();
-            widget.onSelectionToggled(connection.id);
-          },
+          onLongPress: null,
           isSelected: widget.selectedConnectionIds.contains(connection.id),
-          isSelectionMode: widget.isSelectionMode,
+          isSelectionMode: widget.isEditMode,
           onSelect: () => widget.onSelectionToggled(connection.id),
         );
       },

@@ -19,8 +19,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   int _selectedTabIndex = 0;
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
-  bool _isSortingMode = false;
-  bool _isSelectionMode = false;
+  bool _isEditMode = false;
   final Set<String> _selectedConnectionIds = <String>{};
 
   @override
@@ -29,21 +28,12 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
     super.dispose();
   }
 
-  void _enterSelectionMode({String? initialSelection}) {
-    if (_isSelectionMode && initialSelection == null) return;
+  void _toggleEditMode() {
     setState(() {
-      _isSelectionMode = true;
-      if (initialSelection != null) {
+      _isEditMode = !_isEditMode;
+      if (!_isEditMode) {
         _selectedConnectionIds.clear();
-        _selectedConnectionIds.add(initialSelection);
       }
-    });
-  }
-
-  void _exitSelectionMode() {
-    setState(() {
-      _isSelectionMode = false;
-      _selectedConnectionIds.clear();
     });
   }
 
@@ -51,9 +41,6 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
     setState(() {
       if (_selectedConnectionIds.contains(id)) {
         _selectedConnectionIds.remove(id);
-        if (_selectedConnectionIds.isEmpty) {
-          _isSelectionMode = false;
-        }
       } else {
         _selectedConnectionIds.add(id);
       }
@@ -63,7 +50,6 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   void _clearSelection() {
     setState(() {
       _selectedConnectionIds.clear();
-      _isSelectionMode = false;
     });
   }
 
@@ -80,7 +66,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
 
     if (!requireConfirm) {
       await provider.removeConnections(_selectedConnectionIds);
-      _exitSelectionMode();
+      _clearSelection();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -169,7 +155,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
 
     if (confirmed == true && context.mounted) {
       await provider.removeConnections(_selectedConnectionIds);
-      _exitSelectionMode();
+      _clearSelection();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -209,11 +195,9 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
 
     final List<Widget> tabs = [
       ConnectionsTab(
-        isSortingEnabled: _isSortingMode,
+        isEditMode: _isEditMode,
         searchQuery: _selectedTabIndex == 0 ? _searchController.text : '',
-        isSelectionMode: _isSelectionMode,
         selectedConnectionIds: _selectedConnectionIds,
-        onSelectionModeChanged: _enterSelectionMode,
         onSelectionToggled: _toggleConnectionSelection,
         onSelectionCleared: _clearSelection,
       ),
@@ -278,6 +262,9 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
           ],
         ),
         floatingActionButton: _getFloatingActionButton(),
+        bottomNavigationBar: _selectedConnectionIds.isNotEmpty && _selectedTabIndex == 0
+            ? _buildSelectionActionBar()
+            : null,
       );
     }
 
@@ -291,31 +278,79 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       ),
       body: IndexedStack(index: _selectedTabIndex, children: tabs),
       floatingActionButton: _getFloatingActionButton(),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedTabIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedTabIndex = index;
-            if (_isSearching && index != 0 && index != 1) {
-              _isSearching = false;
-              _searchController.clear();
-            }
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dns, semanticLabel: 'View connections'),
-            label: 'Connections',
+      bottomNavigationBar: _buildBottomNavigation(),
+    );
+  }
+
+  Widget _buildBottomNavigation() {
+    if (_selectedConnectionIds.isNotEmpty && _selectedTabIndex == 0) {
+      return _buildSelectionActionBar();
+    }
+    return NavigationBar(
+      selectedIndex: _selectedTabIndex,
+      onDestinationSelected: (index) {
+        setState(() {
+          _selectedTabIndex = index;
+          if (_isSearching && index != 0 && index != 1) {
+            _isSearching = false;
+            _searchController.clear();
+          }
+        });
+      },
+      destinations: const [
+        NavigationDestination(
+          icon: Icon(Icons.dns, semanticLabel: 'View connections'),
+          label: 'Connections',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.saved_search, semanticLabel: 'Saved queries'),
+          label: 'Queries',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.settings, semanticLabel: 'Application settings'),
+          label: 'Settings',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectionActionBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        border: Border(
+          top: BorderSide(
+            color: Colors.grey.withValues(alpha: 0.2),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.saved_search, semanticLabel: 'Saved queries'),
-            label: 'Queries',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings, semanticLabel: 'Application settings'),
-            label: 'Settings',
-          ),
-        ],
+        ),
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Text(
+              '${_selectedConnectionIds.length} selected',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: _clearSelection,
+              child: const Text('Clear'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              onPressed: () => _showBulkDeleteConfirmation(context),
+              icon: const Icon(Icons.delete, size: 18),
+              label: const Text('Delete'),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -377,32 +412,12 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
             ),
           ];
         }
-        if (_isSelectionMode) {
-          return [
-            TextButton.icon(
-              onPressed: () => _showBulkDeleteConfirmation(context),
-              icon: const Icon(Icons.delete),
-              label: Text('Delete (${_selectedConnectionIds.length})'),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-            ),
-            IconButton(
-              onPressed: _exitSelectionMode,
-              icon: const Icon(Icons.close),
-              tooltip: 'Cancel',
-            ),
-          ];
-        }
         return [
           IconButton(
-            onPressed: _enterSelectionMode,
-            icon: const Icon(Icons.checklist),
-            tooltip: 'Select connections',
-          ),
-          IconButton(
-            onPressed: () => setState(() => _isSortingMode = !_isSortingMode),
-            icon: Icon(_isSortingMode ? Icons.check : Icons.swap_vert),
-            tooltip: _isSortingMode ? 'Done sorting' : 'Sort connections',
-            color: _isSortingMode
+            onPressed: _toggleEditMode,
+            icon: Icon(_isEditMode ? Icons.close : Icons.edit),
+            tooltip: _isEditMode ? 'Done' : 'Edit',
+            color: _isEditMode
                 ? Theme.of(context).colorScheme.primary
                 : null,
           ),
