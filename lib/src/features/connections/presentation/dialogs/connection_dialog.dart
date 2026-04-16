@@ -29,7 +29,7 @@ class _ConnectionDialogState extends State<ConnectionDialog>
   late TextEditingController _passwordController;
   late TextEditingController _databaseController;
   late TextEditingController _customTagController;
-  bool _sslEnabled = false;
+  bool _sslEnabled = true;
   ConnectionTag _selectedTag = ConnectionTag.none;
   ConnectionType _selectedType = ConnectionType.mysql;
 
@@ -60,7 +60,7 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     _userController = TextEditingController(text: c?.username ?? '');
     _passwordController = TextEditingController(text: c?.password ?? '');
     _databaseController = TextEditingController(text: c?.databaseName ?? '');
-    _sslEnabled = c?.sslEnabled ?? false;
+    _sslEnabled = c?.sslEnabled ?? true;
     _customTagController = TextEditingController(text: c?.customTag ?? '');
     _selectedTag = c?.tag ?? ConnectionTag.none;
 

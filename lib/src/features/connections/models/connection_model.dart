@@ -101,7 +101,7 @@ class ConnectionModel extends HiveObject {
     this.username,
     this.password,
     this.type = ConnectionType.mysql,
-    this.sslEnabled = false,
+    this.sslEnabled = true,
     this.isConnected = false,
     this.useSsh = false,
     this.sshHost,
