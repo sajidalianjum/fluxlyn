@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_selector/file_selector.dart';
@@ -27,6 +28,7 @@ class _SettingsTabState extends State<SettingsTab> {
   late AIProvider _selectedProvider;
   bool _lock = false;
   bool _readOnlyMode = false;
+  PackageInfo? _packageInfo;
 
   @override
   void initState() {
@@ -42,6 +44,14 @@ class _SettingsTabState extends State<SettingsTab> {
           ? settings.endpoint
           : _selectedProvider.defaultEndpoint,
     );
+    _loadPackageInfo();
+  }
+
+  Future<void> _loadPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() => _packageInfo = info);
+    }
   }
 
   @override
@@ -520,7 +530,9 @@ class _SettingsTabState extends State<SettingsTab> {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          'v1.0.0+1',
+                          _packageInfo != null
+                              ? 'v${_packageInfo!.version}'
+                              : 'Loading...',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.primary,
                           ),
