@@ -262,7 +262,8 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
           ],
         ),
         floatingActionButton: _getFloatingActionButton(),
-        bottomNavigationBar: _selectedConnectionIds.isNotEmpty && _selectedTabIndex == 0
+        bottomNavigationBar:
+            _selectedConnectionIds.isNotEmpty && _selectedTabIndex == 0
             ? _buildSelectionActionBar()
             : null,
       );
@@ -320,9 +321,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         border: Border(
-          top: BorderSide(
-            color: Colors.grey.withValues(alpha: 0.2),
-          ),
+          top: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
         ),
       ),
       child: SafeArea(
@@ -330,24 +329,16 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
           children: [
             Text(
               '${_selectedConnectionIds.length} selected',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
             const Spacer(),
-            TextButton(
-              onPressed: _clearSelection,
-              child: const Text('Clear'),
-            ),
+            TextButton(onPressed: _clearSelection, child: const Text('Clear')),
             const SizedBox(width: 8),
             FilledButton.icon(
               onPressed: () => _showBulkDeleteConfirmation(context),
               icon: const Icon(Icons.delete, size: 18),
               label: const Text('Delete'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
             ),
           ],
         ),
@@ -413,13 +404,9 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
           ];
         }
         return [
-          IconButton(
+          TextButton(
             onPressed: _toggleEditMode,
-            icon: Icon(_isEditMode ? Icons.close : Icons.edit),
-            tooltip: _isEditMode ? 'Done' : 'Edit',
-            color: _isEditMode
-                ? Theme.of(context).colorScheme.primary
-                : null,
+            child: Text(_isEditMode ? 'Done' : 'Edit'),
           ),
           IconButton(
             onPressed: () => setState(() => _isSearching = true),
