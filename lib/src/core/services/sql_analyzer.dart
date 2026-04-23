@@ -301,13 +301,13 @@ class SqlAnalyzer {
 
   /// Normalize SQL for parsing
   static String _normalizeSql(String sql) {
-    var normalized = sql.trim();
+    var normalized = sql.trim().toLowerCase();
 
-    normalized = normalized.replaceAll(RegExp(r'\s+'), ' ');
+    normalized = normalized.replaceAll(RegExp(r'--.*'), ' ');
 
     normalized = normalized.replaceAll(RegExp(r'/\*.*?\*/', dotAll: true), ' ');
 
-    normalized = normalized.replaceAll(RegExp(r'--.*'), ' ');
+    normalized = normalized.replaceAll(RegExp(r'\s+'), ' ');
 
     final stringLiterals = <String>[];
     normalized = normalized.replaceAllMapped(RegExp(r"'[^']*'"), (match) {

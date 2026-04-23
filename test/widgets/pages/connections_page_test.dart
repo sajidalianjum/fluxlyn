@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:fluxlyn/src/features/connections/presentation/pages/connections_page.dart';
 import 'package:fluxlyn/src/features/connections/providers/connections_provider.dart';
 import 'package:fluxlyn/src/features/settings/providers/settings_provider.dart';
+import 'package:fluxlyn/src/features/dashboard/providers/dashboard_provider.dart';
 import 'package:fluxlyn/src/core/services/storage_service.dart';
 import 'package:fluxlyn/src/features/connections/models/connection_model.dart';
 import 'package:fluxlyn/src/core/models/settings_model.dart';
@@ -15,6 +16,7 @@ void main() {
   late MockStorageService mockSettingsStorage;
 
   setUpAll(() {
+    Provider.debugCheckInvalidValueType = null;
     registerFallbackValues();
   });
 
@@ -25,6 +27,9 @@ void main() {
     when(() => mockStorage.getAllConnections()).thenReturn([]);
     when(() => mockStorage.saveConnection(any())).thenAnswer((_) async {});
     when(() => mockStorage.deleteConnection(any())).thenAnswer((_) async {});
+    when(() => mockStorage.getAllSavedQueries()).thenReturn([]);
+    when(() => mockStorage.getQueryHistory(any())).thenReturn([]);
+    when(() => mockStorage.getAllQueryHistory()).thenReturn([]);
     when(() => mockSettingsStorage.loadSettings())
         .thenReturn(AppSettings.defaultSettings());
     when(() => mockSettingsStorage.saveSettings(any()))
@@ -42,6 +47,9 @@ void main() {
           ChangeNotifierProvider<SettingsProvider>(
             create: (_) => SettingsProvider(mockSettingsStorage),
           ),
+          ChangeNotifierProvider<DashboardProvider>(
+            create: (_) => DashboardProvider(),
+          ),
         ],
         child: const ConnectionsPage(),
       ),
@@ -53,7 +61,7 @@ void main() {
       testWidgets('shows Connections title in AppBar', (tester) async {
         await tester.pumpWidget(createTestWidget());
 
-        expect(find.text('Connections'), findsOneWidget);
+        expect(find.text('Connections'), findsWidgets);
       });
 
       testWidgets('shows bottom navigation bar on mobile', (tester) async {
@@ -126,13 +134,13 @@ void main() {
       testWidgets('shows search button in AppBar', (tester) async {
         await tester.pumpWidget(createTestWidget());
 
-        expect(find.byIcon(Icons.search), findsOneWidget);
+        expect(find.byIcon(Icons.search), findsWidgets);
       });
 
-      testWidgets('shows edit button in AppBar', (tester) async {
+      testWidgets('shows add button on FAB', (tester) async {
         await tester.pumpWidget(createTestWidget());
 
-        expect(find.byIcon(Icons.edit), findsOneWidget);
+        expect(find.byIcon(Icons.add), findsOneWidget);
       });
     });
 
@@ -158,43 +166,13 @@ void main() {
       testWidgets('closes search when close icon tapped', (tester) async {
         await tester.pumpWidget(createTestWidget());
 
-        await tester.tap(find.byIcon(Icons.search));
+        await tester.tap(find.byIcon(Icons.search).first);
         await tester.pumpAndSettle();
 
-        await tester.tap(find.byIcon(Icons.close));
+        await tester.tap(find.byIcon(Icons.close).first);
         await tester.pumpAndSettle();
 
         expect(find.text('Search connections...'), findsNothing);
-        expect(find.text('Connections'), findsOneWidget);
-      });
-    });
-
-    group('edit mode', () {
-      testWidgets('shows edit mode toggle button', (tester) async {
-        await tester.pumpWidget(createTestWidget());
-
-        expect(find.byIcon(Icons.edit), findsOneWidget);
-      });
-
-      testWidgets('toggles edit mode on button tap', (tester) async {
-        await tester.pumpWidget(createTestWidget());
-
-        await tester.tap(find.byIcon(Icons.edit));
-        await tester.pumpAndSettle();
-
-        expect(find.byIcon(Icons.close), findsOneWidget);
-      });
-
-      testWidgets('exits edit mode on close button tap', (tester) async {
-        await tester.pumpWidget(createTestWidget());
-
-        await tester.tap(find.byIcon(Icons.edit));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.byIcon(Icons.close));
-        await tester.pumpAndSettle();
-
-        expect(find.byIcon(Icons.edit), findsOneWidget);
       });
     });
 

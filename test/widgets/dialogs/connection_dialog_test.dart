@@ -32,6 +32,13 @@ void main() {
       });
 
       testWidgets('shows Edit Connection title for existing connection', (tester) async {
+        tester.view.physicalSize = const Size(1200, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
         final existingConnection = ConnectionModel(
           id: 'test-id',
           name: 'Existing',
@@ -244,6 +251,13 @@ void main() {
 
     group('form input', () {
       testWidgets('populates fields with existing connection data', (tester) async {
+        tester.view.physicalSize = const Size(1200, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
         final existingConnection = ConnectionModel(
           id: 'test-id',
           name: 'My Database',
@@ -337,6 +351,9 @@ void main() {
         await tester.tap(find.text('Open'));
         await tester.pumpAndSettle();
 
+        await tester.drag(find.byType(ListView).first, const Offset(0, -300));
+        await tester.pumpAndSettle();
+
         expect(find.text('Enable SSL'), findsOneWidget);
       });
     });
@@ -427,6 +444,9 @@ void main() {
         await tester.tap(find.text('Open'));
         await tester.pumpAndSettle();
 
+        await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+        await tester.pumpAndSettle();
+
         expect(find.text('Tag'), findsOneWidget);
         expect(find.text('None'), findsOneWidget);
         expect(find.text('Development'), findsOneWidget);
@@ -453,6 +473,9 @@ void main() {
         );
 
         await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+
+        await tester.drag(find.byType(ListView).first, const Offset(0, -400));
         await tester.pumpAndSettle();
 
         final customChip = find.widgetWithText(FilterChip, 'Custom +');
