@@ -347,25 +347,6 @@ We appreciate responsible disclosure and will respond promptly to security repor
 
 ---
 
-## 🗺️ Roadmap
-
-### Version 1.1 (Planned)
-- [ ] AI-powered query optimization
-- [ ] Visual query builder
-- [ ] Database backup/restore
-
-### Version 1.2 (Planned)
-- [ ] iOS support
-- [ ] Linux support
-
-### Version 2.0 (Future)
-- [ ] Collaborative features
-- [ ] Cloud sync for connections
-- [ ] Plugin system
-- [ ] Advanced data visualization
-
----
-
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these steps:
