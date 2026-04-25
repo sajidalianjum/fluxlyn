@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart';
 import 'package:uuid/uuid.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -30,6 +31,12 @@ class StorageService extends ChangeNotifier {
   static const String _queryHistoryBoxName = 'query_history';
   static const String _settingsBoxName = 'settings';
   static const String _keyBoxName = 'encryption_key';
+
+  static const int _pbkdf2Iterations = 100000;
+  static const int _saltLength = 16;
+  static const int _ivLength = 16;
+  static const int _keyLength = 32;
+  static const int _hmacKeyLength = 32;
 
   Future<void> init() async {
     try {
@@ -310,9 +317,16 @@ class StorageService extends ChangeNotifier {
         directory.createSync(recursive: true);
       }
 
-      final key = encrypt.Key.fromUtf8(_padPassword(password));
-      final iv = encrypt.IV.fromLength(16);
-      final encrypter = encrypt.Encrypter(encrypt.AES(key));
+      final random = Random.secure();
+      final salt = Uint8List.fromList(
+        List<int>.generate(_saltLength, (_) => random.nextInt(256)),
+      );
+      final iv = Uint8List.fromList(
+        List<int>.generate(_ivLength, (_) => random.nextInt(256)),
+      );
+
+      final aesKey = _deriveKey(password, salt, _keyLength);
+      final hmacKey = _deriveKey(password, salt, _hmacKeyLength);
 
       List<ConnectionModel> connectionsToExport = connections;
       if (!includePasswords) {
@@ -343,7 +357,7 @@ class StorageService extends ChangeNotifier {
       }
 
       final connectionsJson = {
-        'version': '1.0',
+        'version': '2.0',
         'exportedAt': DateTime.now().toIso8601String(),
         'includePasswords': includePasswords,
         'includeSettings': includeSettings,
@@ -355,11 +369,22 @@ class StorageService extends ChangeNotifier {
       }
 
       final jsonString = jsonEncode(connectionsJson);
-      final encrypted = encrypter.encrypt(jsonString, iv: iv);
+      final plaintext = utf8.encode(jsonString);
+
+      final encryptKey = encrypt.Key(aesKey);
+      final encryptIv = encrypt.IV(iv);
+      final encrypter = encrypt.Encrypter(encrypt.AES(encryptKey));
+      final encrypted = encrypter.encryptBytes(plaintext, iv: encryptIv);
+      final ciphertext = Uint8List.fromList(encrypted.bytes);
+
+      final hmac = _computeHmac(hmacKey, salt, iv, ciphertext);
 
       final fileContent = jsonEncode({
-        'iv': iv.base64,
-        'data': encrypted.base64,
+        'version': '2.0',
+        'salt': _bytesToBase64(salt),
+        'iv': _bytesToBase64(iv),
+        'data': _bytesToBase64(ciphertext),
+        'hmac': _bytesToBase64(hmac),
       });
 
       await file.writeAsString(fileContent);
@@ -404,25 +429,51 @@ class StorageService extends ChangeNotifier {
 
       final encryptedData = jsonDecode(fileContent) as Map<String, dynamic>;
 
-      if (!encryptedData.containsKey('iv') ||
-          !encryptedData.containsKey('data')) {
+      final version = encryptedData['version'] as String?;
+      if (version != '2.0') {
         throw StorageException(
-          'Invalid export file format',
+          'Invalid or outdated export file version',
           filePath: filePath,
           operation: 'checkImportFile',
         );
       }
 
-      final iv = encrypt.IV.fromBase64(encryptedData['iv'] as String);
-      final encrypted = encrypt.Encrypted.fromBase64(
-        encryptedData['data'] as String,
-      );
+      if (!encryptedData.containsKey('salt') ||
+          !encryptedData.containsKey('iv') ||
+          !encryptedData.containsKey('data') ||
+          !encryptedData.containsKey('hmac')) {
+        throw StorageException(
+          'Invalid export file format: missing required fields',
+          filePath: filePath,
+          operation: 'checkImportFile',
+        );
+      }
 
-      final key = encrypt.Key.fromUtf8(_padPassword(password));
-      final encrypter = encrypt.Encrypter(encrypt.AES(key));
+      final salt = _base64ToBytes(encryptedData['salt'] as String);
+      final iv = _base64ToBytes(encryptedData['iv'] as String);
+      final ciphertext = _base64ToBytes(encryptedData['data'] as String);
+      final storedHmac = _base64ToBytes(encryptedData['hmac'] as String);
+
+      final aesKey = _deriveKey(password, salt, _keyLength);
+      final hmacKey = _deriveKey(password, salt, _hmacKeyLength);
+
+      final computedHmac = _computeHmac(hmacKey, salt, iv, ciphertext);
+
+      if (!const DeepCollectionEquality().equals(computedHmac, storedHmac)) {
+        throw StorageException(
+          'Export file integrity check failed. File may be corrupted or tampered with.',
+          filePath: filePath,
+          operation: 'checkImportFile',
+        );
+      }
+
+      final encryptKey = encrypt.Key(aesKey);
+      final encryptIv = encrypt.IV(iv);
+      final encrypter = encrypt.Encrypter(encrypt.AES(encryptKey));
 
       try {
-        final decrypted = encrypter.decrypt(encrypted, iv: iv);
+        final encrypted = encrypt.Encrypted(ciphertext);
+        final decrypted = encrypter.decrypt(encrypted, iv: encryptIv);
         final connectionsJson = jsonDecode(decrypted) as Map<String, dynamic>;
 
         if (!connectionsJson.containsKey('connections')) {
@@ -521,18 +572,45 @@ class StorageService extends ChangeNotifier {
     }
   }
 
-  String _padPassword(String password) {
-    try {
-      if (password.length >= 32) {
-        return password.substring(0, 32);
+  Uint8List _deriveKey(String password, Uint8List salt, int keyLength) {
+    final passwordBytes = utf8.encode(password);
+    final result = <int>[];
+    var blockIndex = 1;
+
+    while (result.length < keyLength) {
+      final blockData = Uint8List.fromList([...salt, ..._intToBytes(blockIndex)]);
+      var u = Hmac(sha256, passwordBytes).convert(blockData);
+      final block = List<int>.from(u.bytes);
+
+      for (var i = 1; i < _pbkdf2Iterations; i++) {
+        u = Hmac(sha256, passwordBytes).convert(u.bytes);
+        for (var j = 0; j < block.length; j++) {
+          block[j] ^= u.bytes[j];
+        }
       }
-      return password.padRight(32, '0');
-    } catch (e) {
-      throw StorageException(
-        'Failed to pad password: ${e.toString()}',
-        operation: 'padPassword',
-        originalError: e,
-      );
+
+      result.addAll(block);
+      blockIndex++;
     }
+
+    return Uint8List.fromList(result.sublist(0, keyLength));
   }
+
+  Uint8List _intToBytes(int value) {
+    return Uint8List(4)
+      ..[0] = (value >> 24) & 0xFF
+      ..[1] = (value >> 16) & 0xFF
+      ..[2] = (value >> 8) & 0xFF
+      ..[3] = value & 0xFF;
+  }
+
+  Uint8List _computeHmac(Uint8List key, Uint8List salt, Uint8List iv, Uint8List ciphertext) {
+    final hmac = Hmac(sha256, key);
+    final data = Uint8List.fromList([...salt, ...iv, ...ciphertext]);
+    return Uint8List.fromList(hmac.convert(data).bytes);
+  }
+
+  String _bytesToBase64(Uint8List bytes) => base64Encode(bytes);
+
+  Uint8List _base64ToBytes(String base64Str) => base64Decode(base64Str);
 }
