@@ -99,6 +99,7 @@ That's it! You're ready to explore your databases. Click the **"+"** button to a
 
 ### Security
 - 🔒 **Encrypted Storage** - All sensitive data encrypted with AES-256
+- 🔑 **Optional Master Password** - Add an extra layer of protection by encrypting the device key with a user-defined password
 - 🛡️ **Protection Locks** - Two-tier protection system:
   - **Read-Only Mode**: Blocks ALL write operations (INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, TRUNCATE, RENAME)
   - **Destructive Operations Lock**: Blocks irreversible operations (DELETE, DROP, TRUNCATE, ALTER) while allowing data modification (UPDATE)
@@ -327,6 +328,7 @@ Fluxlyn uses **Hive** with **AES-256 encryption** for all persistent data:
 - ✅ Encrypted credentials (passwords, API keys, SSH keys)
 - ✅ Encrypted connection configurations
 - ✅ Encrypted saved queries
+- ✅ Optional master password for enhanced protection
 - ❌ NO use of platform keychains (avoids entitlement issues)
 
 ### Protection Features
