@@ -17,6 +17,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  AppThemeMode get themeMode => _settings.themeMode;
   bool get lock => _settings.lock;
   bool get readOnlyMode => _settings.readOnlyMode;
   AIProvider get provider => _settings.provider;
@@ -49,6 +50,7 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   Future<void> updateSettings({
+    AppThemeMode? themeMode,
     bool? lock,
     bool? readOnlyMode,
     AIProvider? provider,
@@ -59,6 +61,7 @@ class SettingsProvider extends ChangeNotifier {
     bool? hasShownPasswordPrompt,
   }) async {
     _settings = _settings.copyWith(
+      themeMode: themeMode,
       lock: lock,
       readOnlyMode: readOnlyMode,
       provider: provider,

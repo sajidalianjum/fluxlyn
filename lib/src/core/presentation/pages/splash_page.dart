@@ -130,8 +130,11 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -140,13 +143,13 @@ class _SplashPageState extends State<SplashPage> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
                   Icons.storage,
                   size: 48,
-                  color: const Color(0xFF3B82F6),
+                  color: theme.colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 24),
@@ -155,12 +158,12 @@ class _SplashPageState extends State<SplashPage> {
                 style: GoogleFonts.inter(
                   fontSize: 32,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
-              const CircularProgressIndicator(
-                color: Color(0xFF3B82F6),
+              CircularProgressIndicator(
+                color: theme.colorScheme.primary,
               ),
             ] else if (_error != null) ...[
               Icon(
@@ -174,7 +177,7 @@ class _SplashPageState extends State<SplashPage> {
                 style: GoogleFonts.inter(
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -184,7 +187,7 @@ class _SplashPageState extends State<SplashPage> {
                   _error!,
                   style: GoogleFonts.inter(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: isDark ? Colors.grey : Colors.grey.shade700,
                   ),
                   textAlign: TextAlign.center,
                 ),

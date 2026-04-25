@@ -24,14 +24,18 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DashboardProvider(storageService)),
         ChangeNotifierProvider(create: (_) => SettingsProvider(storageService)),
       ],
-      child: MaterialApp(
-        navigatorKey: HostKeyVerificationHelper.navigatorKey,
-        title: 'Fluxlyn',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.dark,
-        home: const ConnectionsPage(),
-        debugShowCheckedModeBanner: false,
+      child: Consumer<SettingsProvider>(
+        builder: (context, settingsProvider, child) {
+          return MaterialApp(
+            navigatorKey: HostKeyVerificationHelper.navigatorKey,
+            title: 'Fluxlyn',
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: settingsProvider.themeMode.toThemeMode(),
+            home: const ConnectionsPage(),
+            debugShowCheckedModeBanner: false,
+          );
+        },
       ),
     );
   }

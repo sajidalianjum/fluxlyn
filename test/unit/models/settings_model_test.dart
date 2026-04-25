@@ -63,34 +63,43 @@ void main() {
       test('creates settings with correct default values', () {
         final settings = AppSettings.defaultSettings();
 
+        expect(settings.themeMode, AppThemeMode.system);
         expect(settings.lock, true);
         expect(settings.readOnlyMode, true);
         expect(settings.provider, AIProvider.openai);
         expect(settings.apiKey, '');
         expect(settings.endpoint, AIProvider.openai.defaultEndpoint);
         expect(settings.modelName, '');
+        expect(settings.masterPasswordEnabled, false);
+        expect(settings.hasShownPasswordPrompt, false);
       });
     });
 
     group('toJson', () {
       test('serializes settings to JSON correctly', () {
         final settings = AppSettings(
+          themeMode: AppThemeMode.dark,
           lock: true,
           readOnlyMode: false,
           provider: AIProvider.anthropic,
           apiKey: 'test-api-key',
           endpoint: 'https://custom.endpoint',
           modelName: 'gpt-4',
+          masterPasswordEnabled: false,
+          hasShownPasswordPrompt: false,
         );
 
         final json = settings.toJson();
 
+        expect(json['themeMode'], 'dark');
         expect(json['lock'], true);
         expect(json['readOnlyMode'], false);
         expect(json['provider'], 'anthropic');
         expect(json['apiKey'], 'test-api-key');
         expect(json['endpoint'], 'https://custom.endpoint');
         expect(json['modelName'], 'gpt-4');
+        expect(json['masterPasswordEnabled'], false);
+        expect(json['hasShownPasswordPrompt'], false);
       });
 
       test('serializes default settings correctly', () {
@@ -208,21 +217,27 @@ void main() {
 
       test('returns identical settings when no values provided', () {
         final original = AppSettings(
+          themeMode: AppThemeMode.dark,
           lock: true,
           readOnlyMode: false,
           provider: AIProvider.groq,
           apiKey: 'key',
           endpoint: 'endpoint',
           modelName: 'model',
+          masterPasswordEnabled: true,
+          hasShownPasswordPrompt: true,
         );
         final copied = original.copyWith();
 
+        expect(copied.themeMode, original.themeMode);
         expect(copied.lock, original.lock);
         expect(copied.readOnlyMode, original.readOnlyMode);
         expect(copied.provider, original.provider);
         expect(copied.apiKey, original.apiKey);
         expect(copied.endpoint, original.endpoint);
         expect(copied.modelName, original.modelName);
+        expect(copied.masterPasswordEnabled, original.masterPasswordEnabled);
+        expect(copied.hasShownPasswordPrompt, original.hasShownPasswordPrompt);
       });
     });
   });

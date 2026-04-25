@@ -21,10 +21,29 @@ class AppConstants {
   static const Color colorPrimary = Color(0xFF3B82F6);
 
   /// Background dark color (#0F172A)
-  static const Color colorBackground = Color(0xFF0F172A);
+  static const Color colorBackgroundDark = Color(0xFF0F172A);
 
-  /// Card background color (#1E293B)
-  static const Color colorCardBackground = Color(0xFF1E293B);
+  /// Card background color dark (#1E293B)
+  static const Color colorCardBackgroundDark = Color(0xFF1E293B);
+
+  /// Background light color (#F8FAFC)
+  static const Color colorBackgroundLight = Color(0xFFF8FAFC);
+
+  /// Card background color light (white)
+  static const Color colorCardBackgroundLight = Colors.white;
+
+  /// Text primary dark (white)
+  static const Color colorTextPrimaryDark = Colors.white;
+
+  /// Text primary light (#1E293B)
+  static const Color colorTextPrimaryLight = Color(0xFF1E293B);
+
+  /// Border color light (#E2E8F0)
+  static const Color colorBorderLight = Color(0xFFE2E8F0);
+
+  // Legacy aliases for backward compatibility
+  static const Color colorBackground = colorBackgroundDark;
+  static const Color colorCardBackground = colorCardBackgroundDark;
 
   // ========== Dimension/Spacing Constants ==========
   /// Extra small spacing (4px)

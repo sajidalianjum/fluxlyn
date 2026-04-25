@@ -45,9 +45,10 @@ class _MasterPasswordSetupDialogState extends State<MasterPasswordSetupDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 450),
         padding: const EdgeInsets.all(24),
@@ -77,7 +78,7 @@ class _MasterPasswordSetupDialogState extends State<MasterPasswordSetupDialog> {
             Text(
               'Set a master password to encrypt your database passwords, SSH keys, and API keys. You\'ll need to enter it each time you open the app.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[400],
+                color: isDark ? Colors.grey[400] : Colors.grey.shade700,
               ),
               textAlign: TextAlign.center,
             ),
@@ -150,7 +151,7 @@ class _MasterPasswordSetupDialogState extends State<MasterPasswordSetupDialog> {
             Text(
               'You can enable this later in Settings',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.grey[500],
+                color: isDark ? Colors.grey[500] : Colors.grey.shade600,
               ),
               textAlign: TextAlign.center,
             ),
@@ -202,9 +203,10 @@ class _MasterPasswordEnableDialogState extends State<MasterPasswordEnableDialog>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 450),
         padding: const EdgeInsets.all(24),
@@ -234,7 +236,7 @@ class _MasterPasswordEnableDialogState extends State<MasterPasswordEnableDialog>
             Text(
               'Your credentials will be encrypted with this password. You\'ll need to enter it each time you open the app.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[400],
+                color: isDark ? Colors.grey[400] : Colors.grey.shade700,
               ),
               textAlign: TextAlign.center,
             ),
@@ -339,9 +341,10 @@ class _MasterPasswordDisableDialogState extends State<MasterPasswordDisableDialo
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 450),
         padding: const EdgeInsets.all(24),
@@ -371,7 +374,7 @@ class _MasterPasswordDisableDialogState extends State<MasterPasswordDisableDialo
             Text(
               'Enter your current password to disable protection. Your credentials will be stored without password protection.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[400],
+                color: isDark ? Colors.grey[400] : Colors.grey.shade700,
               ),
               textAlign: TextAlign.center,
             ),
@@ -477,7 +480,7 @@ class _MasterPasswordChangeDialogState extends State<MasterPasswordChangeDialog>
     final theme = Theme.of(context);
 
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 450),
         padding: const EdgeInsets.all(24),

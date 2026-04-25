@@ -97,20 +97,26 @@ class FakeQueryModel {
 
 class FakeAppSettings {
   static AppSettings create({
+    AppThemeMode themeMode = AppThemeMode.system,
     bool lock = true,
     bool readOnlyMode = false,
     AIProvider provider = AIProvider.openai,
     String apiKey = '',
     String? endpoint,
     String modelName = '',
+    bool masterPasswordEnabled = false,
+    bool hasShownPasswordPrompt = false,
   }) {
     return AppSettings(
+      themeMode: themeMode,
       lock: lock,
       readOnlyMode: readOnlyMode,
       provider: provider,
       apiKey: apiKey,
       endpoint: endpoint ?? provider.defaultEndpoint,
       modelName: modelName,
+      masterPasswordEnabled: masterPasswordEnabled,
+      hasShownPasswordPrompt: hasShownPasswordPrompt,
     );
   }
 }

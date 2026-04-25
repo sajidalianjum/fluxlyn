@@ -1,3 +1,40 @@
+import 'package:flutter/material.dart';
+
+enum AppThemeMode {
+  system,
+  light,
+  dark;
+
+  static AppThemeMode fromString(String value) {
+    return AppThemeMode.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => AppThemeMode.system,
+    );
+  }
+
+  String get displayName {
+    switch (this) {
+      case AppThemeMode.system:
+        return 'System';
+      case AppThemeMode.light:
+        return 'Light';
+      case AppThemeMode.dark:
+        return 'Dark';
+    }
+  }
+
+  ThemeMode toThemeMode() {
+    switch (this) {
+      case AppThemeMode.system:
+        return ThemeMode.system;
+      case AppThemeMode.light:
+        return ThemeMode.light;
+      case AppThemeMode.dark:
+        return ThemeMode.dark;
+    }
+  }
+}
+
 enum AIProvider {
   openai,
   anthropic,
@@ -49,6 +86,7 @@ enum AIProvider {
 }
 
 class AppSettings {
+  final AppThemeMode themeMode;
   final bool lock;
   final bool readOnlyMode;
   final AIProvider provider;
@@ -59,6 +97,7 @@ class AppSettings {
   final bool hasShownPasswordPrompt;
 
   AppSettings({
+    required this.themeMode,
     required this.lock,
     required this.readOnlyMode,
     required this.provider,
@@ -71,6 +110,7 @@ class AppSettings {
 
   factory AppSettings.defaultSettings() {
     return AppSettings(
+      themeMode: AppThemeMode.system,
       lock: true,
       readOnlyMode: true,
       provider: AIProvider.openai,
@@ -84,6 +124,7 @@ class AppSettings {
 
   Map<String, dynamic> toJson() {
     return {
+      'themeMode': themeMode.name,
       'lock': lock,
       'readOnlyMode': readOnlyMode,
       'provider': provider.name,
@@ -97,6 +138,7 @@ class AppSettings {
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
     return AppSettings(
+      themeMode: AppThemeMode.fromString(json['themeMode'] ?? 'system'),
       lock: json['lock'] ?? true,
       readOnlyMode: json['readOnlyMode'] ?? false,
       provider: AIProvider.fromString(json['provider'] ?? 'openai'),
@@ -111,6 +153,7 @@ class AppSettings {
   }
 
   AppSettings copyWith({
+    AppThemeMode? themeMode,
     bool? lock,
     bool? readOnlyMode,
     AIProvider? provider,
@@ -121,6 +164,7 @@ class AppSettings {
     bool? hasShownPasswordPrompt,
   }) {
     return AppSettings(
+      themeMode: themeMode ?? this.themeMode,
       lock: lock ?? this.lock,
       readOnlyMode: readOnlyMode ?? this.readOnlyMode,
       provider: provider ?? this.provider,

@@ -21,18 +21,22 @@ void main() {
 
     testWidgets('settings persistence and retrieval', (tester) async {
       final customSettings = AppSettings(
+        themeMode: AppThemeMode.dark,
         lock: false,
         readOnlyMode: true,
         provider: AIProvider.anthropic,
         apiKey: 'test-api-key-123',
         endpoint: 'https://api.anthropic.com/v1/messages',
         modelName: 'claude-3',
+        masterPasswordEnabled: false,
+        hasShownPasswordPrompt: false,
       );
 
       await storageService.saveSettings(customSettings);
 
       final loadedSettings = storageService.loadSettings();
 
+      expect(loadedSettings.themeMode, AppThemeMode.dark);
       expect(loadedSettings.lock, false);
       expect(loadedSettings.readOnlyMode, true);
       expect(loadedSettings.provider, AIProvider.anthropic);
@@ -90,12 +94,15 @@ void main() {
 
     testWidgets('settings screen displays current values', (tester) async {
       await storageService.saveSettings(AppSettings(
+        themeMode: AppThemeMode.system,
         lock: true,
         readOnlyMode: false,
         provider: AIProvider.openai,
         apiKey: 'display-test-key',
         endpoint: 'https://api.openai.com/v1/chat/completions',
         modelName: 'gpt-4',
+        masterPasswordEnabled: false,
+        hasShownPasswordPrompt: false,
       ));
 
       await tester.pumpWidget(
@@ -149,12 +156,15 @@ void main() {
       final customEndpoint = 'https://custom.api.endpoint/v1/chat';
 
       await storageService.saveSettings(AppSettings(
+        themeMode: AppThemeMode.system,
         lock: true,
         readOnlyMode: false,
         provider: AIProvider.custom,
         apiKey: 'custom-key',
         endpoint: customEndpoint,
         modelName: 'custom-model',
+        masterPasswordEnabled: false,
+        hasShownPasswordPrompt: false,
       ));
 
       final loaded = storageService.loadSettings();

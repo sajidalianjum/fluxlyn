@@ -42,9 +42,10 @@ class _MasterPasswordPromptDialogState extends State<MasterPasswordPromptDialog>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 450),
         padding: const EdgeInsets.all(24),
@@ -74,7 +75,7 @@ class _MasterPasswordPromptDialogState extends State<MasterPasswordPromptDialog>
             Text(
               'Enter your master password to access your credentials',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[400],
+                color: isDark ? Colors.grey[400] : Colors.grey.shade700,
               ),
               textAlign: TextAlign.center,
             ),
@@ -135,9 +136,10 @@ class ForgotPasswordDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 450),
         padding: const EdgeInsets.all(24),
@@ -167,7 +169,7 @@ class ForgotPasswordDialog extends StatelessWidget {
             Text(
               'There is no way to recover your master password. If you continue, all your data including connections, queries, and settings will be permanently deleted.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[400],
+                color: isDark ? Colors.grey[400] : Colors.grey.shade700,
               ),
               textAlign: TextAlign.center,
             ),
@@ -175,7 +177,7 @@ class ForgotPasswordDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.05),
+                color: Colors.red.withValues(alpha: isDark ? 0.05 : 0.08),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
               ),

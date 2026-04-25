@@ -82,12 +82,15 @@ void main() {
 
       test('loads custom settings from storage', () async {
         final customSettings = AppSettings(
+          themeMode: AppThemeMode.dark,
           lock: false,
           readOnlyMode: true,
           provider: AIProvider.anthropic,
           apiKey: 'test-key',
           endpoint: 'https://custom.endpoint',
           modelName: 'claude-3',
+          masterPasswordEnabled: false,
+          hasShownPasswordPrompt: false,
         );
 
         when(() => mockStorage.loadSettings())
@@ -95,6 +98,7 @@ void main() {
 
         final newProvider = SettingsProvider(mockStorage);
 
+        expect(newProvider.settings.themeMode, AppThemeMode.dark);
         expect(newProvider.settings.lock, false);
         expect(newProvider.settings.provider, AIProvider.anthropic);
         expect(newProvider.settings.apiKey, 'test-key');

@@ -27,6 +27,7 @@ class _SettingsTabState extends State<SettingsTab> {
   late TextEditingController _endpointController;
   late TextEditingController _modelNameController;
   late AIProvider _selectedProvider;
+  late AppThemeMode _selectedThemeMode;
   bool _lock = false;
   bool _readOnlyMode = false;
   PackageInfo? _packageInfo;
@@ -36,6 +37,7 @@ class _SettingsTabState extends State<SettingsTab> {
     super.initState();
     final settings = context.read<SettingsProvider>().settings;
     _selectedProvider = settings.provider;
+    _selectedThemeMode = settings.themeMode;
     _lock = settings.lock;
     _readOnlyMode = settings.readOnlyMode;
     _apiKeyController = TextEditingController(text: settings.apiKey);
@@ -99,6 +101,13 @@ class _SettingsTabState extends State<SettingsTab> {
     await context.read<SettingsProvider>().updateSettings(lock: value);
   }
 
+  Future<void> _onThemeModeChanged(AppThemeMode? themeMode) async {
+    if (themeMode != null) {
+      setState(() => _selectedThemeMode = themeMode);
+      await context.read<SettingsProvider>().updateSettings(themeMode: themeMode);
+    }
+  }
+
   Future<void> _saveCurrentSettings() async {
     await context.read<SettingsProvider>().updateSettings(
       lock: _lock,
@@ -125,15 +134,19 @@ class _SettingsTabState extends State<SettingsTab> {
             children: [
               Expanded(child: _buildProtectionSection(theme)),
               const SizedBox(width: 32),
-              Expanded(child: _buildConnectionsSection(theme)),
+              Expanded(child: _buildAppearanceSection(theme)),
             ],
           ),
+          const SizedBox(height: 32),
+          _buildConnectionsSection(theme),
           const SizedBox(height: 32),
           _buildAIConfigSection(theme),
           const SizedBox(height: 32),
           _buildAboutCard(theme),
         ] else ...[
           _buildProtectionSection(theme),
+          const SizedBox(height: 32),
+          _buildAppearanceSection(theme),
           const SizedBox(height: 32),
           _buildConnectionsSection(theme),
           const SizedBox(height: 32),
@@ -177,6 +190,45 @@ class _SettingsTabState extends State<SettingsTab> {
         ),
         const SizedBox(height: 24),
         MasterPasswordSection(),
+      ],
+    );
+  }
+
+  Widget _buildAppearanceSection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Appearance',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        InputDecorator(
+          decoration: const InputDecoration(
+            labelText: 'Theme',
+            border: OutlineInputBorder(),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<AppThemeMode>(
+              value: _selectedThemeMode,
+              isExpanded: true,
+              items: AppThemeMode.values.map((mode) {
+                return DropdownMenuItem<AppThemeMode>(
+                  value: mode,
+                  child: Text(mode.displayName),
+                );
+              }).toList(),
+              onChanged: _onThemeModeChanged,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Choose your preferred color scheme',
+          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+        ),
       ],
     );
   }
