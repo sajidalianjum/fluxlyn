@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/services/storage_service.dart';
-import '../../../core/widgets/snackbar_helper.dart';
+import '../../../../core/services/storage_service.dart';
+import '../../../../core/widgets/snackbar_helper.dart';
 import '../dialogs/master_password_setup_dialog.dart';
 import '../../providers/settings_provider.dart';
 
