@@ -17,7 +17,7 @@ class _ExportOptionsDialogState extends State<ExportOptionsDialog> {
     final theme = Theme.of(context);
 
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: const BoxConstraints(maxWidth: 600),

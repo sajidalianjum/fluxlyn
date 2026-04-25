@@ -47,8 +47,11 @@ class EditConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 600),
         padding: const EdgeInsets.all(24),
@@ -67,7 +70,7 @@ class EditConfirmationDialog extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Confirm Changes',
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: theme.textTheme.headlineSmall,
                   ),
                 ),
               ],
@@ -75,29 +78,27 @@ class EditConfirmationDialog extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'You are about to update a row in table "$tableName". This action cannot be undone.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[300]),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark ? Colors.grey[400] : Colors.grey.shade700,
+              ),
             ),
             const SizedBox(height: 20),
             Text(
               'SQL Preview:',
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
+                color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                border: Border.all(color: isDark ? Colors.grey.withValues(alpha: 0.3) : Colors.grey.shade300),
               ),
               child: SelectableText(
                 _sqlPreview,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 13,
                   color: Colors.green,
@@ -108,18 +109,18 @@ class EditConfirmationDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: Colors.orange.withValues(alpha: isDark ? 0.1 : 0.08),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.orange[300], size: 20),
+                  Icon(Icons.info_outline, color: Colors.orange[400], size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Row identifier: $primaryKeyColumn = $primaryKeyValue',
-                      style: TextStyle(color: Colors.orange[300], fontSize: 13),
+                      style: TextStyle(color: Colors.orange[400], fontSize: 13),
                     ),
                   ),
                 ],

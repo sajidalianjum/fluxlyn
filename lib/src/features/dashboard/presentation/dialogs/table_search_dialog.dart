@@ -64,8 +64,11 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
@@ -79,7 +82,7 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
                 Flexible(
                   child: Text(
                     'Search & Filter',
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: theme.textTheme.titleLarge,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -99,7 +102,7 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
                   children: [
                     Text(
                       'Search',
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: theme.textTheme.titleMedium,
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
@@ -109,7 +112,7 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
                         labelText: 'Column',
                         border: OutlineInputBorder(),
                       ),
-                      dropdownColor: const Color(0xFF0F172A),
+                      dropdownColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                       items: [
                         const DropdownMenuItem<String>(
                           value: null,
@@ -141,7 +144,7 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
 
                     Text(
                       'Sort',
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: theme.textTheme.titleMedium,
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
@@ -151,7 +154,7 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
                         labelText: 'Column',
                         border: OutlineInputBorder(),
                       ),
-                      dropdownColor: const Color(0xFF0F172A),
+                      dropdownColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                       items: [
                         const DropdownMenuItem<String>(
                           value: null,

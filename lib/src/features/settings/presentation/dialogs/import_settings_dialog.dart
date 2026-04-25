@@ -9,6 +9,7 @@ class ImportSettingsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     String maskApiKey(String apiKey) {
       if (apiKey.isEmpty) return 'Not set';
@@ -17,7 +18,7 @@ class ImportSettingsDialog extends StatelessWidget {
     }
 
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: const BoxConstraints(maxWidth: 600),
@@ -35,7 +36,7 @@ class ImportSettingsDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
+                color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: theme.colorScheme.outline.withValues(alpha: 0.3),

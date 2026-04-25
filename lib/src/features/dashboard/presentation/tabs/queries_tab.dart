@@ -35,15 +35,17 @@ class _QueriesTabState extends State<QueriesTab>
   @override
   Widget build(BuildContext context) {
     final storageService = context.watch<StorageService>();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Column(
       children: [
         TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFF3B82F6),
-          dividerColor: const Color(0xFF334155),
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.grey,
+          indicatorColor: theme.colorScheme.primary,
+          dividerColor: theme.dividerColor,
+          labelColor: theme.colorScheme.onSurface,
+          unselectedLabelColor: isDark ? Colors.grey : Colors.grey.shade600,
           tabs: const [
             Tab(text: 'Saved'),
             Tab(text: 'Recent'),
@@ -258,7 +260,7 @@ class _QueriesTabState extends State<QueriesTab>
       builder: (dialogContext) => Consumer<DashboardProvider>(
         builder: (context, provider, _) {
           return AlertDialog(
-            backgroundColor: const Color(0xFF1E293B),
+            backgroundColor: Theme.of(context).colorScheme.surface,
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -319,10 +321,11 @@ class _QueriesTabState extends State<QueriesTab>
     BuildContext context,
     QueryModel query,
   ) async {
+    final theme = Theme.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: theme.colorScheme.surface,
         title: const Text('Delete Saved Query'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -391,10 +394,12 @@ class _QueriesTabState extends State<QueriesTab>
     BuildContext context,
     QueryHistoryEntry entry,
   ) async {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: theme.colorScheme.surface,
         title: const Text('Delete Query History'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -408,7 +413,7 @@ class _QueriesTabState extends State<QueriesTab>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
+                color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -484,6 +489,8 @@ class _RecentQueryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final queryText = entry.query;
     final executedAt = entry.executedAt;
     final success = entry.success;
@@ -493,7 +500,7 @@ class _RecentQueryCard extends StatelessWidget {
     final dbType = connection?.type.name.toUpperCase() ?? 'UNKNOWN';
 
     return Card(
-      color: const Color(0xFF1E293B),
+      color: theme.colorScheme.surfaceContainerHighest,
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: onTap,
@@ -517,7 +524,7 @@ class _RecentQueryCard extends StatelessWidget {
                         Text(
                           relativeTime,
                           style: TextStyle(
-                            color: Colors.grey[400],
+                            color: isDark ? Colors.grey[400] : Colors.grey.shade600,
                             fontSize: 12,
                           ),
                         ),
@@ -529,9 +536,7 @@ class _RecentQueryCard extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF3B82F6,
-                              ).withValues(alpha: 0.2),
+                              color: theme.colorScheme.primary.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Row(
@@ -539,8 +544,8 @@ class _RecentQueryCard extends StatelessWidget {
                               children: [
                                 Text(
                                   dbType,
-                                  style: const TextStyle(
-                                    color: Color(0xFF3B82F6),
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -557,14 +562,14 @@ class _RecentQueryCard extends StatelessWidget {
                           Icon(
                             Icons.storage,
                             size: 14,
-                            color: Colors.grey[500],
+                            color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                           ),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               connection!.name,
                               style: TextStyle(
-                                color: Colors.grey[500],
+                                color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                                 fontSize: 11,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -575,7 +580,7 @@ class _RecentQueryCard extends StatelessWidget {
                             Text(
                               '>',
                               style: TextStyle(
-                                color: Colors.grey[500],
+                                color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                                 fontSize: 11,
                               ),
                             ),
@@ -584,7 +589,7 @@ class _RecentQueryCard extends StatelessWidget {
                               child: Text(
                                 databaseName,
                                 style: TextStyle(
-                                  color: Colors.grey[500],
+                                  color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                                   fontSize: 11,
                                 ),
                                 overflow: TextOverflow.ellipsis,
@@ -609,7 +614,7 @@ class _RecentQueryCard extends StatelessWidget {
                 PopupMenuButton<String>(
                   icon: Icon(
                     Icons.more_vert,
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                   onSelected: (choice) {
                     if (choice == 'delete') {
@@ -617,12 +622,12 @@ class _RecentQueryCard extends StatelessWidget {
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
                           Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 12),
+                          const SizedBox(width: 12),
                           Text('Delete', style: TextStyle(color: Colors.red)),
                         ],
                       ),
@@ -632,7 +637,7 @@ class _RecentQueryCard extends StatelessWidget {
               else
                 Icon(
                   Icons.chevron_right,
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                 ),
             ],
           ),
@@ -679,6 +684,8 @@ class _SavedQueryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final queryName = query.name;
     final queryText = query.query;
     final modifiedAt = query.modifiedAt;
@@ -687,7 +694,7 @@ class _SavedQueryCard extends StatelessWidget {
     final dbType = connection?.type.name.toUpperCase() ?? 'UNKNOWN';
 
     return Card(
-      color: const Color(0xFF1E293B),
+      color: theme.colorScheme.surfaceContainerHighest,
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: onTap,
@@ -711,9 +718,10 @@ class _SavedQueryCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             queryName,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
+                              color: theme.colorScheme.onSurface,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -721,7 +729,7 @@ class _SavedQueryCard extends StatelessWidget {
                         Text(
                           _formatDate(modifiedAt),
                           style: TextStyle(
-                            color: Colors.grey[500],
+                            color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                             fontSize: 11,
                           ),
                         ),
@@ -733,15 +741,13 @@ class _SavedQueryCard extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF3B82F6,
-                              ).withValues(alpha: 0.2),
+                              color: theme.colorScheme.primary.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               dbType,
-                              style: const TextStyle(
-                                color: Color(0xFF3B82F6),
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -757,14 +763,14 @@ class _SavedQueryCard extends StatelessWidget {
                           Icon(
                             Icons.storage,
                             size: 14,
-                            color: Colors.grey[500],
+                            color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                           ),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               connection!.name,
                               style: TextStyle(
-                                color: Colors.grey[500],
+                                color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                                 fontSize: 11,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -775,7 +781,7 @@ class _SavedQueryCard extends StatelessWidget {
                             Text(
                               '>',
                               style: TextStyle(
-                                color: Colors.grey[500],
+                                color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                                 fontSize: 11,
                               ),
                             ),
@@ -784,7 +790,7 @@ class _SavedQueryCard extends StatelessWidget {
                               child: Text(
                                 databaseName,
                                 style: TextStyle(
-                                  color: Colors.grey[500],
+                                  color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                                   fontSize: 11,
                                 ),
                                 overflow: TextOverflow.ellipsis,
@@ -809,7 +815,7 @@ class _SavedQueryCard extends StatelessWidget {
                 PopupMenuButton<String>(
                   icon: Icon(
                     Icons.more_vert,
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                   onSelected: (choice) {
                     if (choice == 'delete') {
@@ -817,12 +823,12 @@ class _SavedQueryCard extends StatelessWidget {
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
                           Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 12),
+                          const SizedBox(width: 12),
                           Text('Delete', style: TextStyle(color: Colors.red)),
                         ],
                       ),
@@ -832,7 +838,7 @@ class _SavedQueryCard extends StatelessWidget {
               else
                 Icon(
                   Icons.chevron_right,
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                 ),
             ],
           ),

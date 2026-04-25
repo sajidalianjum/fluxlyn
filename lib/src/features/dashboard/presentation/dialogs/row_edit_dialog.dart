@@ -62,27 +62,29 @@ class FieldEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildFieldHeader(),
+          _buildFieldHeader(theme, isDark),
           const SizedBox(height: 4),
-          _buildFieldContent(context),
+          _buildFieldContent(context, theme, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildFieldHeader() {
+  Widget _buildFieldHeader(ThemeData theme, bool isDark) {
     return Row(
       children: [
         Text(
           column,
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: isPK ? Colors.yellow[700] : Colors.white,
+            color: isPK ? Colors.yellow[700] : theme.colorScheme.onSurface,
           ),
         ),
         if (isPK) ...[
@@ -91,7 +93,7 @@ class FieldEditor extends StatelessWidget {
         ],
         if (isBinary) ...[
           const SizedBox(width: 4),
-          Icon(Icons.data_object, size: 14, color: Colors.grey[400]),
+          Icon(Icons.data_object, size: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
         ],
         if (isBit) ...[
           const SizedBox(width: 4),
@@ -107,7 +109,7 @@ class FieldEditor extends StatelessWidget {
         ],
         if (onCopy != null && !isBinary && !isNull)
           IconButton(
-            icon: const Icon(Icons.copy, size: 14, color: Color(0xFF9CA3AF)),
+            icon: Icon(Icons.copy, size: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
             onPressed: onCopy,
             tooltip: 'Copy to clipboard',
             padding: EdgeInsets.zero,
@@ -119,13 +121,13 @@ class FieldEditor extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.2),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Text(
+            child: Text(
               'NULL',
               style: TextStyle(
-                color: Color(0xFF9CA3AF),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 fontSize: 12,
                 fontStyle: FontStyle.italic,
               ),
@@ -135,20 +137,25 @@ class FieldEditor extends StatelessWidget {
     );
   }
 
-  Widget _buildFieldContent(BuildContext context) {
+  Widget _buildFieldContent(BuildContext context, ThemeData theme, bool isDark) {
     if (isBit) {
-      return isNull ? _buildBitNullPlaceholder() : _buildBitDropdown();
+      return isNull ? _buildBitNullPlaceholder(theme, isDark) : _buildBitDropdown(theme, isDark);
     }
     if (isEnum) {
-      return isNull ? _buildEnumNullPlaceholder() : _buildEnumDropdown();
+      return isNull ? _buildEnumNullPlaceholder(theme, isDark) : _buildEnumDropdown(theme, isDark);
     }
     if (isSet) {
-      return isNull ? _buildSetNullPlaceholder() : _buildSetMultiSelect();
+      return isNull ? _buildSetNullPlaceholder(theme, isDark) : _buildSetMultiSelect(theme, isDark);
     }
-    return _buildTextFormField();
+    return _buildTextFormField(theme, isDark);
   }
 
-  Widget _buildTextFormField() {
+  Widget _buildTextFormField(ThemeData theme, bool isDark) {
+    final fillColor = isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface;
+    final textColor = isDark ? Colors.white : theme.colorScheme.onSurface;
+    final hintColor = isDark ? const Color(0xFF4B5563) : Colors.grey.shade500;
+    final readonlyColor = isDark ? const Color(0xFF6B7280) : Colors.grey.shade600;
+
     return GestureDetector(
       onLongPress: isReadOnly
           ? null
@@ -164,7 +171,7 @@ class FieldEditor extends StatelessWidget {
         enabled: !isReadOnly,
         readOnly: isReadOnly,
         style: TextStyle(
-          color: isReadOnly ? const Color(0xFF6B7280) : Colors.white,
+          color: isReadOnly ? readonlyColor : textColor,
           fontFamily: value is String && value.length > 50 ? 'monospace' : null,
         ),
         maxLines: value is String && value.length > 100 ? 3 : 1,
@@ -172,9 +179,9 @@ class FieldEditor extends StatelessWidget {
           hintText: isReadOnly
               ? (isPK ? 'Primary Key (read-only)' : 'Binary data (read-only)')
               : (isNull ? 'Click to enter value...' : 'Enter value...'),
-          hintStyle: const TextStyle(color: Color(0xFF4B5563)),
+          hintStyle: TextStyle(color: hintColor),
           filled: true,
-          fillColor: const Color(0xFF1E293B),
+          fillColor: fillColor,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide.none,
@@ -185,30 +192,22 @@ class FieldEditor extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.blue, width: 1),
+            borderSide: BorderSide(color: theme.colorScheme.primary, width: 1),
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide.none,
           ),
           suffixIcon: isReadOnly
-              ? const Icon(Icons.lock, size: 16, color: Color(0xFF6B7280))
+              ? Icon(Icons.lock, size: 16, color: readonlyColor)
               : isNull
               ? IconButton(
-                  icon: const Icon(
-                    Icons.edit,
-                    size: 16,
-                    color: Color(0xFF6B7280),
-                  ),
+                  icon: Icon(Icons.edit, size: 16, color: readonlyColor),
                   onPressed: onUnsetNull,
                   tooltip: 'Edit value',
                 )
               : IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    size: 16,
-                    color: Color(0xFF6B7280),
-                  ),
+                  icon: Icon(Icons.delete_outline, size: 16, color: readonlyColor),
                   onPressed: onShowSetNullDialog,
                   tooltip: 'Set to NULL',
                 ),
@@ -223,13 +222,17 @@ class FieldEditor extends StatelessWidget {
     );
   }
 
-  Widget _buildBitNullPlaceholder() {
+  Widget _buildBitNullPlaceholder(ThemeData theme, bool isDark) {
+    final fillColor = isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface;
+    final hintColor = isDark ? const Color(0xFF4B5563) : Colors.grey.shade500;
+    final iconColor = isDark ? const Color(0xFF6B7280) : Colors.grey.shade600;
+
     return InkWell(
       onTap: onUnsetNull,
       child: InputDecorator(
         decoration: InputDecoration(
           filled: true,
-          fillColor: const Color(0xFF1E293B),
+          fillColor: fillColor,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide.none,
@@ -239,28 +242,29 @@ class FieldEditor extends StatelessWidget {
             borderSide: BorderSide.none,
           ),
           suffixIcon: IconButton(
-            icon: const Icon(Icons.edit, size: 16, color: Color(0xFF6B7280)),
+            icon: Icon(Icons.edit, size: 16, color: iconColor),
             onPressed: onUnsetNull,
             tooltip: 'Select value',
           ),
         ),
-        child: const Text(
-          'Click to select value...',
-          style: TextStyle(color: Color(0xFF4B5563)),
-        ),
+        child: Text('Click to select value...', style: TextStyle(color: hintColor)),
       ),
     );
   }
 
-  Widget _buildBitDropdown() {
+  Widget _buildBitDropdown(ThemeData theme, bool isDark) {
     final currentValue = controller.text;
     final intValue = int.tryParse(currentValue) ?? 0;
+    final fillColor = isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface;
+    final textColor = isDark ? Colors.white : theme.colorScheme.onSurface;
+    final dropdownColor = isDark ? const Color(0xFF1E293B) : Colors.grey.shade100;
+    final iconColor = isDark ? const Color(0xFF6B7280) : Colors.grey.shade600;
 
     return DropdownButtonFormField<int>(
       initialValue: intValue,
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFF1E293B),
+        fillColor: fillColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
@@ -271,20 +275,16 @@ class FieldEditor extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.blue, width: 1),
+          borderSide: BorderSide(color: theme.colorScheme.primary, width: 1),
         ),
         suffixIcon: IconButton(
-          icon: const Icon(
-            Icons.delete_outline,
-            size: 16,
-            color: Color(0xFF6B7280),
-          ),
+          icon: Icon(Icons.delete_outline, size: 16, color: iconColor),
           onPressed: onShowSetNullDialog,
           tooltip: 'Set to NULL',
         ),
       ),
-      dropdownColor: const Color(0xFF1E293B),
-      style: const TextStyle(color: Colors.white),
+      dropdownColor: dropdownColor,
+      style: TextStyle(color: textColor),
       items: const [
         DropdownMenuItem(value: 0, child: Text('0')),
         DropdownMenuItem(value: 1, child: Text('1')),
@@ -298,13 +298,17 @@ class FieldEditor extends StatelessWidget {
     );
   }
 
-  Widget _buildEnumNullPlaceholder() {
+  Widget _buildEnumNullPlaceholder(ThemeData theme, bool isDark) {
+    final fillColor = isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface;
+    final hintColor = isDark ? const Color(0xFF4B5563) : Colors.grey.shade500;
+    final iconColor = isDark ? const Color(0xFF6B7280) : Colors.grey.shade600;
+
     return InkWell(
       onTap: onUnsetNull,
       child: InputDecorator(
         decoration: InputDecoration(
           filled: true,
-          fillColor: const Color(0xFF1E293B),
+          fillColor: fillColor,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide.none,
@@ -314,31 +318,30 @@ class FieldEditor extends StatelessWidget {
             borderSide: BorderSide.none,
           ),
           suffixIcon: IconButton(
-            icon: const Icon(Icons.edit, size: 16, color: Color(0xFF6B7280)),
+            icon: Icon(Icons.edit, size: 16, color: iconColor),
             onPressed: onUnsetNull,
             tooltip: 'Select value',
           ),
         ),
-        child: const Text(
-          'Click to select value...',
-          style: TextStyle(color: Color(0xFF4B5563)),
-        ),
+        child: Text('Click to select value...', style: TextStyle(color: hintColor)),
       ),
     );
   }
 
-  Widget _buildEnumDropdown() {
+  Widget _buildEnumDropdown(ThemeData theme, bool isDark) {
     final currentValue = controller.text;
     final enumValues = enumColumns[column]!;
-    final initialValue = enumValues.contains(currentValue)
-        ? currentValue
-        : null;
+    final initialValue = enumValues.contains(currentValue) ? currentValue : null;
+    final fillColor = isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface;
+    final textColor = isDark ? Colors.white : theme.colorScheme.onSurface;
+    final dropdownColor = isDark ? const Color(0xFF1E293B) : Colors.grey.shade100;
+    final iconColor = isDark ? const Color(0xFF6B7280) : Colors.grey.shade600;
 
     return DropdownButtonFormField<String>(
       value: initialValue,
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFF1E293B),
+        fillColor: fillColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
@@ -349,24 +352,18 @@ class FieldEditor extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.blue, width: 1),
+          borderSide: BorderSide(color: theme.colorScheme.primary, width: 1),
         ),
         suffixIcon: IconButton(
-          icon: const Icon(
-            Icons.delete_outline,
-            size: 16,
-            color: Color(0xFF6B7280),
-          ),
+          icon: Icon(Icons.delete_outline, size: 16, color: iconColor),
           onPressed: onShowSetNullDialog,
           tooltip: 'Set to NULL',
         ),
       ),
-      dropdownColor: const Color(0xFF1E293B),
-      style: const TextStyle(color: Colors.white),
-      hint: const Text('Select a value', style: TextStyle(color: Colors.grey)),
-      items: enumValues
-          .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-          .toList(),
+      dropdownColor: dropdownColor,
+      style: TextStyle(color: textColor),
+      hint: Text('Select a value', style: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600)),
+      items: enumValues.map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(),
       onChanged: (newValue) {
         if (newValue != null) {
           controller.text = newValue;
@@ -376,13 +373,17 @@ class FieldEditor extends StatelessWidget {
     );
   }
 
-  Widget _buildSetNullPlaceholder() {
+  Widget _buildSetNullPlaceholder(ThemeData theme, bool isDark) {
+    final fillColor = isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface;
+    final hintColor = isDark ? const Color(0xFF4B5563) : Colors.grey.shade500;
+    final iconColor = isDark ? const Color(0xFF6B7280) : Colors.grey.shade600;
+
     return InkWell(
       onTap: onUnsetNull,
       child: InputDecorator(
         decoration: InputDecoration(
           filled: true,
-          fillColor: const Color(0xFF1E293B),
+          fillColor: fillColor,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide.none,
@@ -392,29 +393,32 @@ class FieldEditor extends StatelessWidget {
             borderSide: BorderSide.none,
           ),
           suffixIcon: IconButton(
-            icon: const Icon(Icons.edit, size: 16, color: Color(0xFF6B7280)),
+            icon: Icon(Icons.edit, size: 16, color: iconColor),
             onPressed: onUnsetNull,
             tooltip: 'Select values',
           ),
         ),
-        child: const Text(
-          'Click to select values...',
-          style: TextStyle(color: Color(0xFF4B5563)),
-        ),
+        child: Text('Click to select values...', style: TextStyle(color: hintColor)),
       ),
     );
   }
 
-  Widget _buildSetMultiSelect() {
+  Widget _buildSetMultiSelect(ThemeData theme, bool isDark) {
     final setValues = setColumns[column]!;
     final selectedValues = setSelectedValues ?? <String>{};
+    final bgColor = isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface;
+    final chipBgColor = isDark ? const Color(0xFF1F2937) : Colors.grey.shade200;
+    final textColor = isDark ? Colors.white : theme.colorScheme.onSurface;
+    final unselectedColor = isDark ? const Color(0xFF9CA3AF) : Colors.grey.shade600;
+    final iconColor = isDark ? const Color(0xFF6B7280) : Colors.grey.shade600;
+    final borderColor = isDark ? const Color(0xFF1F2937) : Colors.grey.shade300;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: bgColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF1F2937)),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,12 +439,10 @@ class FieldEditor extends StatelessWidget {
                   }
                   onCheckForChanges();
                 },
-                checkmarkColor: Colors.white,
+                checkmarkColor: textColor,
                 selectedColor: Colors.green.withValues(alpha: 0.3),
-                backgroundColor: const Color(0xFF1F2937),
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF9CA3AF),
-                ),
+                backgroundColor: chipBgColor,
+                labelStyle: TextStyle(color: isSelected ? textColor : unselectedColor),
                 side: BorderSide.none,
               );
             }).toList(),
@@ -451,18 +453,11 @@ class FieldEditor extends StatelessWidget {
             children: [
               if (selectedValues.isNotEmpty)
                 IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    size: 16,
-                    color: Color(0xFF6B7280),
-                  ),
+                  icon: Icon(Icons.delete_outline, size: 16, color: iconColor),
                   onPressed: onShowSetNullDialog,
                   tooltip: 'Set to NULL',
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 ),
             ],
           ),
@@ -801,11 +796,11 @@ class _RowEditDialogState extends State<RowEditDialog> {
     final readOnlyOnlyError = settings.readOnlyMode && !settings.lock;
 
     return Dialog.fullscreen(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: theme.scaffoldBackgroundColor,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF1E293B),
+          backgroundColor: theme.colorScheme.surface,
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: widget.onCancel,
@@ -935,10 +930,11 @@ class _RowEditDialogState extends State<RowEditDialog> {
   }
 
   void _showSetNullDialog(String column) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: theme.colorScheme.surface,
         title: const Text('Set to NULL?'),
         content: Text(
           'Do you want to set "$column" to NULL? This will clear the current value.',

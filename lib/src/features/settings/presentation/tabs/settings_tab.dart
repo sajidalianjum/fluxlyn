@@ -499,11 +499,12 @@ class _SettingsTabState extends State<SettingsTab> {
     String message,
   ) {
     final controller = TextEditingController();
+    final theme = Theme.of(context);
 
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: theme.colorScheme.surface,
         title: Text(title),
         content: Column(
           mainAxisSize: MainAxisSize.min,

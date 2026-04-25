@@ -82,7 +82,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         title: const Text('Delete Connections'),
         content: Column(
           mainAxisSize: MainAxisSize.min,

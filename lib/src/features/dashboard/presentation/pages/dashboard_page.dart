@@ -13,6 +13,7 @@ class DashboardPage extends StatelessWidget {
     final provider = context.watch<DashboardProvider>();
     final screenWidth = MediaQuery.of(context).size.width;
     final isWideScreen = screenWidth > 800;
+    final theme = Theme.of(context);
 
     final List<Widget> pages = [
       const SchemaTab(),
@@ -56,16 +57,16 @@ class DashboardPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const VerticalDivider(
+                  VerticalDivider(
                     thickness: 1,
                     width: 1,
-                    color: Color(0xFF334155),
+                    color: theme.dividerColor,
                   ),
-                  Expanded(child: _buildContent(pages, provider)),
+                  Expanded(child: _buildContent(pages, provider, theme)),
                 ],
               )
             else
-              _buildContent(pages, provider),
+              _buildContent(pages, provider, theme),
           ],
         ),
         bottomNavigationBar: isWideScreen
@@ -92,23 +93,31 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(List<Widget> pages, DashboardProvider provider) {
+  Widget _buildContent(List<Widget> pages, DashboardProvider provider, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
     return Stack(
       children: [
         IndexedStack(index: provider.selectedTabIndex, children: pages),
         if (provider.isLoading)
           Container(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: (isDark ? Colors.black : Colors.white).withValues(alpha: 0.3),
             child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  if (provider.isReconnecting) ...[
-                    const SizedBox(height: 16),
-                    const Text('Reconnecting to DB...'),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    if (provider.isReconnecting) ...[
+                      const SizedBox(height: 16),
+                      Text('Reconnecting to DB...', style: theme.textTheme.bodyMedium),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -116,13 +125,16 @@ class DashboardPage extends StatelessWidget {
           Center(
             child: Container(
               padding: const EdgeInsets.all(16),
-              color: Colors.black87,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     'Error: ${provider.error}',
-                    style: const TextStyle(color: Colors.red),
+                    style: TextStyle(color: Colors.red),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
@@ -142,10 +154,11 @@ class DashboardPage extends StatelessWidget {
   }
 
   void _showDisconnectDialog(BuildContext context, DashboardProvider provider) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: theme.colorScheme.surface,
         title: const Text('Disconnect Database'),
         content: const Text(
           'Are you sure you want to disconnect the database?',

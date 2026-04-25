@@ -23,9 +23,11 @@ class HostKeyDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMismatch = type == HostKeyDialogType.keyMismatch;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 500),
         padding: const EdgeInsets.all(24),
@@ -44,7 +46,7 @@ class HostKeyDialog extends StatelessWidget {
                 Expanded(
                   child: Text(
                     isMismatch ? 'Host Key Changed' : 'Unknown Host',
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: theme.textTheme.headlineSmall,
                   ),
                 ),
               ],
@@ -54,42 +56,42 @@ class HostKeyDialog extends StatelessWidget {
               isMismatch
                   ? 'The host key for ${info.host}:${info.port} has changed. This could indicate a security issue or the server key was legitimately updated.'
                   : 'The authenticity of host \'${info.host}:${info.port}\' cannot be established.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[300],
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark ? Colors.grey[400] : Colors.grey.shade700,
               ),
             ),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
+                color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                border: Border.all(color: isDark ? Colors.grey.withValues(alpha: 0.3) : Colors.grey.shade300),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Host: ${info.host}:${info.port}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Key Type: ${info.keyType}',
-                    style: TextStyle(color: Colors.grey[300]),
+                    style: TextStyle(color: isDark ? Colors.grey[300] : Colors.grey.shade700),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Fingerprint:',
-                    style: TextStyle(color: Colors.grey[300]),
+                    style: TextStyle(color: isDark ? Colors.grey[300] : Colors.grey.shade700),
                   ),
                   const SizedBox(height: 4),
                   SelectableText(
                     info.displayFingerprint,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 14,
                       color: Colors.cyan,
@@ -112,7 +114,7 @@ class HostKeyDialog extends StatelessWidget {
                   children: [
                     Text(
                       'Previously stored fingerprint:',
-                      style: TextStyle(color: Colors.red[300]),
+                      style: TextStyle(color: Colors.red[400]),
                     ),
                     const SizedBox(height: 4),
                     SelectableText(
@@ -120,7 +122,7 @@ class HostKeyDialog extends StatelessWidget {
                       style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 14,
-                        color: Colors.red[300],
+                        color: Colors.red[400],
                       ),
                     ),
                   ],
@@ -132,8 +134,8 @@ class HostKeyDialog extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isMismatch
-                    ? Colors.red.withValues(alpha: 0.1)
-                    : Colors.orange.withValues(alpha: 0.1),
+                    ? Colors.red.withValues(alpha: isDark ? 0.1 : 0.08)
+                    : Colors.orange.withValues(alpha: isDark ? 0.1 : 0.08),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isMismatch
@@ -145,7 +147,7 @@ class HostKeyDialog extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.warning_amber_rounded,
-                    color: isMismatch ? Colors.red[300] : Colors.orange[300],
+                    color: isMismatch ? Colors.red[400] : Colors.orange[400],
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -155,7 +157,7 @@ class HostKeyDialog extends StatelessWidget {
                           ? 'Continuing could expose you to a man-in-the-middle attack. Verify with your server administrator before proceeding.'
                           : 'Verify this fingerprint with your server administrator before trusting this host.',
                       style: TextStyle(
-                        color: isMismatch ? Colors.red[300] : Colors.orange[300],
+                        color: isMismatch ? Colors.red[400] : Colors.orange[400],
                         fontSize: 13,
                       ),
                     ),
@@ -171,7 +173,6 @@ class HostKeyDialog extends StatelessWidget {
                   onPressed: onReject,
                   child: Text(
                     isMismatch ? 'Reject & Disconnect' : 'Cancel',
-                    style: TextStyle(color: Colors.grey[300]),
                   ),
                 ),
                 const SizedBox(width: 16),

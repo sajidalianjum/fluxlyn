@@ -577,10 +577,11 @@ class _QueryTabState extends State<QueryTab> {
 
     if (!mounted) return;
 
+    final theme = Theme.of(context);
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: theme.colorScheme.surface,
         title: const Text('Save Query'),
         content: TextField(
           controller: titleController,
@@ -589,7 +590,6 @@ class _QueryTabState extends State<QueryTab> {
             hintText: 'Enter query title',
             border: OutlineInputBorder(),
           ),
-          style: const TextStyle(color: Colors.white),
         ),
         actions: [
           TextButton(
@@ -776,7 +776,7 @@ class _QueryTabState extends State<QueryTab> {
     final selected = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         title: const Text('Select DB'),
         content: SizedBox(
           width: double.maxFinite,
@@ -810,10 +810,11 @@ class _QueryTabState extends State<QueryTab> {
   }
 
   void _clearEditor() {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: theme.colorScheme.surface,
         title: const Text('Clear Editor?'),
         content: const Text(
           'Are you sure you want to clear the current query?',
@@ -867,42 +868,47 @@ class _QueryTabState extends State<QueryTab> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
           return AlertDialog(
-            backgroundColor: const Color(0xFF1E293B),
+            backgroundColor: theme.colorScheme.surface,
             title: const Text('AI Query Assistant'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'Describe what you want to query in natural language:',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.grey[400] : Colors.grey.shade700,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
+                    color: isDark ? const Color(0xFF0F172A) : Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: const Color(0xFF334155),
+                      color: isDark ? const Color(0xFF334155) : Colors.blue.shade200,
                       width: 1,
                     ),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.info_outline,
                         size: 16,
-                        color: Colors.blue,
+                        color: isDark ? Colors.blue : Colors.blue.shade700,
                       ),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Your database schema (table/column names) will be sent to the AI API to generate SQL queries. No actual data will be transmitted.',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey,
+                            color: isDark ? Colors.grey[400] : Colors.grey.shade700,
                             height: 1.4,
                           ),
                         ),
@@ -919,16 +925,15 @@ class _QueryTabState extends State<QueryTab> {
                     hintText: 'e.g., Show all users who signed up last week',
                     border: OutlineInputBorder(),
                   ),
-                  style: const TextStyle(color: Colors.white),
                   enabled: !isGenerating,
                 ),
                 if (isGenerating) ...[
                   const SizedBox(height: 16),
                   const LinearProgressIndicator(),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Generating SQL...',
-                    style: TextStyle(fontSize: 12),
+                    style: theme.textTheme.bodySmall,
                   ),
                 ],
               ],
@@ -999,10 +1004,11 @@ class _QueryTabState extends State<QueryTab> {
   }
 
   void _showDisconnectDialog(BuildContext context, DashboardProvider provider) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: theme.colorScheme.surface,
         title: const Text('Disconnect Database'),
         content: const Text(
           'Are you sure you want to disconnect the database?',

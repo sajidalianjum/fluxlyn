@@ -286,9 +286,10 @@ class _ConnectionDialogState extends State<ConnectionDialog>
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
     final isWideScreen = screenWidth >= 1200;
+    final theme = Theme.of(context);
 
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: BoxConstraints(

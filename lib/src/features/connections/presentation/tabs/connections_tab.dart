@@ -105,7 +105,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         title: const Text('Delete Connection'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -320,14 +320,16 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
             ),
             Consumer<DashboardProvider>(
               builder: (context, dashboardProvider, child) {
+                final theme = Theme.of(context);
+                final isDark = theme.brightness == Brightness.dark;
                 if (dashboardProvider.isLoading) {
                   return Container(
-                    color: Colors.black.withValues(alpha: 0.3),
+                    color: (isDark ? Colors.black : Colors.white).withValues(alpha: 0.3),
                     child: Center(
                       child: Container(
                         padding: const EdgeInsets.all(32),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
+                          color: theme.colorScheme.surface,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -339,7 +341,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
                               _getConnectionMessage(
                                 dashboardProvider.connectionStep,
                               ),
-                              style: Theme.of(context).textTheme.titleMedium,
+                              style: theme.textTheme.titleMedium,
                               textAlign: TextAlign.center,
                             ),
                           ],
