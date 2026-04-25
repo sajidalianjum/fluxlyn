@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 import '../../../core/services/database_service.dart';
 import '../../../core/services/database_driver.dart';
+import '../../../core/services/host_key_verification_service.dart';
 import '../../../core/services/postgres_driver.dart';
+import '../../../core/services/storage_service.dart';
 import '../../../core/models/exceptions.dart';
 import '../../../core/utils/error_reporter.dart';
+import '../../../core/utils/host_key_verification_helper.dart';
 import '../../connections/models/connection_model.dart';
 import '../models/table_search_result.dart';
 
@@ -22,6 +26,8 @@ enum ConnectionStep {
 class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const Duration _connectionCheckTimeout = Duration(seconds: 5);
 
+  final StorageService _storageService;
+  late final HostKeyVerificationService _hostKeyVerificationService;
   ConnectionModel? _currentConnectionModel;
   DatabaseDriver? _driver;
   bool _wasConnectedBeforePause = false;
@@ -37,6 +43,34 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   String? _pendingQuery;
   String? _pendingDatabase;
   final Map<String, String> _selectedDatabasePerConnection = {};
+
+  DashboardProvider(this._storageService) {
+    _hostKeyVerificationService = HostKeyVerificationService(_storageService);
+  }
+
+  Future<bool> _verifyHostKey(
+    String host,
+    int port,
+    String keyType,
+    dynamic fingerprint,
+  ) async {
+    final Uint8List fingerprintBytes;
+    if (fingerprint is Uint8List) {
+      fingerprintBytes = fingerprint;
+    } else if (fingerprint is List<int>) {
+      fingerprintBytes = Uint8List.fromList(fingerprint);
+    } else {
+      return false;
+    }
+
+    return HostKeyVerificationHelper.verifyHostKey(
+      _hostKeyVerificationService,
+      host,
+      port,
+      keyType,
+      fingerprintBytes,
+    );
+  }
 
   ConnectionModel? get currentConnectionModel => _currentConnectionModel;
   String? get pendingQuery => _pendingQuery;
@@ -134,7 +168,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       _driver = DatabaseService.createDriver(config.type);
-      await _driver!.connect(config);
+      await _driver!.connect(config, _verifyHostKey);
       _currentConnectionModel = config;
       if (_selectedDatabasePerConnection.containsKey(config.id)) {
         _selectedDatabase = _selectedDatabasePerConnection[config.id];
@@ -324,7 +358,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       _driver = DatabaseService.createDriver(_currentConnectionModel!.type);
-      await _driver!.connect(_currentConnectionModel!);
+      await _driver!.connect(_currentConnectionModel!, _verifyHostKey);
 
       _connectionStep = ConnectionStep.loadingDatabases;
       notifyListeners();

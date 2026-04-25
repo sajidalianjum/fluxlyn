@@ -1,8 +1,22 @@
+import 'dart:typed_data';
 import '../../features/connections/models/connection_model.dart';
 
+typedef HostKeyVerifyCallback = Future<bool> Function(
+  String host,
+  int port,
+  String keyType,
+  Uint8List fingerprint,
+);
+
 abstract class DatabaseDriver {
-  Future<void> testConnection(ConnectionModel config);
-  Future<void> connect(ConnectionModel config);
+  Future<void> testConnection(
+    ConnectionModel config,
+    HostKeyVerifyCallback? hostKeyVerify,
+  );
+  Future<void> connect(
+    ConnectionModel config,
+    HostKeyVerifyCallback? hostKeyVerify,
+  );
   Future<void> disconnect();
   Future<dynamic> execute(String sql);
   Future<List<String>> getTables();

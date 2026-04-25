@@ -10,6 +10,7 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import '../../features/connections/models/connection_model.dart';
 import '../../features/queries/models/query_model.dart';
 import '../../core/models/settings_model.dart';
+import '../../core/models/known_host_model.dart';
 import '../utils/error_reporter.dart';
 import '../../core/models/exceptions.dart';
 
@@ -31,6 +32,7 @@ class StorageService extends ChangeNotifier {
   static const String _queryHistoryBoxName = 'query_history';
   static const String _settingsBoxName = 'settings';
   static const String _keyBoxName = 'encryption_key';
+  static const String _knownHostsBoxName = 'known_hosts';
 
   static const int _pbkdf2Iterations = 100000;
   static const int _saltLength = 16;
@@ -58,6 +60,9 @@ class StorageService extends ChangeNotifier {
       if (!Hive.isAdapterRegistered(3)) {
         Hive.registerAdapter(QueryHistoryEntryAdapter());
       }
+      if (!Hive.isAdapterRegistered(5)) {
+        Hive.registerAdapter(KnownHostModelAdapter());
+      }
 
       // Get or create device-specific encryption key
       final encryptionKey = await _getOrCreateEncryptionKey();
@@ -78,6 +83,10 @@ class StorageService extends ChangeNotifier {
         ),
         Hive.openBox(
           _settingsBoxName,
+          encryptionCipher: HiveAesCipher(encryptionKey),
+        ),
+        Hive.openBox<KnownHostModel>(
+          _knownHostsBoxName,
           encryptionCipher: HiveAesCipher(encryptionKey),
         ),
       ]);
@@ -293,6 +302,33 @@ class StorageService extends ChangeNotifier {
       );
       return AppSettings.defaultSettings();
     }
+  }
+
+  // Known Hosts
+  Box<KnownHostModel> get knownHostsBox =>
+      Hive.box<KnownHostModel>(_knownHostsBoxName);
+
+  Future<void> saveKnownHost(KnownHostModel knownHost) async {
+    await knownHostsBox.put(knownHost.key, knownHost);
+    notifyListeners();
+  }
+
+  KnownHostModel? getKnownHost(String host, int port) {
+    return knownHostsBox.get('$host:$port');
+  }
+
+  Future<void> deleteKnownHost(String host, int port) async {
+    await knownHostsBox.delete('$host:$port');
+    notifyListeners();
+  }
+
+  List<KnownHostModel> getAllKnownHosts() {
+    return knownHostsBox.values.toList();
+  }
+
+  Future<void> clearAllKnownHosts() async {
+    await knownHostsBox.clear();
+    notifyListeners();
   }
 
   Future<void> exportConnections(

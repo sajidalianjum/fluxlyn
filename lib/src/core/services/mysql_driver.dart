@@ -16,7 +16,10 @@ class MySQLDriver implements DatabaseDriver {
   String? _currentConnectionName;
 
   @override
-  Future<void> testConnection(ConnectionModel config) async {
+  Future<void> testConnection(
+    ConnectionModel config,
+    HostKeyVerifyCallback? hostKeyVerify,
+  ) async {
     _currentConnectionName = config.name;
     ErrorReporter.info(
       'Testing MySQL connection to ${config.host}:${config.port}',
@@ -28,7 +31,12 @@ class MySQLDriver implements DatabaseDriver {
 
     try {
       if (config.useSsh && config.sshHost != null) {
-        await _sshTunnel.connect(config, config.host, config.port);
+        await _sshTunnel.connect(
+          config,
+          config.host,
+          config.port,
+          hostKeyVerify,
+        );
         host = _sshTunnel.localHost;
         port = _sshTunnel.localPort;
       }
@@ -90,7 +98,10 @@ class MySQLDriver implements DatabaseDriver {
   }
 
   @override
-  Future<void> connect(ConnectionModel config) async {
+  Future<void> connect(
+    ConnectionModel config,
+    HostKeyVerifyCallback? hostKeyVerify,
+  ) async {
     if (_isConnecting) {
       throw ConnectionException(
         'Connection already in progress',
@@ -114,7 +125,12 @@ class MySQLDriver implements DatabaseDriver {
       }
 
       if (config.useSsh && config.sshHost != null) {
-        await _sshTunnel.connect(config, config.host, config.port);
+        await _sshTunnel.connect(
+          config,
+          config.host,
+          config.port,
+          hostKeyVerify,
+        );
         host = _sshTunnel.localHost;
         port = _sshTunnel.localPort;
       }

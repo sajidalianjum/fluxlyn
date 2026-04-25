@@ -25,7 +25,10 @@ class PostgreSQLDriver implements DatabaseDriver {
   String? _currentConnectionName;
 
   @override
-  Future<void> testConnection(ConnectionModel config) async {
+  Future<void> testConnection(
+    ConnectionModel config,
+    HostKeyVerifyCallback? hostKeyVerify,
+  ) async {
     _currentConnectionName = config.name;
     ErrorReporter.info(
       'Testing PostgreSQL connection to ${config.host}:${config.port}',
@@ -37,7 +40,12 @@ class PostgreSQLDriver implements DatabaseDriver {
 
     try {
       if (config.useSsh && config.sshHost != null) {
-        await _sshTunnel.connect(config, config.host, config.port);
+        await _sshTunnel.connect(
+          config,
+          config.host,
+          config.port,
+          hostKeyVerify,
+        );
         host = _sshTunnel.localHost;
         port = _sshTunnel.localPort;
       }
@@ -119,7 +127,10 @@ class PostgreSQLDriver implements DatabaseDriver {
   }
 
   @override
-  Future<void> connect(ConnectionModel config) async {
+  Future<void> connect(
+    ConnectionModel config,
+    HostKeyVerifyCallback? hostKeyVerify,
+  ) async {
     if (_isConnecting) {
       throw ConnectionException(
         'Connection already in progress',
@@ -143,7 +154,12 @@ class PostgreSQLDriver implements DatabaseDriver {
       }
 
       if (config.useSsh && config.sshHost != null) {
-        await _sshTunnel.connect(config, config.host, config.port);
+        await _sshTunnel.connect(
+          config,
+          config.host,
+          config.port,
+          hostKeyVerify,
+        );
         host = _sshTunnel.localHost;
         port = _sshTunnel.localPort;
       }
@@ -443,7 +459,12 @@ class PostgreSQLDriver implements DatabaseDriver {
       int port = _config!.port;
 
       if (_config!.useSsh && _config!.sshHost != null) {
-        await _sshTunnel.connect(_config!, _config!.host, _config!.port);
+        await _sshTunnel.connect(
+          _config!,
+          _config!.host,
+          _config!.port,
+          null,
+        );
         host = _sshTunnel.localHost;
         port = _sshTunnel.localPort;
       }

@@ -48,7 +48,7 @@ void main() {
             create: (_) => SettingsProvider(mockSettingsStorage),
           ),
           ChangeNotifierProvider<DashboardProvider>(
-            create: (_) => DashboardProvider(),
+            create: (_) => DashboardProvider(mockStorage),
           ),
         ],
         child: const ConnectionsPage(),
