@@ -13,6 +13,13 @@ import '../../core/models/settings_model.dart';
 import '../../core/models/known_host_model.dart';
 import '../utils/error_reporter.dart';
 import '../../core/models/exceptions.dart';
+import 'master_password_service.dart';
+
+enum PasswordRequirement {
+  notRequired,
+  required,
+  firstLaunch,
+}
 
 class ImportResult {
   final List<ConnectionModel> connections;
@@ -40,11 +47,53 @@ class StorageService extends ChangeNotifier {
   static const int _keyLength = 32;
   static const int _hmacKeyLength = 32;
 
-  Future<void> init() async {
+  List<int>? _decryptedDeviceKey;
+  bool _isInitialized = false;
+
+  Future<PasswordRequirement> checkPasswordRequirement() async {
+    await Hive.initFlutter();
+
+    if (!Hive.isAdapterRegistered(1)) {
+      Hive.registerAdapter(ConnectionTypeAdapter());
+    }
+    if (!Hive.isAdapterRegistered(4)) {
+      Hive.registerAdapter(ConnectionTagAdapter());
+    }
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(ConnectionModelAdapter());
+    }
+    if (!Hive.isAdapterRegistered(2)) {
+      Hive.registerAdapter(QueryModelAdapter());
+    }
+    if (!Hive.isAdapterRegistered(3)) {
+      Hive.registerAdapter(QueryHistoryEntryAdapter());
+    }
+
+    final keyBox = await Hive.openBox(_keyBoxName);
+    final hasMasterPassword = keyBox.get('master_password_data') != null;
+
+    if (hasMasterPassword) {
+      return PasswordRequirement.required;
+    }
+
+    final settingsBox = await Hive.openBox(_settingsBoxName);
+    final settingsJson = settingsBox.get('settings');
+    bool hasShownPrompt = false;
+
+    if (settingsJson != null) {
+      try {
+        final decoded = Map<String, dynamic>.from(settingsJson);
+        hasShownPrompt = decoded['hasShownPasswordPrompt'] ?? false;
+      } catch (_) {}
+    }
+
+    return hasShownPrompt ? PasswordRequirement.notRequired : PasswordRequirement.firstLaunch;
+  }
+
+  Future<void> init({String? masterPassword}) async {
     try {
       await Hive.initFlutter();
 
-      // Register Adapters
       if (!Hive.isAdapterRegistered(1)) {
         Hive.registerAdapter(ConnectionTypeAdapter());
       }
@@ -64,10 +113,8 @@ class StorageService extends ChangeNotifier {
         Hive.registerAdapter(KnownHostModelAdapter());
       }
 
-      // Get or create device-specific encryption key
-      final encryptionKey = await _getOrCreateEncryptionKey();
+      final encryptionKey = await _getOrCreateEncryptionKey(masterPassword);
 
-      // Open Encrypted Boxes (parallel for faster startup)
       await Future.wait([
         Hive.openBox<ConnectionModel>(
           _connectionsBoxName,
@@ -90,6 +137,8 @@ class StorageService extends ChangeNotifier {
           encryptionCipher: HiveAesCipher(encryptionKey),
         ),
       ]);
+
+      _isInitialized = true;
     } catch (e) {
       throw StorageException(
         'Failed to initialize storage: ${e.toString()}',
@@ -99,34 +148,207 @@ class StorageService extends ChangeNotifier {
     }
   }
 
-  Future<List<int>> _getOrCreateEncryptionKey() async {
-    // Open key storage box (unencrypted - stores the key itself)
-    // This is acceptable because:
-    // 1. The key is a random 32-byte value with no intrinsic meaning
-    // 2. Each device/installation gets a unique key
-    // 3. The actual sensitive data is encrypted with this key
-    final keyBox = await Hive.openBox(_keyBoxName);
+  bool get isInitialized => _isInitialized;
 
-    // Check if key already exists (from previous runs)
+  Future<List<int>> _getOrCreateEncryptionKey(String? masterPassword) async {
+    final keyBox = await Hive.openBox(_keyBoxName);
+    final settingsBox = await Hive.openBox(_settingsBoxName);
+
+    final masterPasswordDataJson = keyBox.get('master_password_data');
+    final hasMasterPassword = masterPasswordDataJson != null;
+
+    if (hasMasterPassword) {
+      if (masterPassword == null || masterPassword.isEmpty) {
+        throw StorageException(
+          'Master password required to unlock storage',
+          operation: 'init',
+        );
+      }
+
+      final data = MasterPasswordData.fromJson(
+        jsonDecode(masterPasswordDataJson as String) as Map<String, dynamic>,
+      );
+
+      final decryptedKey = MasterPasswordService.decryptDeviceKey(data, masterPassword);
+      if (decryptedKey == null) {
+        throw StorageException(
+          'Invalid master password',
+          operation: 'init',
+        );
+      }
+
+      _decryptedDeviceKey = decryptedKey;
+      return decryptedKey;
+    }
+
     final existingKey = keyBox.get('device_key');
     if (existingKey != null && existingKey is List) {
+      _decryptedDeviceKey = existingKey.cast<int>();
       return existingKey.cast<int>();
     }
 
-    // Generate new cryptographically secure random 32-byte key
     final random = Random.secure();
     final newKey = List<int>.generate(32, (_) => random.nextInt(256));
 
-    // Store for future use
     await keyBox.put('device_key', newKey);
+    _decryptedDeviceKey = newKey;
 
     ErrorReporter.info(
       'Generated new device-specific encryption key',
       'StorageService._getOrCreateEncryptionKey',
-      'storage_service.dart:72',
+      'storage_service.dart',
     );
 
     return newKey;
+  }
+
+  List<int> get deviceKey {
+    if (_decryptedDeviceKey == null) {
+      throw StorageException(
+        'Device key not available - storage not initialized',
+        operation: 'getDeviceKey',
+      );
+    }
+    return _decryptedDeviceKey!;
+  }
+
+  bool isMasterPasswordEnabled() {
+    final keyBox = Hive.box(_keyBoxName);
+    return keyBox.get('master_password_data') != null;
+  }
+
+  MasterPasswordData? getMasterPasswordData() {
+    final keyBox = Hive.box(_keyBoxName);
+    final dataJson = keyBox.get('master_password_data');
+    if (dataJson == null) return null;
+    return MasterPasswordData.fromJson(
+      jsonDecode(dataJson as String) as Map<String, dynamic>,
+    );
+  }
+
+  Future<void> enableMasterPassword(String password) async {
+    if (_decryptedDeviceKey == null) {
+      throw StorageException(
+        'Device key not available',
+        operation: 'enableMasterPassword',
+      );
+    }
+
+    final keyBox = Hive.box(_keyBoxName);
+    final data = MasterPasswordService.encryptDeviceKey(
+      _decryptedDeviceKey!,
+      password,
+    );
+
+    await keyBox.put('master_password_data', jsonEncode(data.toJson()));
+    await keyBox.delete('device_key');
+
+    ErrorReporter.info(
+      'Master password enabled - device key encrypted',
+      'StorageService.enableMasterPassword',
+      'storage_service.dart',
+    );
+  }
+
+  Future<void> disableMasterPassword(String password) async {
+    final data = getMasterPasswordData();
+    if (data == null) {
+      throw StorageException(
+        'Master password not enabled',
+        operation: 'disableMasterPassword',
+      );
+    }
+
+    final decryptedKey = MasterPasswordService.decryptDeviceKey(data, password);
+    if (decryptedKey == null) {
+      throw StorageException(
+        'Invalid master password',
+        operation: 'disableMasterPassword',
+      );
+    }
+
+    final keyBox = Hive.box(_keyBoxName);
+    await keyBox.put('device_key', decryptedKey);
+    await keyBox.delete('master_password_data');
+
+    _decryptedDeviceKey = decryptedKey;
+
+    ErrorReporter.info(
+      'Master password disabled - device key stored unencrypted',
+      'StorageService.disableMasterPassword',
+      'storage_service.dart',
+    );
+  }
+
+  Future<void> changeMasterPassword(String oldPassword, String newPassword) async {
+    final data = getMasterPasswordData();
+    if (data == null) {
+      throw StorageException(
+        'Master password not enabled',
+        operation: 'changeMasterPassword',
+      );
+    }
+
+    final decryptedKey = MasterPasswordService.decryptDeviceKey(data, oldPassword);
+    if (decryptedKey == null) {
+      throw StorageException(
+        'Invalid old password',
+        operation: 'changeMasterPassword',
+      );
+    }
+
+    final newData = MasterPasswordService.encryptDeviceKey(decryptedKey, newPassword);
+    final keyBox = Hive.box(_keyBoxName);
+    await keyBox.put('master_password_data', jsonEncode(newData.toJson()));
+
+    ErrorReporter.info(
+      'Master password changed',
+      'StorageService.changeMasterPassword',
+      'storage_service.dart',
+    );
+  }
+
+  bool verifyMasterPassword(String password) {
+    final data = getMasterPasswordData();
+    if (data == null) return false;
+    return MasterPasswordService.verifyPassword(data, password);
+  }
+
+  Future<void> clearAllData() async {
+    final keyBox = await Hive.openBox(_keyBoxName);
+    await keyBox.clear();
+
+    if (Hive.isBoxOpen(_connectionsBoxName)) {
+      await Hive.box<ConnectionModel>(_connectionsBoxName).clear();
+    } else {
+      await Hive.deleteBoxFromDisk(_connectionsBoxName);
+    }
+
+    if (Hive.isBoxOpen(_queriesBoxName)) {
+      await Hive.box<QueryModel>(_queriesBoxName).clear();
+    } else {
+      await Hive.deleteBoxFromDisk(_queriesBoxName);
+    }
+
+    if (Hive.isBoxOpen(_queryHistoryBoxName)) {
+      await Hive.box<QueryHistoryEntry>(_queryHistoryBoxName).clear();
+    } else {
+      await Hive.deleteBoxFromDisk(_queryHistoryBoxName);
+    }
+
+    if (Hive.isBoxOpen(_settingsBoxName)) {
+      await Hive.box(_settingsBoxName).clear();
+    } else {
+      await Hive.deleteBoxFromDisk(_settingsBoxName);
+    }
+
+    _decryptedDeviceKey = null;
+
+    ErrorReporter.info(
+      'All data cleared due to forgotten password',
+      'StorageService.clearAllData',
+      'storage_service.dart',
+    );
   }
 
   // Connections

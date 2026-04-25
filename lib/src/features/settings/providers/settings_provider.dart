@@ -23,6 +23,8 @@ class SettingsProvider extends ChangeNotifier {
   String get apiKey => _settings.apiKey;
   String get endpoint => _settings.endpoint;
   String get modelName => _settings.modelName;
+  bool get masterPasswordEnabled => _settings.masterPasswordEnabled;
+  bool get hasShownPasswordPrompt => _settings.hasShownPasswordPrompt;
 
   Future<void> loadSettings() async {
     _isLoading = true;
@@ -53,6 +55,8 @@ class SettingsProvider extends ChangeNotifier {
     String? apiKey,
     String? endpoint,
     String? modelName,
+    bool? masterPasswordEnabled,
+    bool? hasShownPasswordPrompt,
   }) async {
     _settings = _settings.copyWith(
       lock: lock,
@@ -61,6 +65,8 @@ class SettingsProvider extends ChangeNotifier {
       apiKey: apiKey,
       endpoint: endpoint,
       modelName: modelName,
+      masterPasswordEnabled: masterPasswordEnabled,
+      hasShownPasswordPrompt: hasShownPasswordPrompt,
     );
     notifyListeners();
 

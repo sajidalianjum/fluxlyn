@@ -13,6 +13,7 @@ import '../../providers/settings_provider.dart';
 import '../../../connections/providers/connections_provider.dart';
 import '../dialogs/export_options_dialog.dart';
 import '../dialogs/import_settings_dialog.dart';
+import '../widgets/master_password_section.dart';
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
@@ -145,6 +146,8 @@ class _SettingsTabState extends State<SettingsTab> {
   }
 
   Widget _buildProtectionSection(ThemeData theme) {
+    final storageService = context.watch<StorageService>();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -172,6 +175,8 @@ class _SettingsTabState extends State<SettingsTab> {
           onChanged: _readOnlyMode ? null : _onLockChanged,
           contentPadding: EdgeInsets.zero,
         ),
+        const SizedBox(height: 24),
+        MasterPasswordSection(),
       ],
     );
   }

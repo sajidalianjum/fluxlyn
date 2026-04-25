@@ -36,9 +36,41 @@ This document provides comprehensive guidance for AI agents and developers worki
 
 **Implementation:**
 - All data stored in encrypted Hive boxes using `HiveAesCipher`
-- Encryption key derived from internal salt: `fluxlyn_key_derivation_v1_2024_internal`
+- Encryption key stored in `encryption_key` box
+- Optional master password protection available for enhanced security
 - API keys and sensitive data encrypted alongside other data
 - Use `StorageService` class for all persistence operations
+
+### Master Password Protection
+
+**Overview:**
+Users can optionally enable a master password to encrypt the device encryption key. This provides true at-rest protection for sensitive credentials.
+
+**Key Storage Models:**
+
+| Mode | Key Storage | Security Level |
+|------|-------------|----------------|
+| No Password | `device_key` (unencrypted) in `encryption_key` box | Weak - key readable from disk |
+| Password Enabled | `master_password_data` (encrypted key) in `encryption_key` box | Strong - key encrypted with user password |
+
+**Implementation Details:**
+- `MasterPasswordService` handles PBKDF2 key derivation (100,000 iterations)
+- AES-256 encryption for the device key
+- Verification hash to confirm password correctness
+- `PasswordRequirement` enum tracks app state: `notRequired`, `required`, `firstLaunch`
+
+**User Flow:**
+1. First launch → Show setup dialog (user can skip)
+2. Password enabled → Prompt on every app launch
+3. Forgot password → Clear all data (no recovery possible)
+4. Settings page → Toggle enable/disable, change password
+
+**Files:**
+- `lib/src/core/services/master_password_service.dart` - Key derivation and encryption
+- `lib/src/core/presentation/pages/splash_page.dart` - Startup password flow
+- `lib/src/features/settings/presentation/dialogs/master_password_setup_dialog.dart` - Setup UI
+- `lib/src/features/settings/presentation/dialogs/master_password_prompt_dialog.dart` - Unlock UI
+- `lib/src/features/settings/presentation/widgets/master_password_section.dart` - Settings UI
 
 ---
 

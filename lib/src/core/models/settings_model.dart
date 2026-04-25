@@ -55,6 +55,8 @@ class AppSettings {
   final String apiKey;
   final String endpoint;
   final String modelName;
+  final bool masterPasswordEnabled;
+  final bool hasShownPasswordPrompt;
 
   AppSettings({
     required this.lock,
@@ -63,6 +65,8 @@ class AppSettings {
     required this.apiKey,
     required this.endpoint,
     required this.modelName,
+    required this.masterPasswordEnabled,
+    required this.hasShownPasswordPrompt,
   });
 
   factory AppSettings.defaultSettings() {
@@ -73,6 +77,8 @@ class AppSettings {
       apiKey: '',
       endpoint: AIProvider.openai.defaultEndpoint,
       modelName: '',
+      masterPasswordEnabled: false,
+      hasShownPasswordPrompt: false,
     );
   }
 
@@ -84,6 +90,8 @@ class AppSettings {
       'apiKey': apiKey,
       'endpoint': endpoint,
       'modelName': modelName,
+      'masterPasswordEnabled': masterPasswordEnabled,
+      'hasShownPasswordPrompt': hasShownPasswordPrompt,
     };
   }
 
@@ -97,6 +105,8 @@ class AppSettings {
           json['endpoint'] ??
           AIProvider.fromString(json['provider'] ?? 'openai').defaultEndpoint,
       modelName: json['modelName'] ?? '',
+      masterPasswordEnabled: json['masterPasswordEnabled'] ?? false,
+      hasShownPasswordPrompt: json['hasShownPasswordPrompt'] ?? false,
     );
   }
 
@@ -107,6 +117,8 @@ class AppSettings {
     String? apiKey,
     String? endpoint,
     String? modelName,
+    bool? masterPasswordEnabled,
+    bool? hasShownPasswordPrompt,
   }) {
     return AppSettings(
       lock: lock ?? this.lock,
@@ -115,6 +127,8 @@ class AppSettings {
       apiKey: apiKey ?? this.apiKey,
       endpoint: endpoint ?? this.endpoint,
       modelName: modelName ?? this.modelName,
+      masterPasswordEnabled: masterPasswordEnabled ?? this.masterPasswordEnabled,
+      hasShownPasswordPrompt: hasShownPasswordPrompt ?? this.hasShownPasswordPrompt,
     );
   }
 }
