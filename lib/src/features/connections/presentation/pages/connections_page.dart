@@ -316,10 +316,11 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   }
 
   Widget _buildSelectionActionBar() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: theme.colorScheme.surface,
         border: Border(
           top: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
         ),
@@ -329,7 +330,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
           children: [
             Text(
               '${_selectedConnectionIds.length} selected',
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              style: theme.textTheme.bodyLarge,
             ),
             const Spacer(),
             TextButton(onPressed: _clearSelection, child: const Text('Clear')),
@@ -347,15 +348,16 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   }
 
   Widget _buildSearchBar() {
+    final theme = Theme.of(context);
     return TextField(
       controller: _searchController,
       autofocus: true,
-      style: const TextStyle(color: Colors.white),
+      style: theme.textTheme.bodyLarge,
       decoration: InputDecoration(
         hintText: _selectedTabIndex == 0
             ? 'Search connections...'
             : 'Search queries or databases...',
-        hintStyle: const TextStyle(color: Colors.grey),
+        hintStyle: TextStyle(color: Colors.grey.shade500),
         border: InputBorder.none,
       ),
       onChanged: (_) => setState(() {}),
@@ -366,7 +368,6 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
     if (_selectedTabIndex == 0) {
       return FloatingActionButton(
         onPressed: () => _showConnectionDialog(context),
-        backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.add),
       );
     }

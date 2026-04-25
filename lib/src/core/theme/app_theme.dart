@@ -113,6 +113,16 @@ class AppTheme {
           }
           return Colors.grey.shade300;
         }),
+        trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return Colors.grey.shade400;
+          }
+          return Colors.transparent;
+        }),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: _primary,
+        foregroundColor: Colors.white,
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: _cardBackgroundLight,
@@ -240,6 +250,16 @@ class AppTheme {
           }
           return Colors.grey.shade700;
         }),
+        trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return Colors.grey.shade600;
+          }
+          return Colors.transparent;
+        }),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: _primary,
+        foregroundColor: Colors.white,
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: _cardBackgroundDark,
