@@ -22,10 +22,15 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: _background,
-      colorScheme: const ColorScheme.dark(
-        primary: _primary,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: _primary,
+        brightness: Brightness.dark,
         surface: _cardBackground,
-        onSurface: _textPrimary,
+      ).copyWith(
+        primary: _primary,
+        onPrimary: Colors.white,
+        primaryContainer: Color(0xFF1E40AF),
+        onPrimaryContainer: Colors.white,
       ),
       textTheme: GoogleFonts.interTextTheme(
         ThemeData.dark().textTheme,

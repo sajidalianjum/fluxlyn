@@ -113,9 +113,6 @@ class _MasterPasswordPromptDialogState extends State<MasterPasswordPromptDialog>
                 if (widget.showForgotOption)
                   TextButton(
                     onPressed: _forgotPassword,
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.orange,
-                    ),
                     child: const Text('Forgot Password?'),
                   ),
                 const Spacer(),

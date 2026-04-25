@@ -4,6 +4,7 @@ import 'src/app.dart';
 import 'src/core/services/storage_service.dart';
 import 'src/core/services/error_handler.dart';
 import 'src/core/presentation/pages/splash_page.dart';
+import 'src/core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +34,9 @@ class _FluxlynAppState extends State<FluxlynApp> {
     if (!_isReady) {
       return MaterialApp(
         title: 'Fluxlyn',
-        theme: ThemeData.dark(),
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.dark,
         debugShowCheckedModeBanner: false,
         home: SplashPage(
           storageService: _storageService,
