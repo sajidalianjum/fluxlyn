@@ -280,6 +280,9 @@ class _QueryResultsPageState extends State<QueryResultsPage>
   }
 
   Widget _buildResultView(QueryResult result) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     if (!result.success) {
       return Center(
         child: Column(
@@ -341,7 +344,7 @@ class _QueryResultsPageState extends State<QueryResultsPage>
       onRowTap: (index) => _openRowView(index, result),
       header: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        color: const Color(0xFF1E293B),
+        color: theme.colorScheme.surface,
         child: Row(
           children: [
             Consumer<SettingsProvider>(
@@ -372,7 +375,7 @@ class _QueryResultsPageState extends State<QueryResultsPage>
             ),
             Text(
               _getRowInfo(result),
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey.shade600, fontSize: 12),
             ),
             const SizedBox(width: 16),
             Text(

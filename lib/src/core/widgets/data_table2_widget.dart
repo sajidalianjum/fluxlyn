@@ -98,7 +98,9 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
     return null;
   }
 
-  Widget _buildCardValue(dynamic value, {bool isBit = false}) {
+  Widget _buildCardValue(dynamic value, {bool isBit = false, required ThemeData theme}) {
+    final isDark = theme.brightness == Brightness.dark;
+    
     if (value == null) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -109,7 +111,7 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
         child: Text(
           'NULL',
           style: TextStyle(
-            color: Colors.grey[500],
+            color: isDark ? Colors.grey[500] : Colors.grey[600],
             fontStyle: FontStyle.italic,
             fontSize: 12,
           ),
@@ -133,13 +135,15 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
 
     return Text(
       text,
-      style: const TextStyle(fontSize: 14, color: Colors.white),
+      style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );
   }
 
   Widget _buildCardView(int displayIndex) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final displayCols = _getCardDisplayColumns();
     final titleCol = _getTitleColumn();
 
@@ -155,7 +159,7 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          color: const Color(0xFF1E293B),
+          color: theme.cardTheme.color ?? theme.colorScheme.surfaceContainerHighest,
           elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -170,24 +174,22 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title row
                   if (title != null && title.isNotEmpty) ...[
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: theme.colorScheme.onSurface,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 12),
-                    const Divider(height: 1, color: Color(0xFF334155)),
+                    Divider(height: 1, color: theme.dividerColor),
                     const SizedBox(height: 12),
                   ],
 
-                  // Display first 6 columns
                   ...displayCols.map((col) {
                     final isPK = col.isPrimaryKey;
                     final isBit = col.isBit;
@@ -209,25 +211,25 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
                                   Icon(
                                     Icons.key,
                                     size: 12,
-                                    color: Colors.yellow[700],
+                                    color: isDark ? Colors.yellow[700] : Colors.orange.shade700,
                                   ),
                                 if (isBit)
                                   Icon(
                                     Icons.toggle_on,
                                     size: 12,
-                                    color: Colors.blue[400],
+                                    color: theme.colorScheme.primary,
                                   ),
                                 if (isEnum)
                                   Icon(
                                     Icons.list,
                                     size: 12,
-                                    color: Colors.purple[400],
+                                    color: theme.colorScheme.tertiary,
                                   ),
                                 if (isSet)
                                   Icon(
                                     Icons.checklist,
                                     size: 12,
-                                    color: Colors.orange[400],
+                                    color: theme.colorScheme.secondary,
                                   ),
                                 if (isPK || isBit || isEnum || isSet)
                                   const SizedBox(width: 4),
@@ -235,7 +237,7 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
                                   col.name,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[400],
+                                    color: isDark ? Colors.grey[400] : Colors.grey.shade600,
                                     fontWeight: isPK
                                         ? FontWeight.bold
                                         : FontWeight.normal,
@@ -245,22 +247,21 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Expanded(child: _buildCardValue(value, isBit: isBit)),
+                          Expanded(child: _buildCardValue(value, isBit: isBit, theme: theme)),
                         ],
                       ),
                     );
                   }),
 
-                  // Action hint
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Icon(Icons.touch_app, size: 14, color: Colors.grey[600]),
+                      Icon(Icons.touch_app, size: 14, color: isDark ? Colors.grey[600] : Colors.grey.shade500),
                       const SizedBox(width: 4),
                       Text(
                         'Tap to edit/view details',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[600] : Colors.grey.shade500),
                       ),
                     ],
                   ),
@@ -277,7 +278,10 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
     dynamic value, {
     bool isBinary = false,
     bool isBit = false,
+    required ThemeData theme,
   }) {
+    final isDark = theme.brightness == Brightness.dark;
+    
     if (value == null) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -288,7 +292,7 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
         child: Text(
           'NULL',
           style: TextStyle(
-            color: Colors.grey[500],
+            color: isDark ? Colors.grey[500] : Colors.grey[600],
             fontStyle: FontStyle.italic,
             fontSize: 12,
           ),
@@ -299,11 +303,9 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
     String text;
 
     if (isBinary) {
-      // Binary data should already be formatted as hex string (e.g., "0xAABB...")
       if (value is String && value.startsWith('0x')) {
         text = value;
       } else if (value is List<int>) {
-        // Format raw bytes as hex
         final hexStr = value
             .map((b) => b.toRadixString(16).padLeft(2, '0'))
             .join();
@@ -334,11 +336,12 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
     return Text(
       text,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: theme.colorScheme.onSurface),
     );
   }
 
   Widget _buildPaginationControls() {
+    final theme = Theme.of(context);
     final totalRows = widget.rows.length;
     final totalPages = (totalRows / _rowsPerPage).ceil();
 
@@ -346,7 +349,7 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: const Color(0xFF1E293B),
+      color: theme.colorScheme.surface,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -358,7 +361,7 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
           ),
           Text(
             'Page ${_currentPage + 1} of $totalPages',
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: theme.colorScheme.onSurface),
           ),
           IconButton(
             onPressed: _currentPage < totalPages - 1
@@ -369,8 +372,8 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
           const SizedBox(width: 16),
           DropdownButton<int>(
             value: _rowsPerPage,
-            dropdownColor: const Color(0xFF1E293B),
-            style: const TextStyle(color: Colors.white),
+            dropdownColor: theme.colorScheme.surface,
+            style: TextStyle(color: theme.colorScheme.onSurface),
             items: widget.availableRowsPerPage.map((value) {
               return DropdownMenuItem(value: value, child: Text('$value rows'));
             }).toList(),
@@ -389,6 +392,8 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
   }
 
   Widget _buildTableView(int displayIndex) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final minColWidth = 120.0;
     final calculatedMinWidth = (widget.columns.length * minColWidth).toDouble();
     final actualMinWidth = calculatedMinWidth < 600
@@ -400,7 +405,7 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
       horizontalMargin: 12,
       minWidth: actualMinWidth,
       headingRowColor: WidgetStateColor.resolveWith(
-        (states) => const Color(0xFF1E293B),
+        (states) => theme.colorScheme.surfaceContainerHighest,
       ),
       columns: widget.columns.map((col) {
         return DataColumn2(
@@ -408,19 +413,19 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (col.isPrimaryKey)
-                Icon(Icons.key, size: 14, color: Colors.yellow[700]),
+                Icon(Icons.key, size: 14, color: isDark ? Colors.yellow[700] : Colors.orange.shade700),
               if (col.isPrimaryKey) const SizedBox(width: 4),
               if (col.isBit)
-                Icon(Icons.toggle_on, size: 14, color: Colors.blue[400]),
+                Icon(Icons.toggle_on, size: 14, color: theme.colorScheme.primary),
               if (col.isBit) const SizedBox(width: 4),
               if (col.isBinary)
-                Icon(Icons.data_object, size: 14, color: Colors.grey[500]),
+                Icon(Icons.data_object, size: 14, color: isDark ? Colors.grey[500] : Colors.grey.shade600),
               if (col.isBinary) const SizedBox(width: 4),
               if (col.isEnum)
-                Icon(Icons.list, size: 14, color: Colors.purple[400]),
+                Icon(Icons.list, size: 14, color: theme.colorScheme.tertiary),
               if (col.isEnum) const SizedBox(width: 4),
               if (col.isSet)
-                Icon(Icons.checklist, size: 14, color: Colors.orange[400]),
+                Icon(Icons.checklist, size: 14, color: theme.colorScheme.secondary),
               if (col.isSet) const SizedBox(width: 4),
               Flexible(
                 child: Text(
@@ -449,6 +454,7 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
                 row[col.name],
                 isBinary: col.isBinary,
                 isBit: col.isBit,
+                theme: theme,
               ),
             );
           }).toList(),

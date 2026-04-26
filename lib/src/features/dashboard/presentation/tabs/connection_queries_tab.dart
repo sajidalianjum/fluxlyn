@@ -14,6 +14,7 @@ class ConnectionQueriesTab extends StatelessWidget {
     final provider = context.watch<DashboardProvider>();
     final connectionModel = provider.currentConnectionModel;
     final storageService = context.watch<StorageService>();
+    final theme = Theme.of(context);
 
     if (connectionModel == null) {
       return Scaffold(
@@ -39,7 +40,7 @@ class ConnectionQueriesTab extends StatelessWidget {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    backgroundColor: const Color(0xFF1E293B),
+                    backgroundColor: theme.colorScheme.surface,
                     title: const Text('Clear Query History'),
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -155,6 +156,8 @@ class _HistoryQueryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final queryText = entry.query;
     final executedAt = entry.executedAt;
     final success = entry.success;
@@ -164,7 +167,7 @@ class _HistoryQueryCard extends StatelessWidget {
     final dbType = connectionModel.type.name.toUpperCase();
 
     return Card(
-      color: const Color(0xFF1E293B),
+      color: theme.cardTheme.color ?? theme.colorScheme.surfaceContainerHighest,
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: onTap,
@@ -188,7 +191,7 @@ class _HistoryQueryCard extends StatelessWidget {
                         Text(
                           relativeTime,
                           style: TextStyle(
-                            color: Colors.grey[400],
+                            color: isDark ? Colors.grey[400] : Colors.grey.shade600,
                             fontSize: 12,
                           ),
                         ),
@@ -199,15 +202,13 @@ class _HistoryQueryCard extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(
-                              0xFF3B82F6,
-                            ).withValues(alpha: 0.2),
+                            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             dbType,
-                            style: const TextStyle(
-                              color: Color(0xFF3B82F6),
+                            style: TextStyle(
+                              color: theme.colorScheme.primary,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
@@ -218,13 +219,13 @@ class _HistoryQueryCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.storage, size: 14, color: Colors.grey[500]),
+                        Icon(Icons.storage, size: 14, color: isDark ? Colors.grey[500] : Colors.grey.shade600),
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
                             connectionModel.name,
                             style: TextStyle(
-                              color: Colors.grey[500],
+                              color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                               fontSize: 11,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -235,7 +236,7 @@ class _HistoryQueryCard extends StatelessWidget {
                           Text(
                             '>',
                             style: TextStyle(
-                              color: Colors.grey[500],
+                              color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                               fontSize: 11,
                             ),
                           ),
@@ -244,7 +245,7 @@ class _HistoryQueryCard extends StatelessWidget {
                             child: Text(
                               databaseName,
                               style: TextStyle(
-                                color: Colors.grey[500],
+                                color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                                 fontSize: 11,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -266,7 +267,7 @@ class _HistoryQueryCard extends StatelessWidget {
               const SizedBox(width: 8),
               Icon(
                 Icons.chevron_right,
-                color: Colors.white.withValues(alpha: 0.3),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
               ),
             ],
           ),

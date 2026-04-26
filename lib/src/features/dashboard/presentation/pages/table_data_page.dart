@@ -247,6 +247,9 @@ class _TableDataPageState extends State<TableDataPage> {
   }
 
   Widget _buildDataView() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     final dataTableColumns = _columns.map((col) {
       return DataTableColumn(
         name: col,
@@ -262,13 +265,13 @@ class _TableDataPageState extends State<TableDataPage> {
 
       footer: Container(
         padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 16),
-        color: const Color(0xFF0F172A),
+        color: theme.colorScheme.surface,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               'Showing ${_rows.length} rows • Page $_currentPage',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey.shade600, fontSize: 12),
             ),
             Row(
               children: [
@@ -305,6 +308,9 @@ class _TableDataPageState extends State<TableDataPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -366,10 +372,10 @@ class _TableDataPageState extends State<TableDataPage> {
                     horizontal: 16,
                     vertical: 4,
                   ),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF0F172A),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
                     border: Border(
-                      top: BorderSide(color: Colors.grey, width: 0.5),
+                      top: BorderSide(color: theme.dividerColor, width: 0.5),
                     ),
                   ),
                   width: double.infinity,
@@ -383,10 +389,10 @@ class _TableDataPageState extends State<TableDataPage> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withValues(alpha: 0.2),
+                            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: Colors.blue.withValues(alpha: 0.5),
+                              color: theme.colorScheme.primary.withValues(alpha: 0.5),
                             ),
                           ),
                           child: Row(
@@ -394,8 +400,8 @@ class _TableDataPageState extends State<TableDataPage> {
                             children: [
                               Text(
                                 _getFilterLabel(),
-                                style: const TextStyle(
-                                  color: Colors.blue,
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -406,10 +412,10 @@ class _TableDataPageState extends State<TableDataPage> {
                                 borderRadius: BorderRadius.circular(12),
                                 child: Container(
                                   padding: const EdgeInsets.all(2),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.close,
                                     size: 14,
-                                    color: Colors.blue,
+                                    color: theme.colorScheme.primary,
                                   ),
                                 ),
                               ),
@@ -443,7 +449,7 @@ class _TableDataPageState extends State<TableDataPage> {
                   const SizedBox(height: 8),
                   Text(
                     _error!,
-                    style: TextStyle(color: Colors.grey[400]),
+                    style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey.shade600),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -461,15 +467,15 @@ class _TableDataPageState extends State<TableDataPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.table_chart_outlined,
-                    color: Colors.grey,
+                    color: isDark ? Colors.grey : Colors.grey.shade500,
                     size: 48,
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'No data found',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade500),
                   ),
                 ],
               ),

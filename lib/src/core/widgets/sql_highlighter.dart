@@ -5,7 +5,6 @@ class SqlHighlighter extends StatelessWidget {
   final int maxLines;
   final TextOverflow overflow;
   final double fontSize;
-  final Color backgroundColor;
 
   const SqlHighlighter({
     super.key,
@@ -13,23 +12,26 @@ class SqlHighlighter extends StatelessWidget {
     this.maxLines = 2,
     this.overflow = TextOverflow.ellipsis,
     this.fontSize = 12,
-    this.backgroundColor = const Color(0xFF1E293B),
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final syntaxColors = isDark ? _darkSyntaxColors : _lightSyntaxColors;
+    
     final preview = sql.replaceAll('\n', ' ');
-    final spans = _highlightSql(preview);
+    final spans = _highlightSql(preview, syntaxColors);
 
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor.withValues(alpha: 0.5),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFF334155), width: 0.5),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3), width: 0.5),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Text.rich(
-        TextSpan(children: spans),
+        TextSpan(children: spans, style: TextStyle(color: theme.colorScheme.onSurface)),
         maxLines: maxLines,
         overflow: overflow,
         style: TextStyle(
@@ -41,7 +43,23 @@ class SqlHighlighter extends StatelessWidget {
     );
   }
 
-  List<InlineSpan> _highlightSql(String sql) {
+  static const _darkSyntaxColors = _SyntaxColors(
+    string: Color(0xFFA6E22E),
+    comment: Color(0xFF75715E),
+    keyword: Color(0xFFF92672),
+    function: Color(0xFF66D9EF),
+    number: Color(0xFFAE81FF),
+  );
+
+  static const _lightSyntaxColors = _SyntaxColors(
+    string: Color(0xFF0A8F4A),
+    comment: Color(0xFF6A737D),
+    keyword: Color(0xFFD73A49),
+    function: Color(0xFF0066CC),
+    number: Color(0xFF005CC5),
+  );
+
+  List<InlineSpan> _highlightSql(String sql, _SyntaxColors colors) {
     final spans = <InlineSpan>[];
     final regex = RegExp(
       r"""('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|"""
@@ -176,21 +194,21 @@ class SqlHighlighter extends StatelessWidget {
         spans.add(
           TextSpan(
             text: stringOrComment,
-            style: const TextStyle(color: Color(0xFFA6E22E)),
+            style: TextStyle(color: colors.string),
           ),
         );
       } else if (singleLineComment != null) {
         spans.add(
           TextSpan(
             text: singleLineComment,
-            style: const TextStyle(color: Color(0xFF75715E)),
+            style: TextStyle(color: colors.comment),
           ),
         );
       } else if (multiLineComment != null) {
         spans.add(
           TextSpan(
             text: multiLineComment,
-            style: const TextStyle(color: Color(0xFF75715E)),
+            style: TextStyle(color: colors.comment),
           ),
         );
       } else if (upperWord != null) {
@@ -199,14 +217,14 @@ class SqlHighlighter extends StatelessWidget {
           spans.add(
             TextSpan(
               text: match.group(0),
-              style: const TextStyle(color: Color(0xFFF92672)),
+              style: TextStyle(color: colors.keyword),
             ),
           );
         } else if (functions.contains(word)) {
           spans.add(
             TextSpan(
               text: match.group(0),
-              style: const TextStyle(color: Color(0xFF66D9EF)),
+              style: TextStyle(color: colors.function),
             ),
           );
         } else {
@@ -218,14 +236,14 @@ class SqlHighlighter extends StatelessWidget {
           spans.add(
             TextSpan(
               text: match.group(0),
-              style: const TextStyle(color: Color(0xFFF92672)),
+              style: TextStyle(color: colors.keyword),
             ),
           );
         } else if (functions.contains(word)) {
           spans.add(
             TextSpan(
               text: match.group(0),
-              style: const TextStyle(color: Color(0xFF66D9EF)),
+              style: TextStyle(color: colors.function),
             ),
           );
         } else {
@@ -235,7 +253,7 @@ class SqlHighlighter extends StatelessWidget {
         spans.add(
           TextSpan(
             text: number,
-            style: const TextStyle(color: Color(0xFFAE81FF)),
+            style: TextStyle(color: colors.number),
           ),
         );
       } else if (punctuation != null) {
@@ -253,4 +271,20 @@ class SqlHighlighter extends StatelessWidget {
 
     return spans;
   }
+}
+
+class _SyntaxColors {
+  final Color string;
+  final Color comment;
+  final Color keyword;
+  final Color function;
+  final Color number;
+
+  const _SyntaxColors({
+    required this.string,
+    required this.comment,
+    required this.keyword,
+    required this.function,
+    required this.number,
+  });
 }

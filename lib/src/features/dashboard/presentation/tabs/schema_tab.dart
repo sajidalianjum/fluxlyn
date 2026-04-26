@@ -24,6 +24,7 @@ class _SchemaTabState extends State<SchemaTab> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<DashboardProvider>();
+    final theme = Theme.of(context);
     final connectionName = provider.currentConnectionModel?.name ?? 'Database';
     final isDbSelected = provider.selectedDatabase != null;
     final screenWidth = MediaQuery.of(context).size.width;
@@ -115,10 +116,10 @@ class _SchemaTabState extends State<SchemaTab> {
                     width: 300,
                     child: _buildTableList(context, provider),
                   ),
-                  Container(width: 1, color: const Color(0xFF334155)),
+                  Container(width: 1, color: theme.dividerColor),
                   Expanded(
                     child: Container(
-                      color: const Color(0xFF1E293B),
+                      color: theme.colorScheme.surface,
                       child: Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -151,13 +152,14 @@ class _SchemaTabState extends State<SchemaTab> {
   }
 
   Widget _buildSearchBar() {
+    final theme = Theme.of(context);
     return TextField(
       controller: _searchController,
       autofocus: true,
-      style: const TextStyle(color: Colors.white),
-      decoration: const InputDecoration(
+      style: TextStyle(color: theme.colorScheme.onSurface),
+      decoration: InputDecoration(
         hintText: 'Search...',
-        hintStyle: TextStyle(color: Colors.grey),
+        hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
         border: InputBorder.none,
       ),
       onChanged: (_) => setState(() {}),

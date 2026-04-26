@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:highlight/languages/sql.dart';
 import 'package:flutter_highlight/themes/monokai-sublime.dart';
+import 'package:flutter_highlight/themes/github.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:mysql_dart/mysql_dart.dart';
@@ -632,6 +633,7 @@ class _QueryTabState extends State<QueryTab> {
     final provider = Provider.of<DashboardProvider>(context, listen: false);
     final storageService = Provider.of<StorageService>(context, listen: false);
     final connectionModel = provider.currentConnectionModel;
+    final theme = Theme.of(context);
 
     if (connectionModel == null) {
       SnackbarHelper.showInfo(context, 'No connection selected');
@@ -653,10 +655,12 @@ class _QueryTabState extends State<QueryTab> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       isScrollControlled: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
           return Container(
             height: MediaQuery.of(context).size.height * 0.6,
             padding: const EdgeInsets.all(16),
@@ -675,7 +679,6 @@ class _QueryTabState extends State<QueryTab> {
                     prefixIcon: Icon(Icons.search),
                     border: OutlineInputBorder(),
                   ),
-                  style: const TextStyle(color: Colors.white),
                   onChanged: (value) => setModalState(() {}),
                 ),
                 const SizedBox(height: 16),
@@ -693,7 +696,7 @@ class _QueryTabState extends State<QueryTab> {
                       if (!matchesSearch) return const SizedBox.shrink();
 
                       return Card(
-                        color: const Color(0xFF0F172A),
+                        color: theme.cardTheme.color ?? theme.colorScheme.surfaceContainerHighest,
                         child: ListTile(
                           title: Text(
                             query.name,
@@ -717,7 +720,7 @@ class _QueryTabState extends State<QueryTab> {
                               Text(
                                 _formatDate(query.modifiedAt),
                                 style: TextStyle(
-                                  color: Colors.grey[600],
+                                  color: isDark ? Colors.grey[500] : Colors.grey.shade600,
                                   fontSize: 11,
                                 ),
                               ),
@@ -742,7 +745,6 @@ class _QueryTabState extends State<QueryTab> {
                               _controller.text = query.query;
                             });
 
-                            // If no database is selected, load the database from the query
                             if (provider.selectedDatabase == null &&
                                 query.databaseName != null) {
                               await provider.selectDatabase(
@@ -1040,6 +1042,7 @@ class _QueryTabState extends State<QueryTab> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
     final isWideScreen = screenWidth > 1200;
 
@@ -1079,7 +1082,7 @@ class _QueryTabState extends State<QueryTab> {
             ? Row(
                 children: [
                   Expanded(flex: 3, child: _buildEditorPanel(provider)),
-                  Container(width: 1, color: const Color(0xFF334155)),
+                  Container(width: 1, color: theme.dividerColor),
                   Expanded(flex: 2, child: _buildResultsPanel(provider)),
                 ],
               )
@@ -1089,11 +1092,14 @@ class _QueryTabState extends State<QueryTab> {
   }
 
   Widget _buildEditorPanel(DashboardProvider provider) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: const Color(0xFF0F172A),
+          color: theme.colorScheme.surface,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1117,8 +1123,7 @@ class _QueryTabState extends State<QueryTab> {
                               horizontal: 12,
                               vertical: 8,
                             ),
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF334155)),
+                            side: BorderSide(color: theme.colorScheme.outline),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -1128,10 +1133,10 @@ class _QueryTabState extends State<QueryTab> {
                     ),
                     OutlinedButton.icon(
                       onPressed: _showAIQueryDialog,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.auto_awesome,
                         size: 18,
-                        color: Colors.blue,
+                        color: theme.colorScheme.primary,
                       ),
                       label: const Text('AI Query'),
                       style: OutlinedButton.styleFrom(
@@ -1139,8 +1144,7 @@ class _QueryTabState extends State<QueryTab> {
                           horizontal: 12,
                           vertical: 8,
                         ),
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Color(0xFF334155)),
+                        side: BorderSide(color: theme.colorScheme.outline),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -1155,8 +1159,7 @@ class _QueryTabState extends State<QueryTab> {
                           horizontal: 12,
                           vertical: 8,
                         ),
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Color(0xFF334155)),
+                        side: BorderSide(color: theme.colorScheme.outline),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -1171,8 +1174,7 @@ class _QueryTabState extends State<QueryTab> {
                           horizontal: 12,
                           vertical: 8,
                         ),
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Color(0xFF334155)),
+                        side: BorderSide(color: theme.colorScheme.outline),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -1191,7 +1193,9 @@ class _QueryTabState extends State<QueryTab> {
               _focusNode.requestFocus();
             },
             child: CodeTheme(
-              data: CodeThemeData(styles: monokaiSublimeTheme),
+              data: CodeThemeData(
+                styles: isDark ? monokaiSublimeTheme : githubTheme,
+              ),
               child: CodeField(
                 controller: _controller,
                 focusNode: _focusNode,
@@ -1199,13 +1203,13 @@ class _QueryTabState extends State<QueryTab> {
                   fontFamily: 'monospace',
                   fontSize: 14,
                 ),
-                gutterStyle: const GutterStyle(
-                  textStyle: TextStyle(color: Colors.grey),
+                gutterStyle: GutterStyle(
+                  textStyle: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600),
                   width: 48,
                   margin: 0,
                 ),
-                cursorColor: Colors.blue,
-                background: const Color(0xFF0F172A),
+                cursorColor: theme.colorScheme.primary,
+                background: theme.colorScheme.surface,
                 expands: true,
               ),
             ),
@@ -1214,19 +1218,19 @@ class _QueryTabState extends State<QueryTab> {
 
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: const Color(0xFF1E293B),
+          color: theme.colorScheme.surface,
           child: Row(
             children: [
-              Icon(Icons.keyboard, size: 16, color: Colors.grey[600]),
+              Icon(Icons.keyboard, size: 16, color: isDark ? Colors.grey[600] : Colors.grey.shade500),
               const SizedBox(width: 8),
               Text(
                 'Ctrl+Enter to run',
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                style: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey.shade500, fontSize: 12),
               ),
               const Spacer(),
               Text(
                 '${_controller.text.length} chars',
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                style: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey.shade500, fontSize: 12),
               ),
             ],
           ),
@@ -1236,22 +1240,25 @@ class _QueryTabState extends State<QueryTab> {
   }
 
   Widget _buildResultsPanel(DashboardProvider provider) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
-      color: const Color(0xFF1E293B),
+      color: theme.colorScheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            color: const Color(0xFF0F172A),
+            color: theme.colorScheme.surfaceContainerHighest,
             child: Row(
               children: [
-                const Icon(Icons.assessment, size: 20, color: Colors.grey),
+                Icon(Icons.assessment, size: 20, color: isDark ? Colors.grey : Colors.grey.shade600),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Results Preview',
                   style: TextStyle(
-                    color: Colors.grey,
+                    color: isDark ? Colors.grey : Colors.grey.shade600,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1300,6 +1307,7 @@ class _QueryTabState extends State<QueryTab> {
   void _showHistory() async {
     final storageService = Provider.of<StorageService>(context, listen: false);
     final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final theme = Theme.of(context);
 
     if (provider.currentConnectionModel == null) return;
 
@@ -1316,7 +1324,7 @@ class _QueryTabState extends State<QueryTab> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: theme.colorScheme.surface,
       builder: (context) => Container(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1366,7 +1374,6 @@ class _QueryTabState extends State<QueryTab> {
                         _controller.text = entry.query;
                       });
 
-                      // If no database is selected, load the database from the history entry
                       if (provider.selectedDatabase == null &&
                           entry.databaseName != null) {
                         await provider.selectDatabase(entry.databaseName!);

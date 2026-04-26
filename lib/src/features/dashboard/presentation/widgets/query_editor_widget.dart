@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:highlight/languages/sql.dart';
 import 'package:flutter_highlight/themes/monokai-sublime.dart';
+import 'package:flutter_highlight/themes/github.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/schema_service.dart';
 import '../../../../core/services/sql_context_analyzer.dart';
@@ -352,6 +353,9 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -395,7 +399,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: const Color(0xFF0F172A),
+              color: theme.colorScheme.surface,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -415,8 +419,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
                                 horizontal: 12,
                                 vertical: 8,
                               ),
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Color(0xFF334155)),
+                              side: BorderSide(color: theme.colorScheme.outline),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(4),
                               ),
@@ -428,10 +431,10 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
                     if (widget.showAIQuery)
                       OutlinedButton.icon(
                         onPressed: widget.onShowAIQueryDialog,
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.auto_awesome,
                           size: 18,
-                          color: Colors.blue,
+                          color: theme.colorScheme.primary,
                         ),
                         label: const Text('AI Query'),
                         style: OutlinedButton.styleFrom(
@@ -439,8 +442,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
                             horizontal: 12,
                             vertical: 8,
                           ),
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Color(0xFF334155)),
+                          side: BorderSide(color: theme.colorScheme.outline),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
@@ -458,8 +460,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
                             horizontal: 12,
                             vertical: 8,
                           ),
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Color(0xFF334155)),
+                          side: BorderSide(color: theme.colorScheme.outline),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
@@ -476,8 +477,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
                             horizontal: 12,
                             vertical: 8,
                           ),
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Color(0xFF334155)),
+                          side: BorderSide(color: theme.colorScheme.outline),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
@@ -493,7 +493,9 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
                   _focusNode.requestFocus();
                 },
                 child: CodeTheme(
-                  data: CodeThemeData(styles: monokaiSublimeTheme),
+                  data: CodeThemeData(
+                    styles: isDark ? monokaiSublimeTheme : githubTheme,
+                  ),
                   child: CodeField(
                     controller: _controller,
                     focusNode: _focusNode,
@@ -501,13 +503,13 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
                       fontFamily: 'monospace',
                       fontSize: 14,
                     ),
-                    gutterStyle: const GutterStyle(
-                      textStyle: TextStyle(color: Colors.grey),
+                    gutterStyle: GutterStyle(
+                      textStyle: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600),
                       width: 48,
                       margin: 0,
                     ),
-                    cursorColor: Colors.blue,
-                    background: const Color(0xFF0F172A),
+                    cursorColor: theme.colorScheme.primary,
+                    background: theme.colorScheme.surface,
                     expands: true,
                   ),
                 ),
@@ -515,19 +517,19 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: const Color(0xFF1E293B),
+              color: theme.colorScheme.surface,
               child: Row(
                 children: [
-                  Icon(Icons.keyboard, size: 16, color: Colors.grey[600]),
+                  Icon(Icons.keyboard, size: 16, color: isDark ? Colors.grey[600] : Colors.grey.shade500),
                   const SizedBox(width: 8),
                   Text(
                     'Ctrl+Enter to run',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    style: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey.shade500, fontSize: 12),
                   ),
                   const Spacer(),
                   Text(
                     '${_controller.text.length} chars',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    style: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey.shade500, fontSize: 12),
                   ),
                 ],
               ),
