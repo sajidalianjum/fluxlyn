@@ -188,10 +188,11 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
     );
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWideScreen = screenWidth > 800;
+    final theme = Theme.of(context);
 
     final List<Widget> tabs = [
       ConnectionsTab(
@@ -251,10 +252,10 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                 ),
               ],
             ),
-            const VerticalDivider(
+VerticalDivider(
               thickness: 1,
               width: 1,
-              color: Color(0xFF334155),
+              color: theme.colorScheme.outlineVariant,
             ),
             Expanded(
               child: IndexedStack(index: _selectedTabIndex, children: tabs),

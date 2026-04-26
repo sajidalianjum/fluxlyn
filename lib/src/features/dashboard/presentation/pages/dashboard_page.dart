@@ -57,10 +57,10 @@ class DashboardPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  VerticalDivider(
+VerticalDivider(
                     thickness: 1,
                     width: 1,
-                    color: theme.dividerColor,
+                    color: theme.colorScheme.outlineVariant,
                   ),
                   Expanded(child: _buildContent(pages, provider, theme)),
                 ],

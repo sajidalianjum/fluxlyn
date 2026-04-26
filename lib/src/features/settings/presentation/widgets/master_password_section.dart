@@ -46,11 +46,11 @@ class MasterPasswordSection extends StatelessWidget {
             onTap: () => _showChangePasswordDialog(context),
           ),
         ],
-        const SizedBox(height: 8),
+const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.grey[800]?.withValues(alpha: 0.3),
+            color: theme.colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -58,7 +58,7 @@ class MasterPasswordSection extends StatelessWidget {
               Icon(
                 Icons.info_outline,
                 size: 18,
-                color: Colors.grey[500],
+                color: theme.colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -67,7 +67,7 @@ class MasterPasswordSection extends StatelessWidget {
                       ? 'You\'ll need to enter your password each time you open the app. If you forget it, all data will be lost.'
                       : 'Without a master password, your encryption key is stored unencrypted on disk.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[500],
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
