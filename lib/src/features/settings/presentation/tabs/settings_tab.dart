@@ -176,7 +176,7 @@ class _SettingsTabState extends State<SettingsTab> {
           subtitle: const Text('Prevent all write operations'),
           value: _readOnlyMode,
           onChanged: _onReadOnlyModeChanged,
-          contentPadding: EdgeInsets.zero,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
         ),
         const SizedBox(height: 8),
         SwitchListTile(
@@ -186,7 +186,7 @@ class _SettingsTabState extends State<SettingsTab> {
           ),
           value: _lock,
           onChanged: _readOnlyMode ? null : _onLockChanged,
-          contentPadding: EdgeInsets.zero,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
         ),
         const SizedBox(height: 24),
         MasterPasswordSection(),

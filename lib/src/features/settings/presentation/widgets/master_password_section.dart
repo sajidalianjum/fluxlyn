@@ -34,7 +34,7 @@ class MasterPasswordSection extends StatelessWidget {
           ),
           value: isEnabled,
           onChanged: (value) => _handleToggle(context, value),
-          contentPadding: EdgeInsets.zero,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
         ),
         if (isEnabled) ...[
           const SizedBox(height: 8),
@@ -42,7 +42,7 @@ class MasterPasswordSection extends StatelessWidget {
             title: const Text('Change Password'),
             subtitle: const Text('Update your master password'),
             leading: const Icon(Icons.key),
-            contentPadding: const EdgeInsets.only(left: 16),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             onTap: () => _showChangePasswordDialog(context),
           ),
         ],
