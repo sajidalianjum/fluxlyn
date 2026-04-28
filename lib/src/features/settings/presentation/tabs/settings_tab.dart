@@ -424,6 +424,34 @@ class _SettingsTabState extends State<SettingsTab> {
       savePath = saveLocation.path;
     }
 
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: Center(
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Encrypting and exporting...',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
     try {
       final storageService = context.read<StorageService>();
       final settingsProvider = context.read<SettingsProvider>();
@@ -437,6 +465,7 @@ class _SettingsTabState extends State<SettingsTab> {
       );
 
       if (mounted) {
+        Navigator.of(context).pop();
         final parts = ['Connections'];
         if (options.includePasswords) parts.add('passwords');
         if (options.includeSettings) parts.add('settings');
@@ -445,6 +474,7 @@ class _SettingsTabState extends State<SettingsTab> {
       }
     } catch (e) {
       if (mounted) {
+        Navigator.of(context).pop();
         SnackbarHelper.showError(context, 'Failed to export: $e');
       }
     }
@@ -472,14 +502,43 @@ class _SettingsTabState extends State<SettingsTab> {
       return;
     }
 
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: Center(
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Decrypting and importing...',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
     try {
       final storageService = context.read<StorageService>();
       final result = await storageService.checkImportFile(file.path, password);
 
       bool overwriteSettings = false;
       if (result.hasSettings && result.settings != null) {
+        if (!mounted) return;
+        Navigator.of(context).pop();
         final settingsProvider = context.read<SettingsProvider>();
-        // Only show dialog if imported settings have meaningful values
         if (_hasMeaningfulSettings(result.settings!, settingsProvider.settings)) {
           overwriteSettings =
               await showDialog<bool>(
@@ -490,6 +549,32 @@ class _SettingsTabState extends State<SettingsTab> {
               ) ??
               false;
         }
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => PopScope(
+            canPop: false,
+            child: Center(
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Importing connections...',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
       }
 
       final connections = await storageService.importConnections(
@@ -509,6 +594,7 @@ class _SettingsTabState extends State<SettingsTab> {
       }
 
       if (mounted) {
+        Navigator.of(context).pop();
         String message =
             'Successfully imported ${connections.length} connection(s)';
         if (result.hasSettings && overwriteSettings) {
@@ -518,6 +604,7 @@ class _SettingsTabState extends State<SettingsTab> {
       }
     } catch (e) {
       if (mounted) {
+        Navigator.of(context).pop();
         SnackbarHelper.showError(context, 'Failed to import: $e');
       }
     }
