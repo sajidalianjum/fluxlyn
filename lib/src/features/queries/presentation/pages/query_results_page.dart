@@ -166,19 +166,27 @@ class _QueryResultsPageState extends State<QueryResultsPage>
     super.dispose();
   }
 
+  String _getExportBasename(QueryResult result) {
+    if (result.tableName != null && result.tableName!.isNotEmpty) {
+      return '${result.tableName}_data';
+    }
+    return 'query_results';
+  }
+
   Future<void> _exportToCsvFile(QueryResult result) async {
+    final basename = _getExportBasename(result);
     String savePath;
 
     if (Platform.isAndroid) {
       final directoryPath = await getDirectoryPath();
       if (directoryPath == null) return;
-      savePath = path.join(directoryPath, 'export.csv');
+      savePath = path.join(directoryPath, '$basename.csv');
     } else {
       final FileSaveLocation? resultLocation = await getSaveLocation(
         acceptedTypeGroups: [
           const XTypeGroup(label: 'CSV', extensions: ['csv']),
         ],
-        suggestedName: 'export.csv',
+        suggestedName: basename,
       );
       if (resultLocation == null) return;
       savePath = resultLocation.path;
@@ -212,7 +220,7 @@ class _QueryResultsPageState extends State<QueryResultsPage>
     final XFile file = XFile.fromData(
       fileData,
       mimeType: 'text/csv',
-      name: 'export.csv',
+      name: '$basename.csv',
     );
     await file.saveTo(savePath);
 
@@ -224,18 +232,19 @@ class _QueryResultsPageState extends State<QueryResultsPage>
   }
 
   Future<void> _exportToXlsxFile(QueryResult result) async {
+    final basename = _getExportBasename(result);
     String savePath;
 
     if (Platform.isAndroid) {
       final directoryPath = await getDirectoryPath();
       if (directoryPath == null) return;
-      savePath = path.join(directoryPath, 'export.xlsx');
+      savePath = path.join(directoryPath, '$basename.xlsx');
     } else {
       final FileSaveLocation? resultLocation = await getSaveLocation(
         acceptedTypeGroups: [
           const XTypeGroup(label: 'Excel', extensions: ['xlsx']),
         ],
-        suggestedName: 'export.xlsx',
+        suggestedName: basename,
       );
       if (resultLocation == null) return;
       savePath = resultLocation.path;
@@ -267,7 +276,7 @@ class _QueryResultsPageState extends State<QueryResultsPage>
         Uint8List.fromList(fileBytes),
         mimeType:
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        name: 'export.xlsx',
+        name: '$basename.xlsx',
       );
       await file.saveTo(savePath);
 

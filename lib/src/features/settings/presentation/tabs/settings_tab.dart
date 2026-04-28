@@ -414,7 +414,7 @@ class _SettingsTabState extends State<SettingsTab> {
       );
 
       final saveLocation = await getSaveLocation(
-        suggestedName: 'connections.fluxlyn',
+        suggestedName: 'connections',
         acceptedTypeGroups: [typeGroup],
       );
 
