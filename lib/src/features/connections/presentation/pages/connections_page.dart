@@ -405,16 +405,19 @@ VerticalDivider(
             ),
           ];
         }
+        final hasConnections = context.watch<ConnectionsProvider>().connections.isNotEmpty;
         return [
-          TextButton(
-            onPressed: _toggleEditMode,
-            child: Text(_isEditMode ? 'Done' : 'Edit'),
-          ),
-          IconButton(
-            onPressed: () => setState(() => _isSearching = true),
-            icon: const Icon(Icons.search),
-            tooltip: 'Search connections',
-          ),
+          if (hasConnections)
+            TextButton(
+              onPressed: _toggleEditMode,
+              child: Text(_isEditMode ? 'Done' : 'Edit'),
+            ),
+          if (hasConnections)
+            IconButton(
+              onPressed: () => setState(() => _isSearching = true),
+              icon: const Icon(Icons.search),
+              tooltip: 'Search connections',
+            ),
         ];
       case 1:
         if (_isSearching) {
