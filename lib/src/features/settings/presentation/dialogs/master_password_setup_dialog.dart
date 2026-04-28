@@ -135,14 +135,14 @@ class _MasterPasswordSetupDialogState extends State<MasterPasswordSetupDialog> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: _skip,
-                    child: const Text('Skip for Now'),
+                    child: const Text('Skip'),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: FilledButton(
                     onPressed: _submit,
-                    child: const Text('Set Password'),
+                    child: const Text('Enable'),
                   ),
                 ),
               ],
