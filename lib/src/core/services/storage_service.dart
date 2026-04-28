@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
@@ -41,7 +42,6 @@ class StorageService extends ChangeNotifier {
   static const String _keyBoxName = 'encryption_key';
   static const String _knownHostsBoxName = 'known_hosts';
 
-  static const int _pbkdf2Iterations = 100000;
   static const int _saltLength = 16;
   static const int _ivLength = 16;
   static const int _keyLength = 32;
@@ -152,7 +152,6 @@ class StorageService extends ChangeNotifier {
 
   Future<List<int>> _getOrCreateEncryptionKey(String? masterPassword) async {
     final keyBox = await Hive.openBox(_keyBoxName);
-    final settingsBox = await Hive.openBox(_settingsBoxName);
 
     final masterPasswordDataJson = keyBox.get('master_password_data');
     final hasMasterPassword = masterPasswordDataJson != null;
@@ -169,7 +168,7 @@ class StorageService extends ChangeNotifier {
         jsonDecode(masterPasswordDataJson as String) as Map<String, dynamic>,
       );
 
-      final decryptedKey = MasterPasswordService.decryptDeviceKey(data, masterPassword);
+      final decryptedKey = await MasterPasswordService.decryptDeviceKey(data, masterPassword);
       if (decryptedKey == null) {
         throw StorageException(
           'Invalid master password',
@@ -235,7 +234,7 @@ class StorageService extends ChangeNotifier {
     }
 
     final keyBox = Hive.box(_keyBoxName);
-    final data = MasterPasswordService.encryptDeviceKey(
+    final data = await MasterPasswordService.encryptDeviceKey(
       _decryptedDeviceKey!,
       password,
     );
@@ -259,7 +258,7 @@ class StorageService extends ChangeNotifier {
       );
     }
 
-    final decryptedKey = MasterPasswordService.decryptDeviceKey(data, password);
+    final decryptedKey = await MasterPasswordService.decryptDeviceKey(data, password);
     if (decryptedKey == null) {
       throw StorageException(
         'Invalid master password',
@@ -289,7 +288,7 @@ class StorageService extends ChangeNotifier {
       );
     }
 
-    final decryptedKey = MasterPasswordService.decryptDeviceKey(data, oldPassword);
+    final decryptedKey = await MasterPasswordService.decryptDeviceKey(data, oldPassword);
     if (decryptedKey == null) {
       throw StorageException(
         'Invalid old password',
@@ -297,7 +296,7 @@ class StorageService extends ChangeNotifier {
       );
     }
 
-    final newData = MasterPasswordService.encryptDeviceKey(decryptedKey, newPassword);
+    final newData = await MasterPasswordService.encryptDeviceKey(decryptedKey, newPassword);
     final keyBox = Hive.box(_keyBoxName);
     await keyBox.put('master_password_data', jsonEncode(newData.toJson()));
 
@@ -308,10 +307,10 @@ class StorageService extends ChangeNotifier {
     );
   }
 
-  bool verifyMasterPassword(String password) {
+  Future<bool> verifyMasterPassword(String password) async {
     final data = getMasterPasswordData();
     if (data == null) return false;
-    return MasterPasswordService.verifyPassword(data, password);
+    return await MasterPasswordService.verifyPassword(data, password);
   }
 
   Future<void> clearAllData() async {
@@ -583,8 +582,8 @@ class StorageService extends ChangeNotifier {
         List<int>.generate(_ivLength, (_) => random.nextInt(256)),
       );
 
-      final aesKey = _deriveKey(password, salt, _keyLength);
-      final hmacKey = _deriveKey(password, salt, _hmacKeyLength);
+      final aesKey = await _deriveKey(password, salt, _keyLength);
+      final hmacKey = await _deriveKey(password, salt, _hmacKeyLength);
 
       List<ConnectionModel> connectionsToExport = connections;
       if (!includePasswords) {
@@ -712,8 +711,8 @@ class StorageService extends ChangeNotifier {
       final ciphertext = _base64ToBytes(encryptedData['data'] as String);
       final storedHmac = _base64ToBytes(encryptedData['hmac'] as String);
 
-      final aesKey = _deriveKey(password, salt, _keyLength);
-      final hmacKey = _deriveKey(password, salt, _hmacKeyLength);
+      final aesKey = await _deriveKey(password, salt, _keyLength);
+      final hmacKey = await _deriveKey(password, salt, _hmacKeyLength);
 
       final computedHmac = _computeHmac(hmacKey, salt, iv, ciphertext);
 
@@ -830,36 +829,10 @@ class StorageService extends ChangeNotifier {
     }
   }
 
-  Uint8List _deriveKey(String password, Uint8List salt, int keyLength) {
-    final passwordBytes = utf8.encode(password);
-    final result = <int>[];
-    var blockIndex = 1;
-
-    while (result.length < keyLength) {
-      final blockData = Uint8List.fromList([...salt, ..._intToBytes(blockIndex)]);
-      var u = Hmac(sha256, passwordBytes).convert(blockData);
-      final block = List<int>.from(u.bytes);
-
-      for (var i = 1; i < _pbkdf2Iterations; i++) {
-        u = Hmac(sha256, passwordBytes).convert(u.bytes);
-        for (var j = 0; j < block.length; j++) {
-          block[j] ^= u.bytes[j];
-        }
-      }
-
-      result.addAll(block);
-      blockIndex++;
-    }
-
-    return Uint8List.fromList(result.sublist(0, keyLength));
-  }
-
-  Uint8List _intToBytes(int value) {
-    return Uint8List(4)
-      ..[0] = (value >> 24) & 0xFF
-      ..[1] = (value >> 16) & 0xFF
-      ..[2] = (value >> 8) & 0xFF
-      ..[3] = value & 0xFF;
+  Future<Uint8List> _deriveKey(String password, Uint8List salt, int keyLength) async {
+    return await Isolate.run(
+      () => _deriveKeySync(_DeriveKeyParamsExport(password, salt, keyLength)),
+    );
   }
 
   Uint8List _computeHmac(Uint8List key, Uint8List salt, Uint8List iv, Uint8List ciphertext) {
@@ -871,4 +844,44 @@ class StorageService extends ChangeNotifier {
   String _bytesToBase64(Uint8List bytes) => base64Encode(bytes);
 
   Uint8List _base64ToBytes(String base64Str) => base64Decode(base64Str);
+}
+
+class _DeriveKeyParamsExport {
+  final String password;
+  final Uint8List salt;
+  final int keyLength;
+
+  _DeriveKeyParamsExport(this.password, this.salt, this.keyLength);
+}
+
+Uint8List _intToBytesExport(int value) {
+  return Uint8List(4)
+    ..[0] = (value >> 24) & 0xFF
+    ..[1] = (value >> 16) & 0xFF
+    ..[2] = (value >> 8) & 0xFF
+    ..[3] = value & 0xFF;
+}
+
+Uint8List _deriveKeySync(_DeriveKeyParamsExport params) {
+  final passwordBytes = utf8.encode(params.password);
+  final result = <int>[];
+  var blockIndex = 1;
+
+  while (result.length < params.keyLength) {
+    final blockData = Uint8List.fromList([...params.salt, ..._intToBytesExport(blockIndex)]);
+    var u = Hmac(sha256, passwordBytes).convert(blockData);
+    final block = List<int>.from(u.bytes);
+
+    for (var i = 1; i < 100000; i++) {
+      u = Hmac(sha256, passwordBytes).convert(u.bytes);
+      for (var j = 0; j < block.length; j++) {
+        block[j] ^= u.bytes[j];
+      }
+    }
+
+    result.addAll(block);
+    blockIndex++;
+  }
+
+  return Uint8List.fromList(result.sublist(0, params.keyLength));
 }

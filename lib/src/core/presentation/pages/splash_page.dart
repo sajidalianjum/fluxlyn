@@ -73,6 +73,10 @@ class _SplashPageState extends State<SplashPage> {
 
         if (confirmed == true) {
           try {
+            setState(() {
+              _isLoading = true;
+              _error = null;
+            });
             await widget.storageService.clearAllData();
             await _initializeStorage(null);
             return;
@@ -84,6 +88,10 @@ class _SplashPageState extends State<SplashPage> {
       }
 
       try {
+        setState(() {
+          _isLoading = true;
+          _error = null;
+        });
         await _initializeStorage(result);
         return;
       } catch (e) {
@@ -101,6 +109,10 @@ class _SplashPageState extends State<SplashPage> {
 
     if (password != null && password.isNotEmpty) {
       try {
+        setState(() {
+          _isLoading = true;
+          _error = null;
+        });
         await _initializeStorage(null);
         await widget.storageService.enableMasterPassword(password);
       } catch (e) {
@@ -109,6 +121,10 @@ class _SplashPageState extends State<SplashPage> {
       }
     } else {
       try {
+        setState(() {
+          _isLoading = true;
+          _error = null;
+        });
         await _initializeStorage(null);
       } catch (e) {
         setState(() => _error = 'Failed to initialize: $e');
