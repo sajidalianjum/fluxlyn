@@ -222,12 +222,14 @@ class _TableDataPageState extends State<TableDataPage> {
         _openRowEditDialog(rowIndex);
       } else {
         await _loadData();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Row updated successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Row updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
     }
   }

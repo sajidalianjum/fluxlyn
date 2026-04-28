@@ -548,7 +548,9 @@ class _QueryTabState extends State<QueryTab> {
         );
       }
     } catch (e) {
-      SnackbarHelper.showError(context, 'Error: $e');
+      if (mounted) {
+        SnackbarHelper.showError(context, 'Error: $e');
+      }
     } finally {
       if (mounted) {
         setState(() => _isExecuting = false);
@@ -733,7 +735,7 @@ class _QueryTabState extends State<QueryTab> {
                               setModalState(() {});
                               if (mounted) {
                                 SnackbarHelper.showInfo(
-                                  context,
+                                  this.context,
                                   'Query deleted',
                                 );
                               }
@@ -1025,11 +1027,9 @@ class _QueryTabState extends State<QueryTab> {
               Navigator.of(context).pop();
               try {
                 await provider.disconnect();
-              } catch (_) {
-                // Ignore disconnect errors - connection may already be invalid
-              }
+              } catch (_) {}
               if (mounted) {
-                Navigator.of(context).pop();
+                Navigator.of(this.context).pop();
               }
             },
             child: const Text('Disconnect'),

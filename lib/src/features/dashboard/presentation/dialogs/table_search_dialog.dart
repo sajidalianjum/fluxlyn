@@ -106,7 +106,7 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _searchColumn,
+                      initialValue: _searchColumn,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Column',
@@ -148,7 +148,7 @@ class _TableSearchDialogState extends State<TableSearchDialog> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _sortColumn,
+                      initialValue: _sortColumn,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Column',

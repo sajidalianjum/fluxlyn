@@ -338,7 +338,7 @@ class FieldEditor extends StatelessWidget {
     final iconColor = isDark ? const Color(0xFF6B7280) : Colors.grey.shade600;
 
     return DropdownButtonFormField<String>(
-      value: initialValue,
+      initialValue: initialValue,
       decoration: InputDecoration(
         filled: true,
         fillColor: fillColor,

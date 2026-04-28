@@ -258,8 +258,7 @@ void main() {
       });
 
       test('toString truncates long query', () {
-        final longQuery = 'SELECT * FROM users WHERE ' +
-            'id = 1 AND name = "test"' * 20;
+        final longQuery = 'SELECT * FROM users WHERE ${'id = 1 AND name = "test"' * 20}';
         final exception = QueryException(
           'Error',
           query: longQuery,

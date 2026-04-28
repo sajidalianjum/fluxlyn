@@ -387,6 +387,8 @@ class _SettingsTabState extends State<SettingsTab> {
       return;
     }
 
+    if (!mounted) return;
+
     final password = await _showPasswordDialog(
       context,
       'Export Connections',
@@ -490,6 +492,8 @@ class _SettingsTabState extends State<SettingsTab> {
       return;
     }
 
+    if (!mounted) return;
+
     final password = await _showPasswordDialog(
       context,
       'Import Connections',
@@ -581,12 +585,15 @@ class _SettingsTabState extends State<SettingsTab> {
         overwriteSettings: overwriteSettings,
       );
 
+      if (!mounted) return;
+
       final provider = context.read<ConnectionsProvider>();
       for (final connection in connections) {
         await provider.addConnection(connection);
       }
 
       if (result.hasSettings && overwriteSettings) {
+        if (!mounted) return;
         await context.read<SettingsProvider>().loadSettings();
         _syncLocalStateFromProvider();
       }

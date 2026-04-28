@@ -12,7 +12,7 @@ class HostKeyDialog extends StatelessWidget {
   final VoidCallback onTrust;
   final VoidCallback onReject;
 
-  HostKeyDialog({
+  const HostKeyDialog({
     super.key,
     required this.info,
     required this.type,

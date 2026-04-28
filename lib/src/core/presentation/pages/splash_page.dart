@@ -52,6 +52,7 @@ class _SplashPageState extends State<SplashPage> {
 
   Future<void> _showPasswordPrompt() async {
     while (true) {
+      if (!mounted) return;
       final result = await showDialog<String>(
         context: context,
         barrierDismissible: false,
@@ -63,6 +64,7 @@ class _SplashPageState extends State<SplashPage> {
       if (result == null) return;
 
       if (result == 'forgot') {
+        if (!mounted) return;
         final confirmed = await showDialog<bool>(
           context: context,
           barrierDismissible: false,
