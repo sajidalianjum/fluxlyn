@@ -417,7 +417,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
       return ReorderableListView.builder(
         buildDefaultDragHandles: false,
         itemCount: connections.length,
-        onReorderItem: (oldIndex, newIndex) {
+        onReorder: (oldIndex, newIndex) {
           provider.reorderConnections(oldIndex, newIndex);
         },
         proxyDecorator: (child, index, animation) {
