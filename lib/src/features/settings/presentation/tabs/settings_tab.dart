@@ -57,6 +57,28 @@ class _SettingsTabState extends State<SettingsTab> {
     }
   }
 
+  void _syncLocalStateFromProvider() {
+    final settings = context.read<SettingsProvider>().settings;
+    setState(() {
+      _selectedProvider = settings.provider;
+      _selectedThemeMode = settings.themeMode;
+      _lock = settings.lock;
+      _readOnlyMode = settings.readOnlyMode;
+      if (_apiKeyController.text != settings.apiKey) {
+        _apiKeyController.text = settings.apiKey;
+      }
+      if (_modelNameController.text != settings.modelName) {
+        _modelNameController.text = settings.modelName;
+      }
+      final expectedEndpoint = settings.endpoint.isNotEmpty
+          ? settings.endpoint
+          : settings.provider.defaultEndpoint;
+      if (_endpointController.text != expectedEndpoint) {
+        _endpointController.text = expectedEndpoint;
+      }
+    });
+  }
+
   @override
   void dispose() {
     _apiKeyController.dispose();
@@ -479,6 +501,11 @@ class _SettingsTabState extends State<SettingsTab> {
       final provider = context.read<ConnectionsProvider>();
       for (final connection in connections) {
         await provider.addConnection(connection);
+      }
+
+      if (result.hasSettings && overwriteSettings) {
+        await context.read<SettingsProvider>().loadSettings();
+        _syncLocalStateFromProvider();
       }
 
       if (mounted) {
