@@ -16,7 +16,6 @@ class _MasterPasswordPromptDialogState extends State<MasterPasswordPromptDialog>
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   String? _error;
-  int _attempts = 0;
 
   @override
   void dispose() {

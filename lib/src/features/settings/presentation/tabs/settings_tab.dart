@@ -181,8 +181,6 @@ class _SettingsTabState extends State<SettingsTab> {
   }
 
   Widget _buildProtectionSection(ThemeData theme) {
-    final storageService = context.watch<StorageService>();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

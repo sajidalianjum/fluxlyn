@@ -7,7 +7,6 @@ import 'package:fluxlyn/src/features/connections/providers/connections_provider.
 import 'package:fluxlyn/src/features/settings/providers/settings_provider.dart';
 import 'package:fluxlyn/src/core/services/storage_service.dart';
 import 'package:fluxlyn/src/features/connections/models/connection_model.dart';
-import 'package:fluxlyn/src/core/models/settings_model.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

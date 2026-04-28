@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:fluxlyn/src/features/connections/providers/connections_provider.dart';
-import 'package:fluxlyn/src/core/services/storage_service.dart';
 import 'package:fluxlyn/src/features/connections/models/connection_model.dart';
 import '../../helpers/mock_storage_service.dart';
 

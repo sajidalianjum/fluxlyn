@@ -12,7 +12,6 @@ class MasterPasswordSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final storageService = context.watch<StorageService>();
-    final settingsProvider = context.watch<SettingsProvider>();
     final isEnabled = storageService.isMasterPasswordEnabled();
 
     return Column(

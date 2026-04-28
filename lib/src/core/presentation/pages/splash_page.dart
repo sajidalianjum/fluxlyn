@@ -21,7 +21,6 @@ class SplashPage extends StatefulWidget {
 class _SplashPageState extends State<SplashPage> {
   String? _error;
   bool _isLoading = true;
-  PasswordRequirement? _requirement;
 
   @override
   void initState() {
@@ -33,7 +32,6 @@ class _SplashPageState extends State<SplashPage> {
     try {
       final requirement = await widget.storageService.checkPasswordRequirement();
       setState(() {
-        _requirement = requirement;
         _isLoading = false;
       });
 
