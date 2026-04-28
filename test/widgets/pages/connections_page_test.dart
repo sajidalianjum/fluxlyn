@@ -30,10 +30,12 @@ void main() {
     when(() => mockStorage.getAllSavedQueries()).thenReturn([]);
     when(() => mockStorage.getQueryHistory(any())).thenReturn([]);
     when(() => mockStorage.getAllQueryHistory()).thenReturn([]);
+    when(() => mockStorage.isMasterPasswordEnabled()).thenReturn(false);
     when(() => mockSettingsStorage.loadSettings())
         .thenReturn(AppSettings.defaultSettings());
     when(() => mockSettingsStorage.saveSettings(any()))
         .thenAnswer((_) async {});
+    when(() => mockSettingsStorage.isMasterPasswordEnabled()).thenReturn(false);
   });
 
   Widget createTestWidget() {
@@ -131,12 +133,6 @@ void main() {
         expect(find.byType(ConnectionsPage), findsOneWidget);
       });
 
-      testWidgets('shows search button in AppBar', (tester) async {
-        await tester.pumpWidget(createTestWidget());
-
-        expect(find.byIcon(Icons.search), findsWidgets);
-      });
-
       testWidgets('shows add button on FAB', (tester) async {
         await tester.pumpWidget(createTestWidget());
 
@@ -146,7 +142,21 @@ void main() {
 
     group('search functionality', () {
       testWidgets('shows search bar when search icon tapped', (tester) async {
+        final connections = [
+          ConnectionModel(
+            id: 'c1',
+            name: 'Test Connection',
+            host: 'localhost',
+            port: 3306,
+            sortOrder: 0,
+          ),
+        ];
+
+        when(() => mockStorage.getAllConnections())
+            .thenReturn(connections);
+
         await tester.pumpWidget(createTestWidget());
+        await tester.pump();
 
         await tester.tap(find.byIcon(Icons.search));
         await tester.pumpAndSettle();
@@ -155,7 +165,21 @@ void main() {
       });
 
       testWidgets('shows close icon when searching', (tester) async {
+        final connections = [
+          ConnectionModel(
+            id: 'c1',
+            name: 'Test Connection',
+            host: 'localhost',
+            port: 3306,
+            sortOrder: 0,
+          ),
+        ];
+
+        when(() => mockStorage.getAllConnections())
+            .thenReturn(connections);
+
         await tester.pumpWidget(createTestWidget());
+        await tester.pump();
 
         await tester.tap(find.byIcon(Icons.search));
         await tester.pumpAndSettle();
@@ -164,12 +188,26 @@ void main() {
       });
 
       testWidgets('closes search when close icon tapped', (tester) async {
-        await tester.pumpWidget(createTestWidget());
+        final connections = [
+          ConnectionModel(
+            id: 'c1',
+            name: 'Test Connection',
+            host: 'localhost',
+            port: 3306,
+            sortOrder: 0,
+          ),
+        ];
 
-        await tester.tap(find.byIcon(Icons.search).first);
+        when(() => mockStorage.getAllConnections())
+            .thenReturn(connections);
+
+        await tester.pumpWidget(createTestWidget());
+        await tester.pump();
+
+        await tester.tap(find.byIcon(Icons.search));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.byIcon(Icons.close).first);
+        await tester.tap(find.byIcon(Icons.close));
         await tester.pumpAndSettle();
 
         expect(find.text('Search connections...'), findsNothing);
