@@ -43,6 +43,7 @@ class AppTheme {
         backgroundColor: _backgroundLight,
         elevation: 0,
         centerTitle: false,
+        actionsPadding: EdgeInsets.only(right: 8),
         titleTextStyle: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
@@ -180,6 +181,7 @@ class AppTheme {
         backgroundColor: _backgroundDark,
         elevation: 0,
         centerTitle: false,
+        actionsPadding: EdgeInsets.only(right: 8),
         titleTextStyle: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
