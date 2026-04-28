@@ -455,16 +455,19 @@ class _SettingsTabState extends State<SettingsTab> {
       final result = await storageService.checkImportFile(file.path, password);
 
       bool overwriteSettings = false;
-      if (result.hasSettings) {
+      if (result.hasSettings && result.settings != null) {
         final settingsProvider = context.read<SettingsProvider>();
-        overwriteSettings =
-            await showDialog<bool>(
-              context: context,
-              builder: (context) => ImportSettingsDialog(
-                currentSettings: settingsProvider.settings,
-              ),
-            ) ??
-            false;
+        // Only show dialog if imported settings have meaningful values
+        if (_hasMeaningfulSettings(result.settings!, settingsProvider.settings)) {
+          overwriteSettings =
+              await showDialog<bool>(
+                context: context,
+                builder: (context) => ImportSettingsDialog(
+                  currentSettings: settingsProvider.settings,
+                ),
+              ) ??
+              false;
+        }
       }
 
       final connections = await storageService.importConnections(
@@ -491,6 +494,33 @@ class _SettingsTabState extends State<SettingsTab> {
         SnackbarHelper.showError(context, 'Failed to import: $e');
       }
     }
+  }
+
+  /// Checks if imported settings contain meaningful values that would
+  /// actually overwrite the user's current settings.
+  /// Returns true if at least one of these is true:
+  /// - API key is set (non-empty)
+  /// - Model name is set (non-empty)
+  /// - Endpoint is different from the provider's default endpoint
+  bool _hasMeaningfulSettings(AppSettings imported, AppSettings current) {
+    // Check if API key is set
+    if (imported.apiKey.isNotEmpty) {
+      return true;
+    }
+
+    // Check if model name is set
+    if (imported.modelName.isNotEmpty) {
+      return true;
+    }
+
+    // Check if endpoint is set and different from the provider's default
+    if (imported.endpoint.isNotEmpty &&
+        imported.endpoint != imported.provider.defaultEndpoint) {
+      return true;
+    }
+
+    // If none of the above, settings are essentially empty/default
+    return false;
   }
 
   Future<String?> _showPasswordDialog(
