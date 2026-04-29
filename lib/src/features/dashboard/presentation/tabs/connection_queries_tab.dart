@@ -35,7 +35,7 @@ class ConnectionQueriesTab extends StatelessWidget {
         title: const Text('History'),
         actions: [
           if (history.isNotEmpty)
-            TextButton.icon(
+            IconButton(
               onPressed: () async {
                 final confirmed = await showDialog<bool>(
                   context: context,
@@ -100,8 +100,8 @@ class ConnectionQueriesTab extends StatelessWidget {
                   }
                 }
               },
-              icon: const Icon(Icons.delete_outline, size: 18),
-              label: const Text('Clear All'),
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Clear All',
             ),
         ],
       ),
