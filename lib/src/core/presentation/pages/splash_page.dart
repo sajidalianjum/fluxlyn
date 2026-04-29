@@ -125,6 +125,7 @@ class _SplashPageState extends State<SplashPage> {
           _isLoading = true;
           _error = null;
         });
+        await widget.storageService.markPasswordPromptShown();
         await _initializeStorage(null);
       } catch (e) {
         setState(() => _error = 'Failed to initialize: $e');

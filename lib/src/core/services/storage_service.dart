@@ -90,6 +90,20 @@ class StorageService extends ChangeNotifier {
     return hasShownPrompt ? PasswordRequirement.notRequired : PasswordRequirement.firstLaunch;
   }
 
+  Future<void> markPasswordPromptShown() async {
+    final settingsBox = await Hive.openBox(_settingsBoxName);
+    final settingsJson = settingsBox.get('settings');
+
+    Map<String, dynamic> settings = {};
+    if (settingsJson != null) {
+      settings = Map<String, dynamic>.from(settingsJson);
+    }
+    settings['hasShownPasswordPrompt'] = true;
+
+    await settingsBox.put('settings', settings);
+    await settingsBox.close();
+  }
+
   Future<void> init({String? masterPassword}) async {
     try {
       await Hive.initFlutter();
