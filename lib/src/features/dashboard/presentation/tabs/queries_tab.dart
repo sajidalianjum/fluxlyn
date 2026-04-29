@@ -40,36 +40,39 @@ class _QueriesTabState extends State<QueriesTab>
 
     return Column(
       children: [
-        TabBar(
-          controller: _tabController,
-          indicatorColor: theme.colorScheme.primary,
-          dividerColor: theme.dividerColor,
-          labelColor: theme.colorScheme.onSurface,
-          unselectedLabelColor: isDark ? Colors.grey : Colors.grey.shade600,
-            tabs: const [
-              Tab(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.bookmark, size: 16),
-                    SizedBox(height: 4),
-                    Text('Saved'),
-                    SizedBox(height: 2), // Bottom margin
-                  ],
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: TabBar(
+            controller: _tabController,
+            indicatorColor: theme.colorScheme.primary,
+            dividerColor: theme.dividerColor,
+            labelColor: theme.colorScheme.onSurface,
+            unselectedLabelColor: isDark ? Colors.grey : Colors.grey.shade600,
+              tabs: const [
+                Tab(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.bookmark, size: 16),
+                      SizedBox(height: 4),
+                      Text('Saved'),
+                      SizedBox(height: 2), // Bottom margin
+                    ],
+                  ),
                 ),
-              ),
-              Tab(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.history, size: 16),
-                    SizedBox(height: 4),
-                    Text('Recent'),
-                    SizedBox(height: 2), // Bottom margin
-                  ],
+                Tab(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.history, size: 16),
+                      SizedBox(height: 4),
+                      Text('Recent'),
+                      SizedBox(height: 2), // Bottom margin
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+          ),
         ),
         Expanded(
           child: TabBarView(
