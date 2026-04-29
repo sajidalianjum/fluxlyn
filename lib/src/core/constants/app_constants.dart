@@ -26,6 +26,15 @@ class AppConstants {
   /// Card background color dark (#1E293B)
   static const Color colorCardBackgroundDark = Color(0xFF1E293B);
 
+  /// Elevated surface color dark - for panels/cards that need more emphasis (#243447)
+  static const Color colorSurfaceElevatedDark = Color(0xFF243447);
+
+  /// Border color dark - subtle borders for depth (#334155 with opacity)
+  static const Color colorBorderDark = Color(0x1AFFFFFF); // 10% white
+
+  /// Border color dark stronger - for interactive elements (#334155)
+  static const Color colorBorderDarkStrong = Color(0xFF334155);
+
   /// Background light color (#F8FAFC)
   static const Color colorBackgroundLight = Color(0xFFF8FAFC);
 

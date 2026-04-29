@@ -18,6 +18,8 @@ import '../../../../core/services/column_type_detector.dart';
 import '../../../../core/services/mysql_driver.dart';
 import '../../../../core/services/sql_analyzer.dart';
 import '../../../../core/widgets/snackbar_helper.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../../queries/models/query_model.dart';
@@ -1094,12 +1096,26 @@ class _QueryTabState extends State<QueryTab> {
   Widget _buildEditorPanel(DashboardProvider provider) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Column(
       children: [
+        // Toolbar with elevated card styling
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: theme.colorScheme.surface,
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppConstants.colorSurfaceElevatedDark
+                : theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark
+                  ? AppConstants.colorBorderDarkStrong
+                  : AppConstants.colorBorderLight,
+              width: 1,
+            ),
+            boxShadow: AppTheme.getShadows(1),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1111,74 +1127,29 @@ class _QueryTabState extends State<QueryTab> {
                   children: [
                     Consumer<DashboardProvider>(
                       builder: (context, provider, _) {
-                        return OutlinedButton.icon(
+                        return _buildToolbarButton(
+                          icon: Icons.storage,
+                          label: provider.selectedDatabase ?? 'Select DB',
                           onPressed: () => _showDatabaseSelector(provider),
-                          icon: const Icon(Icons.storage, size: 18),
-                          label: Text(
-                            provider.selectedDatabase ?? 'Select DB',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            side: BorderSide(color: theme.colorScheme.outline),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
+                          isPrimary: provider.selectedDatabase != null,
                         );
                       },
                     ),
-                    OutlinedButton.icon(
+                    _buildToolbarButton(
+                      icon: Icons.auto_awesome,
+                      label: 'AI Query',
                       onPressed: _showAIQueryDialog,
-                      icon: Icon(
-                        Icons.auto_awesome,
-                        size: 18,
-                        color: theme.colorScheme.primary,
-                      ),
-                      label: const Text('AI Query'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        side: BorderSide(color: theme.colorScheme.outline),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
+                      isAccent: true,
                     ),
-                    OutlinedButton.icon(
+                    _buildToolbarButton(
+                      icon: Icons.save,
+                      label: 'Save',
                       onPressed: _saveQuery,
-                      icon: const Icon(Icons.save, size: 18),
-                      label: const Text('Save'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        side: BorderSide(color: theme.colorScheme.outline),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
                     ),
-                    OutlinedButton.icon(
+                    _buildToolbarButton(
+                      icon: Icons.folder_open,
+                      label: 'Load',
                       onPressed: _loadQuery,
-                      icon: const Icon(Icons.folder_open, size: 18),
-                      label: const Text('Load'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        side: BorderSide(color: theme.colorScheme.outline),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
                     ),
                   ],
                 ),
@@ -1187,50 +1158,85 @@ class _QueryTabState extends State<QueryTab> {
           ),
         ),
 
+        // Code editor with card styling
         Expanded(
-          child: GestureDetector(
-            onTap: () {
-              _focusNode.requestFocus();
-            },
-            child: CodeTheme(
-              data: CodeThemeData(
-                styles: isDark ? monokaiSublimeTheme : githubTheme,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppConstants.colorCardBackgroundDark
+                  : theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark
+                    ? AppConstants.colorBorderDarkStrong
+                    : AppConstants.colorBorderLight,
+                width: 1,
               ),
-              child: CodeField(
-                controller: _controller,
-                focusNode: _focusNode,
-                textStyle: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 14,
+              boxShadow: AppTheme.getShadows(1),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: GestureDetector(
+                onTap: () {
+                  _focusNode.requestFocus();
+                },
+                child: CodeTheme(
+                  data: CodeThemeData(
+                    styles: isDark ? monokaiSublimeTheme : githubTheme,
+                  ),
+                  child: CodeField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    textStyle: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 14,
+                    ),
+                    gutterStyle: GutterStyle(
+                      textStyle: TextStyle(
+                          color: isDark ? Colors.grey[600] : Colors.grey.shade600),
+                      width: 48,
+                      margin: 0,
+                    ),
+                    cursorColor: theme.colorScheme.primary,
+                    background: Colors.transparent,
+                    expands: true,
+                  ),
                 ),
-                gutterStyle: GutterStyle(
-                  textStyle: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600),
-                  width: 48,
-                  margin: 0,
-                ),
-                cursorColor: theme.colorScheme.primary,
-                background: theme.colorScheme.surface,
-                expands: true,
               ),
             ),
           ),
         ),
 
+        // Status bar with elevated styling
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: theme.colorScheme.surface,
+          margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppConstants.colorSurfaceElevatedDark
+                : theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark
+                  ? AppConstants.colorBorderDarkStrong
+                  : AppConstants.colorBorderLight,
+              width: 1,
+            ),
+            boxShadow: AppTheme.getShadows(1),
+          ),
           child: Row(
             children: [
-              Icon(Icons.keyboard, size: 16, color: isDark ? Colors.grey[600] : Colors.grey.shade500),
+              Icon(Icons.keyboard, size: 16, color: isDark ? Colors.grey[400] : Colors.grey.shade500),
               const SizedBox(width: 8),
               Text(
                 'Ctrl+Enter to run',
-                style: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey.shade500, fontSize: 12),
+                style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey.shade500, fontSize: 12),
               ),
               const Spacer(),
               Text(
                 '${_controller.text.length} chars',
-                style: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey.shade500, fontSize: 12),
+                style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey.shade500, fontSize: 12),
               ),
             ],
           ),
@@ -1239,26 +1245,84 @@ class _QueryTabState extends State<QueryTab> {
     );
   }
 
+  Widget _buildToolbarButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    bool isPrimary = false,
+    bool isAccent = false,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    if (isAccent) {
+      return FilledButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 16),
+        label: Text(label, style: const TextStyle(fontSize: 12)),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+    }
+
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        side: BorderSide(
+          color: isPrimary
+              ? theme.colorScheme.primary
+              : (isDark ? AppConstants.colorBorderDarkStrong : AppConstants.colorBorderLight),
+          width: isPrimary ? 2 : 1,
+        ),
+        foregroundColor: isPrimary ? theme.colorScheme.primary : null,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
   Widget _buildResultsPanel(DashboardProvider provider) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Container(
-      color: theme.colorScheme.surface,
+      color: isDark ? AppConstants.colorBackgroundDark : theme.colorScheme.surface,
+      padding: const EdgeInsets.only(left: 16, top: 12, right: 16, bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Panel header with elevated card styling
           Container(
             padding: const EdgeInsets.all(16),
-            color: theme.colorScheme.surfaceContainerHighest,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppConstants.colorSurfaceElevatedDark
+                  : theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark
+                    ? AppConstants.colorBorderDarkStrong
+                    : AppConstants.colorBorderLight,
+                width: 1,
+              ),
+              boxShadow: AppTheme.getShadows(1),
+            ),
             child: Row(
               children: [
-                Icon(Icons.assessment, size: 20, color: isDark ? Colors.grey : Colors.grey.shade600),
+                Icon(Icons.assessment, size: 20, color: isDark ? Colors.grey[400] : Colors.grey.shade600),
                 const SizedBox(width: 8),
                 Text(
                   'Results Preview',
                   style: TextStyle(
-                    color: isDark ? Colors.grey : Colors.grey.shade600,
+                    color: isDark ? Colors.grey[400] : Colors.grey.shade600,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1266,8 +1330,23 @@ class _QueryTabState extends State<QueryTab> {
               ],
             ),
           ),
+          const SizedBox(height: 12),
+          // Results content area with card styling
           Expanded(
             child: Container(
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppConstants.colorCardBackgroundDark
+                    : theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark
+                      ? AppConstants.colorBorderDarkStrong
+                      : AppConstants.colorBorderLight,
+                  width: 1,
+                ),
+                boxShadow: AppTheme.getShadows(1),
+              ),
               padding: const EdgeInsets.all(16),
               child: Center(
                 child: Column(

@@ -7,11 +7,39 @@ class AppTheme {
   static const Color _primary = AppConstants.colorPrimary;
   static const Color _backgroundDark = AppConstants.colorBackgroundDark;
   static const Color _cardBackgroundDark = AppConstants.colorCardBackgroundDark;
+  static const Color _surfaceElevatedDark = AppConstants.colorSurfaceElevatedDark;
+  static const Color _borderDark = AppConstants.colorBorderDark;
+
   static const Color _textPrimaryDark = AppConstants.colorTextPrimaryDark;
   static const Color _backgroundLight = AppConstants.colorBackgroundLight;
   static const Color _cardBackgroundLight = AppConstants.colorCardBackgroundLight;
   static const Color _textPrimaryLight = AppConstants.colorTextPrimaryLight;
   static const Color _borderLight = AppConstants.colorBorderLight;
+
+  // Shadow constants for elevation
+  static const List<BoxShadow> _elevationLow = [
+    BoxShadow(
+      color: Color(0x0D000000), // 5% black
+      blurRadius: 4,
+      offset: Offset(0, 2),
+    ),
+  ];
+
+  static const List<BoxShadow> _elevationMedium = [
+    BoxShadow(
+      color: Color(0x14000000), // 8% black
+      blurRadius: 8,
+      offset: Offset(0, 4),
+    ),
+  ];
+
+  static const List<BoxShadow> _elevationHigh = [
+    BoxShadow(
+      color: Color(0x1F000000), // 12% black
+      blurRadius: 16,
+      offset: Offset(0, 8),
+    ),
+  ];
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -169,12 +197,13 @@ class AppTheme {
       textTheme: GoogleFonts.interTextTheme(
         ThemeData.dark().textTheme,
       ).apply(bodyColor: _textPrimaryDark, displayColor: _textPrimaryDark),
-      cardTheme: const CardThemeData(
+      cardTheme: CardThemeData(
         color: _cardBackgroundDark,
-        elevation: 0,
+        elevation: 2,
+        shadowColor: const Color(0x40000000), // 25% black
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-          side: BorderSide(color: Color(0x0DFFFFFF)),
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
+          side: BorderSide(color: _borderDark),
         ),
       ),
       appBarTheme: const AppBarTheme(
@@ -264,10 +293,12 @@ class AppTheme {
         foregroundColor: Colors.white,
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: _cardBackgroundDark,
+        backgroundColor: _surfaceElevatedDark,
+        elevation: 8,
+        shadowColor: const Color(0x66000000), // 40% black
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0x0DFFFFFF)),
+          side: const BorderSide(color: Color(0x1AFFFFFF)), // 10% white
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -275,11 +306,11 @@ class AppTheme {
         fillColor: _cardBackgroundDark,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0x0DFFFFFF)),
+          borderSide: const BorderSide(color: Color(0x1AFFFFFF)), // 10% white
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0x0DFFFFFF)),
+          borderSide: const BorderSide(color: Color(0x1AFFFFFF)), // 10% white
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -287,5 +318,36 @@ class AppTheme {
         ),
       ),
     );
+  }
+
+  // Helper method to get surface colors based on elevation level
+  static Color getSurfaceColor(int level, {bool isDark = true}) {
+    if (!isDark) return _cardBackgroundLight;
+    switch (level) {
+      case 0:
+        return _backgroundDark;
+      case 1:
+        return _cardBackgroundDark;
+      case 2:
+        return _surfaceElevatedDark;
+      default:
+        return _cardBackgroundDark;
+    }
+  }
+
+  // Helper method to get elevation shadows
+  static List<BoxShadow> getShadows(int level) {
+    switch (level) {
+      case 0:
+        return [];
+      case 1:
+        return _elevationLow;
+      case 2:
+        return _elevationMedium;
+      case 3:
+        return _elevationHigh;
+      default:
+        return _elevationLow;
+    }
   }
 }
