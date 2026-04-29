@@ -198,15 +198,36 @@ class MyProvider extends ChangeNotifier {
 ### Material 3 Design System
 
 - `useMaterial3: true` enforced
-- Dark theme enforced: `themeMode: ThemeMode.dark`
+- App supports both **Light and Dark themes** - always check `theme.brightness`
 
 ### Color Scheme
 
+**Dark Theme (Default):**
 ```dart
 Background:    0xFF0F172A (Slate 900)
 Card:          0xFF1E293B (Slate 800)
-Primary:        0xFF3B82F6 (Blue 500)
-Text Primary:   Colors.white
+Primary:       0xFF3B82F6 (Blue 500)
+Text Primary:  Colors.white
+```
+
+**Light Theme:**
+- Use `theme.colorScheme.surface` for backgrounds
+- Use `theme.colorScheme.onSurface` for text
+- Use `theme.colorScheme.error` for error states
+
+**Theme-Aware Pattern:**
+```dart
+final theme = Theme.of(context);
+final isDark = theme.brightness == Brightness.dark;
+
+// Background
+backgroundColor: isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface,
+
+// Text
+color: theme.colorScheme.onSurface,
+
+// Error
+color: isDark ? Colors.red : theme.colorScheme.error,
 ```
 
 ### Typography
@@ -235,8 +256,11 @@ class MyDialog extends StatefulWidget {
 class _MyDialogState extends State<MyDialog> {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface,
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),

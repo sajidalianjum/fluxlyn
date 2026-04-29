@@ -210,20 +210,25 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
 
   void _showErrorSnackBar(BuildContext context, String error) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor:
+            isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: const BorderSide(color: Colors.red, width: 1),
+          side: BorderSide(
+            color: isDark ? Colors.red : theme.colorScheme.error,
+            width: 1,
+          ),
         ),
         content: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline,
-              color: Colors.red,
+              color: isDark ? Colors.red : theme.colorScheme.error,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -231,7 +236,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
               child: Text(
                 error,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
             ),
@@ -239,7 +244,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
         ),
         action: SnackBarAction(
           label: 'Dismiss',
-          textColor: Colors.white70,
+          textColor: theme.colorScheme.onSurface.withValues(alpha: 0.7),
           onPressed: () {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
           },
