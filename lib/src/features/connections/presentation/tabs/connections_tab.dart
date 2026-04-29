@@ -208,6 +208,46 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
     }
   }
 
+  void _showErrorSnackBar(BuildContext context, String error) {
+    final theme = Theme.of(context);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF1E293B),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: Colors.red, width: 1),
+        ),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                error,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+        action: SnackBarAction(
+          label: 'Dismiss',
+          textColor: Colors.white70,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ConnectionsProvider>(
@@ -386,12 +426,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
 
                     if (context.mounted) {
                       if (dashboardProvider.error != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error: ${dashboardProvider.error}'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        _showErrorSnackBar(context, dashboardProvider.error!);
                       } else {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -458,14 +493,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
 
                             if (context.mounted) {
                               if (dashboardProvider.error != null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Error: ${dashboardProvider.error}',
-                                    ),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
+                                _showErrorSnackBar(context, dashboardProvider.error!);
                               } else {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
@@ -508,12 +536,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
 
                   if (context.mounted) {
                     if (dashboardProvider.error != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: ${dashboardProvider.error}'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
+                      _showErrorSnackBar(context, dashboardProvider.error!);
                     } else {
                       Navigator.of(context).push(
                         MaterialPageRoute(
