@@ -10,7 +10,7 @@ import '../../../../core/widgets/data_table2_widget.dart';
 import '../../../../core/services/sql_analyzer.dart';
 import '../../../dashboard/presentation/dialogs/row_edit_dialog.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
-import '../../../settings/providers/settings_provider.dart';
+
 import '../../models/query_result.dart';
 
 class QueryResultsPage extends StatefulWidget {
@@ -356,32 +356,6 @@ class _QueryResultsPageState extends State<QueryResultsPage>
         color: theme.colorScheme.surface,
         child: Row(
           children: [
-            Consumer<SettingsProvider>(
-              builder: (context, settingsProvider, _) {
-                final settings = settingsProvider.settings;
-
-                if (settings.readOnlyMode) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: Chip(
-                      avatar: const Icon(Icons.lock, size: 16),
-                      label: const Text(
-                        'Read-Only',
-                        style: TextStyle(fontSize: 11),
-                      ),
-                      backgroundColor: Colors.red.withValues(alpha: 0.2),
-                      labelStyle: const TextStyle(color: Colors.red),
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
             Text(
               _getRowInfo(result),
               style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey.shade600, fontSize: 12),
