@@ -216,6 +216,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
       SnackBar(
         backgroundColor:
             isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface,
+        duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
@@ -241,13 +242,6 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
               ),
             ),
           ],
-        ),
-        action: SnackBarAction(
-          label: 'Dismiss',
-          textColor: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
         ),
       ),
     );
