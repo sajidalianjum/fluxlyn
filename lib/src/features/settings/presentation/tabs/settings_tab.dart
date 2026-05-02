@@ -230,7 +230,6 @@ class _SettingsTabState extends State<SettingsTab> {
           decoration: const InputDecoration(
             labelText: 'Theme',
             border: OutlineInputBorder(),
-            isDense: true,
           ),
           items: AppThemeMode.values.map((mode) {
             return DropdownMenuItem<AppThemeMode>(
@@ -310,7 +309,6 @@ class _SettingsTabState extends State<SettingsTab> {
           decoration: const InputDecoration(
             labelText: 'AI Provider',
             border: OutlineInputBorder(),
-            isDense: true,
           ),
           items: AIProvider.values.map((provider) {
             return DropdownMenuItem<AIProvider>(
@@ -326,7 +324,6 @@ class _SettingsTabState extends State<SettingsTab> {
           decoration: const InputDecoration(
             labelText: 'API Endpoint',
             border: OutlineInputBorder(),
-            isDense: true,
             helperText: 'Edit endpoint for any provider',
           ),
           keyboardType: TextInputType.url,
@@ -339,7 +336,6 @@ class _SettingsTabState extends State<SettingsTab> {
           decoration: const InputDecoration(
             labelText: 'Model Name',
             border: OutlineInputBorder(),
-            isDense: true,
             helperText: 'e.g. gpt-4, claude-3-opus-20240229, etc.',
           ),
           onChanged: (_) => _saveCurrentSettings(),
@@ -351,7 +347,6 @@ class _SettingsTabState extends State<SettingsTab> {
           decoration: const InputDecoration(
             labelText: 'API Key',
             border: OutlineInputBorder(),
-            isDense: true,
             helperText: 'Your API key will be stored securely',
           ),
           obscureText: true,
