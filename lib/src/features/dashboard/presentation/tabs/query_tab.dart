@@ -1192,13 +1192,7 @@ class _QueryTabState extends State<QueryTab> {
                       fontFamily: 'monospace',
                       fontSize: 14,
                     ),
-                    gutterStyle: GutterStyle(
-                      showLineNumbers: false,
-                      textStyle: TextStyle(
-                          color: isDark ? Colors.grey[600] : Colors.grey.shade600),
-                      width: 0,
-                      margin: 0,
-                    ),
+                    gutterStyle: GutterStyle.none,
                     cursorColor: theme.colorScheme.primary,
                     background: Colors.transparent,
                     expands: true,
