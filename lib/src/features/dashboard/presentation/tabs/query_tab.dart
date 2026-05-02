@@ -1196,7 +1196,7 @@ class _QueryTabState extends State<QueryTab> {
                       showLineNumbers: false,
                       textStyle: TextStyle(
                           color: isDark ? Colors.grey[600] : Colors.grey.shade600),
-                      width: 48,
+                      width: 0,
                       margin: 0,
                     ),
                     cursorColor: theme.colorScheme.primary,
