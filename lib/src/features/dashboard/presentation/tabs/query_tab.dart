@@ -1193,6 +1193,7 @@ class _QueryTabState extends State<QueryTab> {
                       fontSize: 14,
                     ),
                     gutterStyle: GutterStyle(
+                      showLineNumbers: false,
                       textStyle: TextStyle(
                           color: isDark ? Colors.grey[600] : Colors.grey.shade600),
                       width: 48,
