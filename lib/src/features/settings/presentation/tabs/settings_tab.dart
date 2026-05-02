@@ -225,24 +225,20 @@ class _SettingsTabState extends State<SettingsTab> {
           ),
         ),
         const SizedBox(height: 16),
-        InputDecorator(
+        DropdownButtonFormField<AppThemeMode>(
+          value: _selectedThemeMode,
           decoration: const InputDecoration(
             labelText: 'Theme',
             border: OutlineInputBorder(),
+            isDense: true,
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<AppThemeMode>(
-              value: _selectedThemeMode,
-              isExpanded: true,
-              items: AppThemeMode.values.map((mode) {
-                return DropdownMenuItem<AppThemeMode>(
-                  value: mode,
-                  child: Text(mode.displayName),
-                );
-              }).toList(),
-              onChanged: _onThemeModeChanged,
-            ),
-          ),
+          items: AppThemeMode.values.map((mode) {
+            return DropdownMenuItem<AppThemeMode>(
+              value: mode,
+              child: Text(mode.displayName),
+            );
+          }).toList(),
+          onChanged: _onThemeModeChanged,
         ),
         const SizedBox(height: 8),
         Text(
@@ -309,24 +305,20 @@ class _SettingsTabState extends State<SettingsTab> {
           ),
         ),
         const SizedBox(height: 16),
-        InputDecorator(
+        DropdownButtonFormField<AIProvider>(
+          value: _selectedProvider,
           decoration: const InputDecoration(
             labelText: 'AI Provider',
             border: OutlineInputBorder(),
+            isDense: true,
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<AIProvider>(
-              value: _selectedProvider,
-              isExpanded: true,
-              items: AIProvider.values.map((provider) {
-                return DropdownMenuItem<AIProvider>(
-                  value: provider,
-                  child: Text(provider.displayName),
-                );
-              }).toList(),
-              onChanged: _onProviderChanged,
-            ),
-          ),
+          items: AIProvider.values.map((provider) {
+            return DropdownMenuItem<AIProvider>(
+              value: provider,
+              child: Text(provider.displayName),
+            );
+          }).toList(),
+          onChanged: _onProviderChanged,
         ),
         const SizedBox(height: 16),
         TextFormField(
@@ -334,6 +326,7 @@ class _SettingsTabState extends State<SettingsTab> {
           decoration: const InputDecoration(
             labelText: 'API Endpoint',
             border: OutlineInputBorder(),
+            isDense: true,
             helperText: 'Edit endpoint for any provider',
           ),
           keyboardType: TextInputType.url,
@@ -346,6 +339,7 @@ class _SettingsTabState extends State<SettingsTab> {
           decoration: const InputDecoration(
             labelText: 'Model Name',
             border: OutlineInputBorder(),
+            isDense: true,
             helperText: 'e.g. gpt-4, claude-3-opus-20240229, etc.',
           ),
           onChanged: (_) => _saveCurrentSettings(),
@@ -357,6 +351,7 @@ class _SettingsTabState extends State<SettingsTab> {
           decoration: const InputDecoration(
             labelText: 'API Key',
             border: OutlineInputBorder(),
+            isDense: true,
             helperText: 'Your API key will be stored securely',
           ),
           obscureText: true,
