@@ -1208,39 +1208,7 @@ class _QueryTabState extends State<QueryTab> {
           ),
         ),
 
-        // Status bar with elevated styling
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: isDark
-                ? AppConstants.colorSurfaceElevatedDark
-                : theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isDark
-                  ? AppConstants.colorBorderDarkStrong
-                  : AppConstants.colorBorderLight,
-              width: 1,
-            ),
-            boxShadow: AppTheme.getShadows(1),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.keyboard, size: 16, color: isDark ? Colors.grey[400] : Colors.grey.shade500),
-              const SizedBox(width: 8),
-              Text(
-                'Ctrl+Enter to run',
-                style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey.shade500, fontSize: 12),
-              ),
-              const Spacer(),
-              Text(
-                '${_controller.text.length} chars',
-                style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey.shade500, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
+
       ],
     );
   }
