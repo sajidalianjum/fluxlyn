@@ -1181,22 +1181,37 @@ class _QueryTabState extends State<QueryTab> {
                 onTap: () {
                   _focusNode.requestFocus();
                 },
-                child: CodeTheme(
-                  data: CodeThemeData(
-                    styles: isDark ? monokaiSublimeTheme : githubTheme,
-                  ),
-                  child: CodeField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    textStyle: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 14,
-                    ),
-                    gutterStyle: GutterStyle.none,
-                    cursorColor: theme.colorScheme.primary,
-                    background: Colors.transparent,
-                    expands: true,
-                  ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return OverflowBox(
+                      alignment: Alignment.centerLeft,
+                      minWidth: constraints.maxWidth,
+                      maxWidth: constraints.maxWidth + 8,
+                      minHeight: constraints.maxHeight,
+                      maxHeight: constraints.maxHeight,
+                      child: Transform.translate(
+                        offset: const Offset(-8, 0),
+                        child: CodeTheme(
+                          data: CodeThemeData(
+                            styles: isDark ? monokaiSublimeTheme : githubTheme,
+                          ),
+                          child: CodeField(
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            textStyle: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 14,
+                            ),
+                            gutterStyle: GutterStyle.none,
+                            cursorColor: theme.colorScheme.primary,
+                            background: Colors.transparent,
+                            expands: true,
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
