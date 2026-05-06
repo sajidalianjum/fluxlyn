@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'edit_confirmation_dialog.dart';
 import '../../../../core/services/query_protection_service.dart';
+import '../../../../core/widgets/snackbar_helper.dart';
 import '../../../settings/providers/settings_provider.dart';
 
 class FieldEditor extends StatelessWidget {
@@ -966,12 +967,7 @@ class _RowEditDialogState extends State<RowEditDialog> {
     );
 
     if (protectionError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(protectionError),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      SnackbarHelper.showWarning(context, protectionError);
       return;
     }
 

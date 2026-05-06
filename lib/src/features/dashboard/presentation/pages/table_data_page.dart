@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/widgets/data_table2_widget.dart';
 import '../../../../core/utils/error_reporter.dart';
+import '../../../../core/widgets/snackbar_helper.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../models/table_search_result.dart';
 import '../dialogs/row_edit_dialog.dart';
@@ -216,19 +217,12 @@ class _TableDataPageState extends State<TableDataPage> {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $error'), backgroundColor: Colors.red),
-        );
+        SnackbarHelper.showError(context, error);
         _openRowEditDialog(rowIndex);
       } else {
         await _loadData();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Row updated successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          SnackbarHelper.showSuccess(context, 'Row updated successfully');
         }
       }
     }

@@ -16,7 +16,6 @@ class DatabaseException implements Exception {
     final parts = <String>['DatabaseException: $message'];
     if (operation != null) parts.add('Operation: $operation');
     if (connectionName != null) parts.add('Connection: $connectionName');
-    if (originalError != null) parts.add('Original: $originalError');
     return parts.join(' | ');
   }
 }
@@ -39,7 +38,6 @@ class NetworkException implements Exception {
     final parts = <String>['NetworkException: $message'];
     if (url != null) parts.add('URL: $url');
     if (statusCode != null) parts.add('Status: $statusCode');
-    if (originalError != null) parts.add('Original: $originalError');
     return parts.join(' | ');
   }
 }
@@ -56,7 +54,6 @@ class SSHException implements Exception {
   String toString() {
     final parts = <String>['SSHException: $message'];
     if (host != null || port != null) parts.add('Host: $host:$port');
-    if (originalError != null) parts.add('Original: $originalError');
     return parts.join(' | ');
   }
 }
@@ -79,7 +76,6 @@ class StorageException implements Exception {
     final parts = <String>['StorageException: $message'];
     if (operation != null) parts.add('Operation: $operation');
     if (filePath != null) parts.add('File: $filePath');
-    if (originalError != null) parts.add('Original: $originalError');
     return parts.join(' | ');
   }
 }
@@ -154,7 +150,6 @@ class QueryException implements Exception {
     if (database != null) parts.add('Database: $database');
     if (table != null) parts.add('Table: $table');
     if (query != null && query!.length <= 200) parts.add('Query: $query');
-    if (originalError != null) parts.add('Original: $originalError');
     return parts.join(' | ');
   }
 }

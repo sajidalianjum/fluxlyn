@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/connections_provider.dart';
 import '../../models/connection_model.dart';
+import 'package:fluxlyn/src/core/widgets/snackbar_helper.dart';
 import 'package:fluxlyn/src/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:fluxlyn/src/features/dashboard/providers/dashboard_provider.dart';
 import 'package:fluxlyn/src/features/settings/providers/settings_provider.dart';
@@ -208,45 +209,6 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
     }
   }
 
-  void _showErrorSnackBar(BuildContext context, String error) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor:
-            isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(
-            color: isDark ? Colors.red : theme.colorScheme.error,
-            width: 1,
-          ),
-        ),
-        content: Row(
-          children: [
-            Icon(
-              Icons.error_outline,
-              color: isDark ? Colors.red : theme.colorScheme.error,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                error,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<ConnectionsProvider>(
@@ -425,7 +387,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
 
                     if (context.mounted) {
                       if (dashboardProvider.error != null) {
-                        _showErrorSnackBar(context, dashboardProvider.error!);
+                        SnackbarHelper.showError(context, dashboardProvider.error!);
                       } else {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -492,7 +454,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
 
                             if (context.mounted) {
                               if (dashboardProvider.error != null) {
-                                _showErrorSnackBar(context, dashboardProvider.error!);
+                                SnackbarHelper.showError(context, dashboardProvider.error!);
                               } else {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
@@ -535,7 +497,7 @@ class _ConnectionsTabState extends State<ConnectionsTab> {
 
                   if (context.mounted) {
                     if (dashboardProvider.error != null) {
-                      _showErrorSnackBar(context, dashboardProvider.error!);
+                      SnackbarHelper.showError(context, dashboardProvider.error!);
                     } else {
                       Navigator.of(context).push(
                         MaterialPageRoute(

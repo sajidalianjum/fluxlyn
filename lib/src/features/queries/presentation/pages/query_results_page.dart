@@ -7,6 +7,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:path/path.dart' as path;
 import '../../../../core/widgets/data_table2_widget.dart';
+import '../../../../core/widgets/snackbar_helper.dart';
 import '../../../../core/services/sql_analyzer.dart';
 import '../../../dashboard/presentation/dialogs/row_edit_dialog.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
@@ -136,20 +137,13 @@ class _QueryResultsPageState extends State<QueryResultsPage>
 
     if (mounted) {
       if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $error'), backgroundColor: Colors.red),
-        );
+        SnackbarHelper.showError(context, error);
       } else {
         for (final entry in changes.entries) {
           result.rows[rowIndex][entry.key] = entry.value;
         }
         setState(() {});
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Row updated successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        SnackbarHelper.showSuccess(context, 'Row updated successfully');
       }
     }
   }

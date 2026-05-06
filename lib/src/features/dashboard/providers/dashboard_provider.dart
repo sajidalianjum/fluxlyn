@@ -8,6 +8,7 @@ import '../../../core/services/host_key_verification_service.dart';
 import '../../../core/services/postgres_driver.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/models/exceptions.dart';
+import '../../../core/utils/error_formatter.dart';
 import '../../../core/utils/error_reporter.dart';
 import '../../../core/utils/host_key_verification_helper.dart';
 import '../../connections/models/connection_model.dart';
@@ -85,46 +86,6 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get selectedTabIndex => _selectedTabIndex;
   ConnectionStep get connectionStep => _connectionStep;
 
-  String _formatConnectionError(String errorMessage) {
-    final lowerError = errorMessage.toLowerCase();
-
-    if (lowerError.contains('caching_sha2_password')) {
-      return 'Authentication Failed: MySQL requires a secure connection for this user. Please try enabling "SSL" in your connection settings.';
-    }
-    if (lowerError.contains('errno=61') ||
-        lowerError.contains('connection refused')) {
-      return 'Connection Refused: Ensure your database is running and accepting remote connections on the specified port.';
-    }
-    if (lowerError.contains('errno=111') ||
-        lowerError.contains('no route to host')) {
-      return 'Host Unreachable: The specified host could not be reached. Please check host address and network connectivity.';
-    }
-    if (lowerError.contains('errno=113')) {
-      return 'No Route to Host: The host is not reachable from this network.';
-    }
-    if (lowerError.contains('access denied') ||
-        lowerError.contains('authentication failed')) {
-      return 'Authentication Failed: Check your username and password credentials.';
-    }
-    if (lowerError.contains('timeout') || lowerError.contains('timed out')) {
-      return 'Connection Timeout: The connection attempt timed out. Please check your network and try again.';
-    }
-    if (lowerError.contains('unknown database')) {
-      return 'Database Not Found: The specified database does not exist or you do not have access to it.';
-    }
-    if (lowerError.contains('ssl') &&
-        (lowerError.contains('error') || lowerError.contains('failed'))) {
-      return 'SSL Error: There was an SSL/TLS connection issue. Please verify SSL settings.';
-    }
-
-    return errorMessage
-        .replaceFirst('ConnectionException: ', '')
-        .replaceFirst('ReconnectException: ', '')
-        .replaceFirst('Failed to connect to MySQL: ', '')
-        .replaceFirst('Failed to connect to PostgreSQL: ', '')
-        .trim();
-  }
-
   void setPendingQuery(String? query) {
     _pendingQuery = query;
     notifyListeners();
@@ -190,7 +151,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       _selectedTabIndex = 0;
       _connectionStep = ConnectionStep.completed;
     } catch (e) {
-      _error = _formatConnectionError(e.toString());
+      _error = ErrorFormatter.format(e.toString());
       _currentConnectionModel = null;
       _connectionStep = ConnectionStep.initializing;
     } finally {
@@ -205,7 +166,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       _databases = await _driver!.getDatabases();
       _error = null;
     } catch (e, stackTrace) {
-      _error = 'Failed to load databases: ${e.toString()}';
+      _error = ErrorFormatter.format(e.toString());
       ErrorReporter.warning(
         'Error loading databases: $e',
         stackTrace,
@@ -234,7 +195,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
       await refreshTables();
     } catch (e, stackTrace) {
-      _error = 'Failed to select database: ${e.toString()}';
+      _error = ErrorFormatter.format(e.toString());
       ErrorReporter.warning(
         'Error selecting database $dbName: $e',
         stackTrace,
@@ -253,7 +214,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       _tables = await _driver!.getTables();
       _error = null;
     } catch (e, stackTrace) {
-      _error = 'Failed to load tables: ${e.toString()}';
+      _error = ErrorFormatter.format(e.toString());
       ErrorReporter.warning(
         'Error loading tables: $e',
         stackTrace,
@@ -381,7 +342,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
       _connectionStep = ConnectionStep.completed;
     } catch (e) {
       _driver = null;
-      _error = 'Auto-reconnect failed: $e';
+      _error = ErrorFormatter.format(e.toString());
       _connectionStep = ConnectionStep.initializing;
       _wasConnectedBeforePause = false;
     } finally {
@@ -563,7 +524,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
         'DashboardProvider.fetchTableData',
         'dashboard_provider.dart:509',
       );
-      return TableDataResult(error: 'Failed to fetch table data: $e');
+      return TableDataResult(error: ErrorFormatter.format(e.toString()));
     }
   }
 
@@ -762,7 +723,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
         'DashboardProvider.fetchTableDataWithFilter',
         'dashboard_provider.dart:707',
       );
-      return TableDataResult(error: 'Failed to fetch filtered table data: $e');
+      return TableDataResult(error: ErrorFormatter.format(e.toString()));
     }
   }
 
@@ -853,7 +814,7 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
         'DashboardProvider.updateRow',
         'dashboard_provider.dart:797',
       );
-      return 'Failed to update row: $e';
+      return ErrorFormatter.format(e.toString());
     }
   }
 }

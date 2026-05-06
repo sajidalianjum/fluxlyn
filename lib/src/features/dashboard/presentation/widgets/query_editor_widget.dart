@@ -332,7 +332,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
       }
     } catch (e) {
       if (mounted) {
-        SnackbarHelper.showError(context, 'Error: $e');
+        SnackbarHelper.showError(context, e.toString());
       }
     } finally {
       if (mounted) {

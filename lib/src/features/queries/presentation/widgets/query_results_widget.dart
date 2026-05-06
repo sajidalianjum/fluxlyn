@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/widgets/data_table2_widget.dart';
+import '../../../../core/widgets/snackbar_helper.dart';
 import '../../../dashboard/presentation/dialogs/row_edit_dialog.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
 import '../../models/query_result.dart';
@@ -82,20 +83,13 @@ class _QueryResultsWidgetState extends State<QueryResultsWidget> {
 
     if (mounted) {
       if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $error'), backgroundColor: Colors.red),
-        );
+        SnackbarHelper.showError(context, error);
       } else {
         for (final entry in changes.entries) {
           widget.result.rows[rowIndex][entry.key] = entry.value;
         }
         setState(() {});
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Row updated successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        SnackbarHelper.showSuccess(context, 'Row updated successfully');
       }
     }
   }

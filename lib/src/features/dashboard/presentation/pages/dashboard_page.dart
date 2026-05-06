@@ -133,7 +133,7 @@ VerticalDivider(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Error: ${provider.error}',
+                    '${provider.error}',
                     style: TextStyle(color: Colors.red),
                     textAlign: TextAlign.center,
                   ),

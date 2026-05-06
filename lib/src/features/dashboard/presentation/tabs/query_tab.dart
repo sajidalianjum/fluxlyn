@@ -313,9 +313,7 @@ class _QueryTabState extends State<QueryTab> {
 
     final query = _controller.text.trim();
     if (query.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please enter a query')));
+      SnackbarHelper.showWarning(context, 'Please enter a query');
       return;
     }
 
@@ -551,7 +549,7 @@ class _QueryTabState extends State<QueryTab> {
       }
     } catch (e) {
       if (mounted) {
-        SnackbarHelper.showError(context, 'Error: $e');
+        SnackbarHelper.showError(context, e.toString());
       }
     } finally {
       if (mounted) {
@@ -563,9 +561,7 @@ class _QueryTabState extends State<QueryTab> {
   void _saveQuery() async {
     final query = _controller.text.trim();
     if (query.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Cannot save empty query')));
+      SnackbarHelper.showWarning(context, 'Cannot save empty query');
       return;
     }
 
@@ -989,7 +985,7 @@ class _QueryTabState extends State<QueryTab> {
                           }
                         } catch (e) {
                           if (context.mounted) {
-                            SnackbarHelper.showError(context, 'Error: $e');
+                            SnackbarHelper.showError(context, e.toString());
                             setDialogState(() => isGenerating = false);
                           }
                         }

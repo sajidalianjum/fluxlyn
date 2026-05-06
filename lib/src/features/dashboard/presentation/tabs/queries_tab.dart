@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/storage_service.dart';
+import '../../../../core/widgets/snackbar_helper.dart';
 import '../../../../core/widgets/sql_highlighter.dart';
 import '../../../connections/models/connection_model.dart';
 import '../../../dashboard/providers/dashboard_provider.dart';
@@ -247,9 +248,7 @@ class _QueriesTabState extends State<QueriesTab>
     String? databaseName,
   ) async {
     if (connection == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No connection available for this query')),
-      );
+      SnackbarHelper.showWarning(context, 'No connection available for this query');
       return;
     }
 
@@ -306,12 +305,7 @@ class _QueriesTabState extends State<QueriesTab>
       Navigator.of(context).pop();
 
       if (dashboardProvider.error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${dashboardProvider.error}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarHelper.showError(context, dashboardProvider.error!);
       } else {
         dashboardProvider.setTabIndex(1);
         Navigator.of(
