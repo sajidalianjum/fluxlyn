@@ -434,9 +434,13 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
           .join(', ');
 
       final quotedTableName = '$identifierQuote$tableName$identifierQuote';
-      final result = await executeQuery(
-        'SELECT $selectColumns FROM $quotedTableName LIMIT $limit OFFSET $offset',
-      );
+      var query = 'SELECT $selectColumns FROM $quotedTableName';
+      if (primaryKeyColumn != null) {
+        query +=
+            ' ORDER BY $identifierQuote$primaryKeyColumn$identifierQuote ASC';
+      }
+      query += ' LIMIT $limit OFFSET $offset';
+      final result = await executeQuery(query);
 
       List<String> columnNames = [];
       List<Map<String, dynamic>> rows = [];
@@ -623,6 +627,9 @@ class DashboardProvider extends ChangeNotifier with WidgetsBindingObserver {
         final quotedCol = '$identifierQuote$sortColumn$identifierQuote';
         final direction = sortDirection == SortDirection.asc ? 'ASC' : 'DESC';
         orderByClauses.add('$quotedCol $direction');
+      } else if (primaryKeyColumn != null) {
+        final quotedPk = '$identifierQuote$primaryKeyColumn$identifierQuote';
+        orderByClauses.add('$quotedPk ASC');
       }
 
       final quotedTableName = '$identifierQuote$tableName$identifierQuote';
