@@ -110,7 +110,7 @@ class AppSettings {
 
   factory AppSettings.defaultSettings() {
     return AppSettings(
-      themeMode: AppThemeMode.system,
+      themeMode: AppThemeMode.dark,
       lock: true,
       readOnlyMode: true,
       provider: AIProvider.openai,

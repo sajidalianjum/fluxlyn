@@ -45,12 +45,12 @@ class _FluxlynAppState extends State<FluxlynApp> {
         final themeModeStr = decoded['themeMode'] as String?;
         final themeMode = themeModeStr != null 
             ? AppThemeMode.fromString(themeModeStr).toThemeMode()
-            : ThemeMode.system;
+            : ThemeMode.dark;
         setState(() => _initialTheme = themeMode);
         return;
       }
     } catch (_) {}
-    setState(() => _initialTheme = ThemeMode.system);
+    setState(() => _initialTheme = ThemeMode.dark);
   }
 
   void _onStorageReady() {
@@ -63,7 +63,7 @@ class _FluxlynAppState extends State<FluxlynApp> {
       return MyApp(storageService: _storageService);
     }
 
-    final themeMode = _initialTheme ?? ThemeMode.system;
+    final themeMode = _initialTheme ?? ThemeMode.dark;
 
     return MaterialApp(
       title: 'Fluxlyn',
