@@ -253,17 +253,13 @@ class _DataTable2WidgetState extends State<DataTable2Widget> {
                     );
                   }),
 
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Icon(Icons.touch_app, size: 14, color: isDark ? Colors.grey[600] : Colors.grey.shade500),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Tap to edit/view details',
-                        style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[600] : Colors.grey.shade500),
-                      ),
-                    ],
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Icon(
+                      Icons.chevron_right,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                    ),
                   ),
                 ],
               ),
