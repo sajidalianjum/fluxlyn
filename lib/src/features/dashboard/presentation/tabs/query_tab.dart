@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_code_editor/flutter_code_editor.dart';
-import 'package:highlight/languages/sql.dart';
-import 'package:flutter_highlight/themes/monokai-sublime.dart';
-import 'package:flutter_highlight/themes/github.dart';
+import 'package:re_editor/re_editor.dart';
+import 'package:re_highlight/languages/sql.dart';
+import 'package:re_highlight/styles/monokai-sublime.dart';
+import 'package:re_highlight/styles/github.dart';
+import '../../../../core/widgets/sql_autocomplete_builder.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:mysql_dart/mysql_dart.dart';
@@ -35,7 +36,7 @@ class QueryTab extends StatefulWidget {
 }
 
 class _QueryTabState extends State<QueryTab> {
-  late CodeController _controller;
+  late CodeLineEditingController _controller;
   final _schemaService = SchemaService();
   final _aiService = AIService();
   late SQLContextAnalyzer _sqlContextAnalyzer;
@@ -126,12 +127,10 @@ class _QueryTabState extends State<QueryTab> {
     super.initState();
     _sqlContextAnalyzer = SQLContextAnalyzer(_schemaService);
 
-    _controller = CodeController(language: sql, text: '');
+    _controller = CodeLineEditingController();
 
-    // Setup autocomplete
     _setupAutocomplete();
 
-    // Add listener for context-aware autocomplete
     _controller.addListener(_onTextChange);
 
     // Preload schema info after first frame
@@ -179,9 +178,7 @@ class _QueryTabState extends State<QueryTab> {
   }
 
   void _setupAutocomplete() {
-    // Start with SQL keywords
     _autocompleteWords = List.from(_sqlKeywords);
-    _controller.autocompleter.setCustomWords(_autocompleteWords);
   }
 
   void _onTextChange() {
@@ -203,9 +200,7 @@ class _QueryTabState extends State<QueryTab> {
     if (database == null) return;
 
     final query = _controller.text;
-    final cursorPosition = _controller.selection.baseOffset;
-
-    if (cursorPosition < 0) return;
+    final cursorPosition = _getCursorGlobalOffset();
 
     final textBeforeCursor = query.substring(0, cursorPosition);
     final wordMatch = RegExp(r'\w+$').firstMatch(textBeforeCursor);
@@ -221,13 +216,10 @@ class _QueryTabState extends State<QueryTab> {
 
     // Get appropriate suggestions based on context
     if (sqlContext == SQLContext.none) {
-      // Show only SQL keywords
       setState(() {
         _autocompleteWords = List.from(_sqlKeywords);
-        _controller.autocompleter.setCustomWords(_autocompleteWords);
       });
     } else {
-      // Show context-aware suggestions
       final suggestions = await _sqlContextAnalyzer.getSuggestions(
         sqlContext,
         database,
@@ -235,16 +227,13 @@ class _QueryTabState extends State<QueryTab> {
         cursorPosition,
       );
 
-      // Filter suggestions based on current word (case-insensitive)
       final filteredSuggestions = await _sqlContextAnalyzer
           .getFilteredSuggestions(suggestions, currentWord);
 
-      // Combine with SQL keywords for better UX
       final allSuggestions = [..._sqlKeywords, ...filteredSuggestions];
 
       setState(() {
         _autocompleteWords = allSuggestions;
-        _controller.autocompleter.setCustomWords(_autocompleteWords);
       });
     }
   }
@@ -269,9 +258,7 @@ class _QueryTabState extends State<QueryTab> {
       // Cache table names in SchemaService
       _schemaService.setTableNames(database, tables);
 
-      // Reset autocomplete to only SQL keywords
       _autocompleteWords = List.from(_sqlKeywords);
-      _controller.autocompleter.setCustomWords(_autocompleteWords);
 
       // Preload columns for all tables in background
       await _schemaService.preloadColumns(driver, database, tables);
@@ -317,8 +304,6 @@ class _QueryTabState extends State<QueryTab> {
       return;
     }
 
-    // Dismiss autocomplete dropdown
-    _controller.dismiss();
     _focusNode.unfocus();
 
     setState(() => _isExecuting = true);
@@ -1039,6 +1024,17 @@ class _QueryTabState extends State<QueryTab> {
     );
   }
 
+  int _getCursorGlobalOffset() {
+    final sel = _controller.selection;
+    int offset = 0;
+    final lines = _controller.codeLines;
+    for (int i = 0; i < sel.baseIndex && i < lines.length; i++) {
+      offset += lines[i].text.length + 1;
+    }
+    offset += sel.baseOffset;
+    return offset;
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<DashboardProvider>(context, listen: false);
@@ -1157,37 +1153,34 @@ class _QueryTabState extends State<QueryTab> {
                 onTap: () {
                   _focusNode.requestFocus();
                 },
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return OverflowBox(
-                      alignment: Alignment.centerLeft,
-                      minWidth: constraints.maxWidth,
-                      maxWidth: constraints.maxWidth + 8,
-                      minHeight: constraints.maxHeight,
-                      maxHeight: constraints.maxHeight,
-                      child: Transform.translate(
-                        offset: const Offset(-8, 0),
-                        child: CodeTheme(
-                          data: CodeThemeData(
-                            styles: isDark ? monokaiSublimeTheme : githubTheme,
-                          ),
-                          child: CodeField(
-                            controller: _controller,
-                            focusNode: _focusNode,
-                            textStyle: const TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 14,
-                            ),
-                            gutterStyle: GutterStyle.none,
-                            cursorColor: theme.colorScheme.primary,
-                            background: Colors.transparent,
-                            expands: true,
-                            padding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ),
+                child: CodeAutocomplete(
+                  promptsBuilder: SqlAutocompletePromptsBuilder(
+                    controller: _controller,
+                    currentSuggestions: _autocompleteWords,
+                  ),
+                  viewBuilder: (context, notifier, onSelected) {
+                    return SqlAutocompleteListView(
+                      notifier: notifier,
+                      onSelected: onSelected,
                     );
                   },
+                  child: CodeEditor(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    style: CodeEditorStyle(
+                      fontSize: 14,
+                      fontFamily: 'monospace',
+                      cursorColor: theme.colorScheme.primary,
+                      codeTheme: CodeHighlightTheme(
+                        languages: {
+                          'sql': CodeHighlightThemeMode(mode: langSql),
+                        },
+                        theme: isDark ? monokaiSublimeTheme : githubTheme,
+                      ),
+                    ),
+                    wordWrap: true,
+                    indicatorBuilder: null,
+                  ),
                 ),
               ),
             ),

@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_code_editor/flutter_code_editor.dart';
-import 'package:highlight/languages/sql.dart';
-import 'package:flutter_highlight/themes/monokai-sublime.dart';
-import 'package:flutter_highlight/themes/github.dart';
+import 'package:re_editor/re_editor.dart';
+import 'package:re_highlight/languages/sql.dart';
+import 'package:re_highlight/styles/monokai-sublime.dart';
+import 'package:re_highlight/styles/github.dart';
+import '../../../../core/widgets/sql_autocomplete_builder.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/schema_service.dart';
 import '../../../../core/services/sql_context_analyzer.dart';
@@ -55,7 +56,7 @@ class QueryEditorWidget extends StatefulWidget {
 }
 
 class _QueryEditorWidgetState extends State<QueryEditorWidget> {
-  late CodeController _controller;
+  late CodeLineEditingController _controller;
   final _schemaService = SchemaService();
   late SQLContextAnalyzer _sqlContextAnalyzer;
   bool _isExecuting = false;
@@ -143,9 +144,8 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
     super.initState();
     _sqlContextAnalyzer = SQLContextAnalyzer(_schemaService);
 
-    _controller = CodeController(
-      language: sql,
-      text: widget.initialQuery ?? '',
+    _controller = CodeLineEditingController.fromText(
+      widget.initialQuery ?? '',
     );
 
     _setupAutocomplete();
@@ -181,7 +181,6 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
 
   void _setupAutocomplete() {
     _autocompleteWords = List.from(_sqlKeywords);
-    _controller.autocompleter.setCustomWords(_autocompleteWords);
   }
 
   void _onTextChange() {
@@ -199,7 +198,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
     if (database == null || !mounted) return;
 
     final query = _controller.text;
-    final cursorPosition = _controller.selection.baseOffset;
+    final cursorPosition = _getCursorGlobalOffset();
 
     final textBeforeCursor = query.substring(0, cursorPosition);
     final wordMatch = RegExp(r'\w+$').firstMatch(textBeforeCursor);
@@ -214,7 +213,6 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
     if (sqlContext == SQLContext.none) {
       setState(() {
         _autocompleteWords = List.from(_sqlKeywords);
-        _controller.autocompleter.setCustomWords(_autocompleteWords);
       });
     } else {
       final suggestions = await _sqlContextAnalyzer.getSuggestions(
@@ -231,7 +229,6 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
 
       setState(() {
         _autocompleteWords = allSuggestions;
-        _controller.autocompleter.setCustomWords(_autocompleteWords);
       });
     }
   }
@@ -253,7 +250,6 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
       _schemaService.setTableNames(database, tables);
 
       _autocompleteWords = List.from(_sqlKeywords);
-      _controller.autocompleter.setCustomWords(_autocompleteWords);
 
       await _schemaService.preloadColumns(driver, database, tables);
 
@@ -289,7 +285,6 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
       return;
     }
 
-    _controller.dismiss();
     _focusNode.unfocus();
 
     setState(() => _isExecuting = true);
@@ -349,6 +344,17 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
         _controller.text = '';
       });
     }
+  }
+
+  int _getCursorGlobalOffset() {
+    final sel = _controller.selection;
+    int offset = 0;
+    final lines = _controller.codeLines;
+    for (int i = 0; i < sel.baseIndex && i < lines.length; i++) {
+      offset += lines[i].text.length + 1;
+    }
+    offset += sel.baseOffset;
+    return offset;
   }
 
   @override
@@ -492,25 +498,47 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
                 onTap: () {
                   _focusNode.requestFocus();
                 },
-                child: CodeTheme(
-                  data: CodeThemeData(
-                    styles: isDark ? monokaiSublimeTheme : githubTheme,
+                child: CodeAutocomplete(
+                  promptsBuilder: SqlAutocompletePromptsBuilder(
+                    controller: _controller,
+                    currentSuggestions: _autocompleteWords,
                   ),
-                  child: CodeField(
+                  viewBuilder: (context, notifier, onSelected) {
+                    return SqlAutocompleteListView(
+                      notifier: notifier,
+                      onSelected: onSelected,
+                    );
+                  },
+                  child: CodeEditor(
                     controller: _controller,
                     focusNode: _focusNode,
-                    textStyle: const TextStyle(
-                      fontFamily: 'monospace',
+                    style: CodeEditorStyle(
                       fontSize: 14,
+                      fontFamily: 'monospace',
+                      cursorColor: theme.colorScheme.primary,
+                      codeTheme: CodeHighlightTheme(
+                        languages: {
+                          'sql': CodeHighlightThemeMode(mode: langSql),
+                        },
+                        theme: isDark ? monokaiSublimeTheme : githubTheme,
+                      ),
                     ),
-                    gutterStyle: GutterStyle(
-                      textStyle: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600),
-                      width: 48,
-                      margin: 0,
-                    ),
-                    cursorColor: theme.colorScheme.primary,
-                    background: theme.colorScheme.surface,
-                    expands: true,
+                    wordWrap: false,
+                    indicatorBuilder: (context, editingController, chunkController, notifier) {
+                      return Row(
+                        children: [
+                          DefaultCodeLineNumber(
+                            controller: editingController,
+                            notifier: notifier,
+                            textStyle: TextStyle(
+                              color: isDark ? Colors.grey : Colors.grey.shade600,
+                              fontSize: 14,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
