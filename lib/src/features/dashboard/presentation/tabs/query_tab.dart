@@ -1164,9 +1164,10 @@ class _QueryTabState extends State<QueryTab> {
                       onSelected: onSelected,
                     );
                   },
-                  child: CodeEditor(
+                    child: CodeEditor(
                     controller: _controller,
                     focusNode: _focusNode,
+                    padding: const EdgeInsets.all(16),
                     style: CodeEditorStyle(
                       fontSize: 14,
                       fontFamily: 'monospace',
