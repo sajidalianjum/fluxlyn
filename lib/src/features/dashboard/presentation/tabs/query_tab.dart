@@ -877,15 +877,28 @@ class _QueryTabState extends State<QueryTab> {
             title: const Text('AI Query Assistant'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Describe what you want to query in natural language:',
+                  textAlign: TextAlign.start,
                   style: TextStyle(
                     fontSize: 14,
                     color: isDark ? Colors.grey[400] : Colors.grey.shade700,
                   ),
                 ),
                 const SizedBox(height: 12),
+                TextField(
+                  controller: promptController,
+                  autofocus: true,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'e.g., Show all users who signed up last week',
+                    border: OutlineInputBorder(),
+                  ),
+                  enabled: !isGenerating,
+                ),
+                const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -917,17 +930,6 @@ class _QueryTabState extends State<QueryTab> {
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: promptController,
-                  autofocus: true,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    hintText: 'e.g., Show all users who signed up last week',
-                    border: OutlineInputBorder(),
-                  ),
-                  enabled: !isGenerating,
                 ),
                 if (isGenerating) ...[
                   const SizedBox(height: 16),
