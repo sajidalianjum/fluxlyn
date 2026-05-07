@@ -77,11 +77,13 @@ class _TableDataPageState extends State<TableDataPage> {
           if (result.hasError) {
             _error = result.error;
           } else {
-            _columns = result.columns;
-            _binaryColumns = result.binaryColumns;
-            _bitColumns = result.bitColumns;
-            _enumColumns = result.enumColumns;
-            _setColumns = result.setColumns;
+            if (result.columns.isNotEmpty) {
+              _columns = result.columns;
+              _binaryColumns = result.binaryColumns;
+              _bitColumns = result.bitColumns;
+              _enumColumns = result.enumColumns;
+              _setColumns = result.setColumns;
+            }
             _rows = result.rows;
             _primaryKeyColumn = result.primaryKeyColumn;
             _isEditable = result.isEditable;
