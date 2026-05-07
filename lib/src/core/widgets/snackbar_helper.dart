@@ -18,10 +18,15 @@ class SnackbarHelper {
   }) {
     if (!context.mounted) return;
 
+    final theme = Theme.of(context);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
+        content: Text(
+          message,
+          style: TextStyle(color: theme.colorScheme.onPrimary),
+        ),
+        backgroundColor: theme.colorScheme.primary,
         duration: duration,
         behavior: SnackBarBehavior.floating,
       ),
@@ -40,10 +45,15 @@ class SnackbarHelper {
   }) {
     if (!context.mounted) return;
 
+    final theme = Theme.of(context);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
+        content: Text(
+          message,
+          style: TextStyle(color: theme.colorScheme.onError),
+        ),
+        backgroundColor: theme.colorScheme.error,
         duration: duration,
         behavior: SnackBarBehavior.floating,
       ),
@@ -83,10 +93,16 @@ class SnackbarHelper {
   }) {
     if (!context.mounted) return;
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.orange,
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: isDark ? Colors.orange.shade700 : Colors.orange,
         duration: duration,
         behavior: SnackBarBehavior.floating,
       ),
