@@ -1094,61 +1094,39 @@ class _QueryTabState extends State<QueryTab> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Toolbar with elevated card styling
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: isDark
-                ? AppConstants.colorSurfaceElevatedDark
-                : theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isDark
-                  ? AppConstants.colorBorderDarkStrong
-                  : AppConstants.colorBorderLight,
-              width: 1,
-            ),
-            boxShadow: AppTheme.getShadows(1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        // Toolbar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    Consumer<DashboardProvider>(
-                      builder: (context, provider, _) {
-                        return _buildToolbarButton(
-                          icon: Icons.storage,
-                          label: provider.selectedDatabase ?? 'Select DB',
-                          onPressed: () => _showDatabaseSelector(provider),
-                          isPrimary: provider.selectedDatabase != null,
-                        );
-                      },
-                    ),
-                    _buildToolbarButton(
-                      icon: Icons.auto_awesome,
-                      label: 'AI Query',
-                      onPressed: _showAIQueryDialog,
-                      isAccent: true,
-                    ),
-                    _buildToolbarButton(
-                      icon: Icons.save,
-                      label: 'Save',
-                      onPressed: _saveQuery,
-                    ),
-                    _buildToolbarButton(
-                      icon: Icons.folder_open,
-                      label: 'Load',
-                      onPressed: _loadQuery,
-                    ),
-                  ],
-                ),
+              Consumer<DashboardProvider>(
+                builder: (context, provider, _) {
+                  return _buildToolbarButton(
+                    icon: Icons.storage,
+                    label: provider.selectedDatabase ?? 'Select DB',
+                    onPressed: () => _showDatabaseSelector(provider),
+                  );
+                },
+              ),
+              _buildToolbarButton(
+                icon: Icons.auto_awesome,
+                label: 'AI Query',
+                onPressed: _showAIQueryDialog,
+                isAccent: true,
+              ),
+              _buildToolbarButton(
+                icon: Icons.save,
+                label: 'Save',
+                onPressed: _saveQuery,
+              ),
+              _buildToolbarButton(
+                icon: Icons.folder_open,
+                label: 'Load',
+                onPressed: _loadQuery,
               ),
             ],
           ),
@@ -1223,12 +1201,8 @@ class _QueryTabState extends State<QueryTab> {
     required IconData icon,
     required String label,
     required VoidCallback onPressed,
-    bool isPrimary = false,
     bool isAccent = false,
   }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     if (isAccent) {
       return FilledButton.icon(
         onPressed: onPressed,
@@ -1243,19 +1217,12 @@ class _QueryTabState extends State<QueryTab> {
       );
     }
 
-    return OutlinedButton.icon(
+    return FilledButton.tonalIcon(
       onPressed: onPressed,
       icon: Icon(icon, size: 16),
       label: Text(label, style: const TextStyle(fontSize: 12)),
-      style: OutlinedButton.styleFrom(
+      style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        side: BorderSide(
-          color: isPrimary
-              ? theme.colorScheme.primary
-              : (isDark ? AppConstants.colorBorderDarkStrong : AppConstants.colorBorderLight),
-          width: isPrimary ? 2 : 1,
-        ),
-        foregroundColor: isPrimary ? theme.colorScheme.primary : null,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
