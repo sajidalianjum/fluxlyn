@@ -76,32 +76,14 @@ class StorageService extends ChangeNotifier {
       return PasswordRequirement.required;
     }
 
-    final settingsBox = await Hive.openBox(_settingsBoxName);
-    final settingsJson = settingsBox.get('settings');
-    bool hasShownPrompt = false;
-
-    if (settingsJson != null) {
-      try {
-        final decoded = Map<String, dynamic>.from(settingsJson);
-        hasShownPrompt = decoded['hasShownPasswordPrompt'] ?? false;
-      } catch (_) {}
-    }
-
+    final hasShownPrompt = keyBox.get('hasShownPasswordPrompt') ?? false;
     return hasShownPrompt ? PasswordRequirement.notRequired : PasswordRequirement.firstLaunch;
   }
 
   Future<void> markPasswordPromptShown() async {
-    final settingsBox = await Hive.openBox(_settingsBoxName);
-    final settingsJson = settingsBox.get('settings');
-
-    Map<String, dynamic> settings = {};
-    if (settingsJson != null) {
-      settings = Map<String, dynamic>.from(settingsJson);
-    }
-    settings['hasShownPasswordPrompt'] = true;
-
-    await settingsBox.put('settings', settings);
-    await settingsBox.close();
+    final keyBox = await Hive.openBox(_keyBoxName);
+    await keyBox.put('hasShownPasswordPrompt', true);
+    await keyBox.close();
   }
 
   Future<void> init({String? masterPassword}) async {

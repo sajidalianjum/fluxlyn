@@ -76,7 +76,7 @@ class _MasterPasswordSetupDialogState extends State<MasterPasswordSetupDialog> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Set a master password to encrypt your database passwords, SSH keys, and API keys. You\'ll need to enter it each time you open the app.',
+              'Protect your credentials with a master password.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: isDark ? Colors.grey[400] : Colors.grey.shade700,
               ),
