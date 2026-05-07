@@ -185,6 +185,10 @@ class ConnectionCard extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: Colors.blueGrey,
+                                  width: 1,
+                                ),
                               ),
                               child: Text(
                                 connection.type == ConnectionType.mysql
@@ -193,7 +197,7 @@ class ConnectionCard extends StatelessWidget {
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: Colors.blueGrey,
                                   fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                                  letterSpacing: 0.3,
                                 ),
                               ),
                             ),
