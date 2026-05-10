@@ -1,8 +1,15 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("app/key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
 }
 
 android {
@@ -13,7 +20,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    	isCoreLibraryDesugaringEnabled = true
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -21,21 +28,29 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.fluxlyn.fluxlyn"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                ?: keystoreProperties.getProperty("keyAlias")
+            keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+                ?: keystoreProperties.getProperty("keyPassword")
+            storeFile = System.getenv("ANDROID_KEYSTORE_PATH")?.let { file(it) }
+                ?: keystoreProperties.getProperty("storeFile")?.let { file(it) }
+            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                ?: keystoreProperties.getProperty("storePassword")
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
@@ -45,6 +60,5 @@ flutter {
 }
 
 dependencies {
-    // Required for flutter_local_notifications desugaring
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
