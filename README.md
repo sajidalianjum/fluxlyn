@@ -19,9 +19,9 @@
 
 ## 📖 About
 
-Fluxlyn is a powerful, cross-platform database explorer built with Flutter, designed for everyone. It provides a modern interface for managing MySQL databases with advanced features like SSH tunneling, AI-powered query assistance, and secure encrypted storage of connections.
+Fluxlyn is a cross-platform database explorer built with Flutter, designed for everyone. It provides a modern interface for managing MySQL & PostgreSQL databases with advanced features like SSH tunneling, AI-powered query assistance, and secure encrypted storage of connections.
 
-> **Note:** This project is primarily built using vibe coding. If you discover any vulnerabilities or security issues, please report them responsibly.
+> **Note:** I am a hands-on developer but this project is primarily built using vibe coding. If you discover any vulnerabilities or security issues, please report them responsibly.
 
 **Supported Platforms:**
 - 🍎 macOS
