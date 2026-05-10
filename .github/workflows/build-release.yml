@@ -10,7 +10,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       build: ${{ steps.version.outputs.build }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Parse version from pubspec.yaml
         id: version
@@ -26,9 +26,9 @@ jobs:
     needs: extract-version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -58,7 +58,7 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk \
             fluxlyn-v${{ needs.extract-version.outputs.version }}-android.apk
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: fluxlyn-v${{ needs.extract-version.outputs.version }}-android
           path: fluxlyn-v${{ needs.extract-version.outputs.version }}-android.apk
@@ -67,7 +67,7 @@ jobs:
     needs: extract-version
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: subosito/flutter-action@v2
         with:
@@ -83,7 +83,7 @@ jobs:
         run: |
           Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath fluxlyn-v${{ needs.extract-version.outputs.version }}-windows.zip
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: fluxlyn-v${{ needs.extract-version.outputs.version }}-windows
           path: fluxlyn-v${{ needs.extract-version.outputs.version }}-windows.zip
@@ -92,7 +92,7 @@ jobs:
     needs: extract-version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Linux build dependencies
         run: |
@@ -113,7 +113,7 @@ jobs:
           tar -czf fluxlyn-v${{ needs.extract-version.outputs.version }}-linux.tar.gz \
             -C build/linux/x64/release bundle
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: fluxlyn-v${{ needs.extract-version.outputs.version }}-linux
           path: fluxlyn-v${{ needs.extract-version.outputs.version }}-linux.tar.gz
