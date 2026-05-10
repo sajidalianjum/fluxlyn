@@ -117,3 +117,58 @@ jobs:
         with:
           name: fluxlyn-v${{ needs.extract-version.outputs.version }}-linux
           path: fluxlyn-v${{ needs.extract-version.outputs.version }}-linux.tar.gz
+
+  build-macos:
+    needs: extract-version
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter config --enable-macos-desktop
+
+      - run: flutter pub get
+
+      - name: Build macOS
+        run: flutter build macos --release
+
+      - name: Package and upload artifact
+        run: |
+          ditto -c -k --keepParent build/macos/Build/Products/Release/fluxlyn.app \
+            fluxlyn-v${{ needs.extract-version.outputs.version }}-macos.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: fluxlyn-v${{ needs.extract-version.outputs.version }}-macos
+          path: fluxlyn-v${{ needs.extract-version.outputs.version }}-macos.zip
+
+  release:
+    needs: [build-android, build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Parse version for tag
+        id: version
+        run: |
+          RAW=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          echo "tag=v${RAW%+*}" >> $GITHUB_OUTPUT
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: fluxlyn-v*
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          files: |
+            fluxlyn-*.apk
+            fluxlyn-*.zip
+            fluxlyn-*.tar.gz
+          generate_release_notes: true
