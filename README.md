@@ -423,6 +423,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 **Sajid Ali Anjum**
 
 - GitHub: [@sajidalianjum](https://github.com/sajidalianjum)
+- Company: [Softlitude](https://softlitude.com)
 - Built as an internal tool to make database management easier for everyone
 
 ---
