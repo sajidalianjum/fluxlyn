@@ -43,7 +43,7 @@ I originally built Fluxlyn because I couldn’t find an open-source Android data
   </tr>
   <tr>
     <td align="center"><strong>Connection Manager</strong></td>
-    <td align="center"><strong>DB Tables/strong></td>
+    <td align="center"><strong>DB Tables</strong></td>
     <td align="center"><strong>Query Editor</strong></td>
   </tr>
 </table>
