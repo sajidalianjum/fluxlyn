@@ -220,11 +220,14 @@ class _QueryTabState extends State<QueryTab> {
         _autocompleteWords = List.from(_sqlKeywords);
       });
     } else {
+      final driver = provider.driver;
+
       final suggestions = await _sqlContextAnalyzer.getSuggestions(
         sqlContext,
         database,
         query,
         cursorPosition,
+        driver: driver,
       );
 
       final filteredSuggestions = await _sqlContextAnalyzer

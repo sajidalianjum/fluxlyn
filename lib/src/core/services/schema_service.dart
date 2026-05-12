@@ -95,6 +95,22 @@ class SchemaService {
     }
   }
 
+  Future<List<String>> getColumnNamesWithFallback(
+    DatabaseDriver driver,
+    String databaseName,
+    String tableName,
+  ) async {
+    final cacheKey = '$databaseName.$tableName';
+    if (_columnsCache.containsKey(cacheKey)) {
+      return _columnsCache[cacheKey]!.map((c) => c.name).toList();
+    }
+    await getColumns(driver, databaseName, tableName);
+    if (_columnsCache.containsKey(cacheKey)) {
+      return _columnsCache[cacheKey]!.map((c) => c.name).toList();
+    }
+    return [];
+  }
+
   List<String> getAllColumnNames(String databaseName, String? tableName) {
     if (tableName != null) {
       final cacheKey = '$databaseName.$tableName';

@@ -1,4 +1,5 @@
 import '../services/schema_service.dart';
+import '../services/database_driver.dart';
 
 enum SQLContext {
   none,
@@ -26,7 +27,6 @@ class SQLContextAnalyzer {
     final textBeforeCursor = query.substring(0, cursorPosition);
     final textBeforeCursorLower = textBeforeCursor.toLowerCase();
 
-    // Define patterns to find the last (most recent) matching keyword
     final patterns = {
       SQLContext.afterFrom: RegExp(r'(?:^|\s)(from)\s+', caseSensitive: false),
       SQLContext.afterJoin: RegExp(
@@ -68,7 +68,6 @@ class SQLContextAnalyzer {
       ),
     };
 
-    // Find the last (most recent) matching keyword
     int? lastMatchPosition;
     SQLContext? lastMatchContext;
 
@@ -76,7 +75,6 @@ class SQLContextAnalyzer {
       final context = entry.key;
       final pattern = entry.value;
 
-      // Find all matches and get the last one
       for (final match in pattern.allMatches(textBeforeCursorLower)) {
         if (lastMatchPosition == null || match.start > lastMatchPosition) {
           lastMatchPosition = match.start;
@@ -92,8 +90,9 @@ class SQLContextAnalyzer {
     SQLContext context,
     String databaseName,
     String query,
-    int cursorPosition,
-  ) async {
+    int cursorPosition, {
+    DatabaseDriver? driver,
+  }) async {
     switch (context) {
       case SQLContext.afterSelect:
       case SQLContext.afterDistinct:
@@ -102,7 +101,9 @@ class SQLContextAnalyzer {
       case SQLContext.afterOn:
       case SQLContext.afterGroupBy:
       case SQLContext.afterOrderBy:
-        return _getColumnsWithContext(databaseName, query, cursorPosition);
+        return _getColumnsWithContext(
+          databaseName, query, cursorPosition, driver: driver,
+        );
 
       case SQLContext.afterFrom:
       case SQLContext.afterJoin:
@@ -112,7 +113,9 @@ class SQLContextAnalyzer {
         return _getTableNames(databaseName);
 
       case SQLContext.afterSet:
-        return _getColumnsWithContext(databaseName, query, cursorPosition);
+        return _getColumnsWithContext(
+          databaseName, query, cursorPosition, driver: driver,
+        );
 
       case SQLContext.none:
         return [];
@@ -123,33 +126,138 @@ class SQLContextAnalyzer {
     return _schemaService.getTableNames(databaseName);
   }
 
-  List<String> _getColumnsWithContext(
+  Future<List<String>> _getColumnsWithContext(
     String databaseName,
     String query,
-    int cursorPosition,
-  ) {
-    // Try to find table name before cursor
+    int cursorPosition, {
+    DatabaseDriver? driver,
+  }) async {
     final textBeforeCursor = query.substring(0, cursorPosition);
-    final tableMatch = RegExp(
-      r'\b(FROM|JOIN|INNER\s+JOIN|LEFT\s+JOIN|RIGHT\s+JOIN|UPDATE)\s+(\w+)',
-      caseSensitive: false,
-    ).firstMatch(textBeforeCursor);
+    final tableRefs = _parseTableReferences(textBeforeCursor);
 
-    if (tableMatch != null && tableMatch.groupCount >= 2) {
-      final tableName = tableMatch.group(2);
-      if (tableName != null) {
-        // Try to match table name case-insensitively
-        final tableNames = _schemaService.getTableNames(databaseName);
-        final matchedTable = tableNames.firstWhere(
-          (t) => t.toLowerCase() == tableName.toLowerCase(),
-          orElse: () => tableName,
+    final prefixMatch = RegExp(r'(\w+)\.\w*$').firstMatch(textBeforeCursor);
+    if (prefixMatch != null) {
+      final prefix = prefixMatch.group(1)!;
+      final resolvedTable = _resolveAlias(prefix, tableRefs);
+      if (resolvedTable != null) {
+        return _getColumnsForTable(
+          databaseName, resolvedTable, driver: driver,
         );
-        return _schemaService.getAllColumnNames(databaseName, matchedTable);
       }
     }
 
-    // If no specific table found, return all columns
+    if (tableRefs.isNotEmpty) {
+      final allColumns = <String>[];
+      final seen = <String>{};
+      final uniqueTables = <String>{};
+      for (final tableName in tableRefs.values) {
+        uniqueTables.add(tableName);
+      }
+      for (final tableName in uniqueTables) {
+        final cols = await _getColumnsForTable(
+          databaseName, tableName, driver: driver,
+        );
+        for (final col in cols) {
+          if (seen.add(col)) {
+            allColumns.add(col);
+          }
+        }
+      }
+      if (allColumns.isNotEmpty) return allColumns;
+    }
+
     return _schemaService.getAllColumnNames(databaseName, null);
+  }
+
+  Map<String, String> _parseTableReferences(String textBeforeCursor) {
+    final refs = <String, String>{};
+
+    final tablePattern = RegExp(
+      r"""\b(?:FROM|JOIN|INNER\s+JOIN|LEFT\s+JOIN|RIGHT\s+JOIN|UPDATE)\s+[`"]?(\w+)[`"]?(?:\s+AS\s+[`"]?(\w+)[`"]?)?""",
+      caseSensitive: false,
+    );
+
+    for (final match in tablePattern.allMatches(textBeforeCursor)) {
+      final tableName = _stripQuotes(match.group(1)!);
+      if (_isSqlKeyword(tableName)) continue;
+
+      refs[tableName] = tableName;
+
+      final alias = match.group(2);
+      if (alias != null && !_isSqlKeyword(alias)) {
+        refs[_stripQuotes(alias)] = tableName;
+        continue;
+      }
+
+      final afterTable = textBeforeCursor.substring(match.end).trimLeft();
+      final implicitMatch = RegExp(r'^(\w+)').firstMatch(afterTable);
+      if (implicitMatch != null) {
+        final possibleAlias = implicitMatch.group(1)!;
+        if (!_isSqlKeyword(possibleAlias)) {
+          refs[possibleAlias] = tableName;
+        }
+      }
+    }
+
+    return refs;
+  }
+
+  String? _resolveAlias(String prefix, Map<String, String> tableRefs) {
+    if (tableRefs.containsKey(prefix)) return tableRefs[prefix];
+    for (final entry in tableRefs.entries) {
+      if (entry.key.toLowerCase() == prefix.toLowerCase()) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  Future<List<String>> _getColumnsForTable(
+    String databaseName,
+    String tableName, {
+    DatabaseDriver? driver,
+  }) async {
+    if (driver != null) {
+      final tableNames = _schemaService.getTableNames(databaseName);
+      final matchedTable = tableNames.firstWhere(
+        (t) => t.toLowerCase() == tableName.toLowerCase(),
+        orElse: () => tableName,
+      );
+      final cols = await _schemaService.getColumnNamesWithFallback(
+        driver, databaseName, matchedTable,
+      );
+      if (cols.isNotEmpty) return cols;
+    }
+    final cols = _schemaService.getAllColumnNames(databaseName, tableName);
+    if (cols.isNotEmpty) return cols;
+    return _schemaService.getAllColumnNames(databaseName, null);
+  }
+
+  String _stripQuotes(String name) {
+    if (name.length >= 2 &&
+        ((name.startsWith('`') && name.endsWith('`')) ||
+         (name.startsWith('"') && name.endsWith('"')) ||
+         (name.startsWith("'") && name.endsWith("'")))) {
+      return name.substring(1, name.length - 1);
+    }
+    return name;
+  }
+
+  static const _sqlKeywordSet = {
+    'select', 'from', 'where', 'and', 'or', 'not', 'insert', 'into',
+    'values', 'update', 'set', 'delete', 'create', 'table', 'alter',
+    'drop', 'index', 'join', 'inner', 'left', 'right', 'full', 'outer',
+    'on', 'group', 'by', 'order', 'having', 'limit', 'offset', 'union',
+    'all', 'distinct', 'as', 'like', 'in', 'between', 'is', 'null',
+    'true', 'false', 'asc', 'desc', 'exists', 'case', 'when', 'then',
+    'else', 'end', 'if', 'while', 'for', 'foreign', 'key', 'primary',
+    'references', 'default', 'auto_increment', 'unique', 'database',
+    'show', 'tables', 'columns', 'describe', 'explain',
+    'count', 'sum', 'avg', 'min', 'max', 'cross', 'natural',
+  };
+
+  bool _isSqlKeyword(String word) {
+    return _sqlKeywordSet.contains(word.toLowerCase());
   }
 
   Future<List<String>> getFilteredSuggestions(
