@@ -8,7 +8,7 @@ import 'package:re_highlight/styles/github.dart';
 import '../../../../core/widgets/sql_autocomplete_builder.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/schema_service.dart';
-import '../../../../core/services/sql_context_analyzer.dart';
+import '../../../../core/services/sql_autocomplete_engine.dart';
 import '../../../../core/widgets/snackbar_helper.dart';
 import '../../../../core/services/query_protection_service.dart';
 import '../../providers/dashboard_provider.dart';
@@ -58,97 +58,21 @@ class QueryEditorWidget extends StatefulWidget {
 class _QueryEditorWidgetState extends State<QueryEditorWidget> {
   late CodeLineEditingController _controller;
   final _schemaService = SchemaService();
-  late SQLContextAnalyzer _sqlContextAnalyzer;
+  late SqlAutocompleteEngine _autocompleteEngine;
   bool _isExecuting = false;
-  List<String> _autocompleteWords = [];
   String? _lastDatabase;
   final FocusNode _focusNode = FocusNode();
-  Timer? _autocompleteDebounce;
-  SQLContext _lastContext = SQLContext.none;
-
-  final List<String> _sqlKeywords = [
-    'SELECT',
-    'FROM',
-    'WHERE',
-    'AND',
-    'OR',
-    'NOT',
-    'INSERT',
-    'INTO',
-    'VALUES',
-    'UPDATE',
-    'SET',
-    'DELETE',
-    'CREATE',
-    'TABLE',
-    'ALTER',
-    'DROP',
-    'INDEX',
-    'JOIN',
-    'INNER',
-    'LEFT',
-    'RIGHT',
-    'FULL',
-    'OUTER',
-    'ON',
-    'GROUP',
-    'BY',
-    'ORDER',
-    'HAVING',
-    'LIMIT',
-    'OFFSET',
-    'UNION',
-    'ALL',
-    'DISTINCT',
-    'COUNT',
-    'SUM',
-    'AVG',
-    'MIN',
-    'MAX',
-    'AS',
-    'LIKE',
-    'IN',
-    'BETWEEN',
-    'IS',
-    'NULL',
-    'TRUE',
-    'FALSE',
-    'ASC',
-    'DESC',
-    'EXISTS',
-    'CASE',
-    'WHEN',
-    'THEN',
-    'ELSE',
-    'END',
-    'IF',
-    'WHILE',
-    'FOR',
-    'FOREIGN',
-    'KEY',
-    'PRIMARY',
-    'REFERENCES',
-    'DEFAULT',
-    'AUTO_INCREMENT',
-    'UNIQUE',
-    'DATABASE',
-    'SHOW',
-    'TABLES',
-    'COLUMNS',
-    'DESCRIBE',
-    'EXPLAIN',
-  ];
+  Timer? _enrichDebounce;
 
   @override
   void initState() {
     super.initState();
-    _sqlContextAnalyzer = SQLContextAnalyzer(_schemaService);
+    _autocompleteEngine = SqlAutocompleteEngine(_schemaService);
 
     _controller = CodeLineEditingController.fromText(
       widget.initialQuery ?? '',
     );
 
-    _setupAutocomplete();
     _controller.addListener(_onTextChange);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -163,7 +87,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
   void dispose() {
     _focusNode.dispose();
     _controller.removeListener(_onTextChange);
-    _autocompleteDebounce?.cancel();
+    _enrichDebounce?.cancel();
     super.dispose();
   }
 
@@ -179,58 +103,28 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
     }
   }
 
-  void _setupAutocomplete() {
-    _autocompleteWords = List.from(_sqlKeywords);
-  }
-
   void _onTextChange() {
-    _autocompleteDebounce?.cancel();
-
-    _autocompleteDebounce = Timer(const Duration(milliseconds: 200), () {
-      _updateContextAwareAutocomplete();
+    _enrichDebounce?.cancel();
+    _enrichDebounce = Timer(const Duration(milliseconds: 150), () {
+      _enrichSuggestions();
     });
   }
 
-  Future<void> _updateContextAwareAutocomplete() async {
+  Future<void> _enrichSuggestions() async {
+    if (!mounted) return;
     final provider = Provider.of<DashboardProvider>(context, listen: false);
     final database = provider.selectedDatabase;
-
-    if (database == null || !mounted) return;
+    if (database == null) return;
 
     final query = _controller.text;
-    final cursorPosition = _getCursorGlobalOffset();
+    final cursorPos = _getCursorGlobalOffset();
 
-    final textBeforeCursor = query.substring(0, cursorPosition);
-    final wordMatch = RegExp(r'\w+$').firstMatch(textBeforeCursor);
-    final currentWord = wordMatch?.group(0) ?? '';
-
-    final sqlContext = _sqlContextAnalyzer.getContext(query, cursorPosition);
-
-    if (sqlContext == _lastContext && currentWord.isEmpty) return;
-
-    _lastContext = sqlContext;
-
-    if (sqlContext == SQLContext.none) {
-      setState(() {
-        _autocompleteWords = List.from(_sqlKeywords);
-      });
-    } else {
-      final suggestions = await _sqlContextAnalyzer.getSuggestions(
-        sqlContext,
-        database,
-        query,
-        cursorPosition,
-      );
-
-      final filteredSuggestions = await _sqlContextAnalyzer
-          .getFilteredSuggestions(suggestions, currentWord);
-
-      final allSuggestions = [..._sqlKeywords, ...filteredSuggestions];
-
-      setState(() {
-        _autocompleteWords = allSuggestions;
-      });
-    }
+    await _autocompleteEngine.enrichSuggestions(
+      text: query,
+      cursorPosition: cursorPos,
+      databaseName: database,
+      driver: provider.driver,
+    );
   }
 
   Future<void> _reloadSchemaOnDatabaseChange() async {
@@ -243,18 +137,15 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
       _schemaService.clearTableNamesCache(database);
 
       final tables = provider.tables;
-      if (tables.isEmpty) {
-        return;
-      }
+      if (tables.isEmpty) return;
 
       _schemaService.setTableNames(database, tables);
 
-      _autocompleteWords = List.from(_sqlKeywords);
+      _autocompleteEngine.onDatabaseChanged(database, tables, driver);
 
       await _schemaService.preloadColumns(driver, database, tables);
 
-      _lastContext = SQLContext.none;
-      _updateContextAwareAutocomplete();
+      _enrichSuggestions();
     }
   }
 
@@ -267,10 +158,11 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
       final tables = provider.tables;
       _schemaService.setTableNames(database, tables);
 
+      _autocompleteEngine.onDatabaseChanged(database, tables, driver);
+
       await _schemaService.preloadColumns(driver, database, tables);
 
-      _lastContext = SQLContext.none;
-      _updateContextAwareAutocomplete();
+      _enrichSuggestions();
     }
   }
 
@@ -289,7 +181,6 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
 
     setState(() => _isExecuting = true);
 
-    // Check query protection settings
     final settingsProvider = context.read<SettingsProvider>();
     final settings = settingsProvider.settings;
     final queries = query
@@ -361,7 +252,7 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -501,12 +392,13 @@ class _QueryEditorWidgetState extends State<QueryEditorWidget> {
                 child: CodeAutocomplete(
                   promptsBuilder: SqlAutocompletePromptsBuilder(
                     controller: _controller,
-                    currentSuggestions: _autocompleteWords,
+                    engine: _autocompleteEngine,
                   ),
                   viewBuilder: (context, notifier, onSelected) {
                     return SqlAutocompleteListView(
                       notifier: notifier,
                       onSelected: onSelected,
+                      engine: _autocompleteEngine,
                     );
                   },
                   child: CodeEditor(

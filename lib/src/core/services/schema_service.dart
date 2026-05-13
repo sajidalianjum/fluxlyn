@@ -157,4 +157,18 @@ class SchemaService {
       _tableNamesCache.remove(databaseName);
     }
   }
+
+  List<ColumnInfo> getCachedColumns(String databaseName, String? tableName) {
+    if (tableName != null) {
+      final cacheKey = '$databaseName.$tableName';
+      return _columnsCache[cacheKey] ?? [];
+    }
+    final allColumns = <ColumnInfo>[];
+    for (final entry in _columnsCache.entries) {
+      if (entry.key.startsWith('$databaseName.')) {
+        allColumns.addAll(entry.value);
+      }
+    }
+    return allColumns;
+  }
 }

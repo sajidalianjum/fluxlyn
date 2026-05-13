@@ -13,7 +13,7 @@ import '../../../../core/services/storage_service.dart';
 import '../../../../core/utils/error_reporter.dart';
 import '../../../../core/services/schema_service.dart';
 import '../../../../core/services/ai_service.dart';
-import '../../../../core/services/sql_context_analyzer.dart';
+import '../../../../core/services/sql_autocomplete_engine.dart';
 import '../../../../core/services/query_protection_service.dart';
 import '../../../../core/services/column_type_detector.dart';
 import '../../../../core/services/mysql_driver.dart';
@@ -39,101 +39,20 @@ class _QueryTabState extends State<QueryTab> {
   late CodeLineEditingController _controller;
   final _schemaService = SchemaService();
   final _aiService = AIService();
-  late SQLContextAnalyzer _sqlContextAnalyzer;
+  late SqlAutocompleteEngine _autocompleteEngine;
   final _uuid = const Uuid();
   bool _isExecuting = false;
-  List<String> _autocompleteWords = [];
   String? _lastDatabase;
   final FocusNode _focusNode = FocusNode();
-  Timer? _autocompleteDebounce;
-  SQLContext _lastContext = SQLContext.none;
-
-  // SQL Keywords for autocomplete
-  static const List<String> _sqlKeywords = [
-    'SELECT',
-    'FROM',
-    'WHERE',
-    'AND',
-    'OR',
-    'NOT',
-    'INSERT',
-    'INTO',
-    'VALUES',
-    'UPDATE',
-    'SET',
-    'DELETE',
-    'CREATE',
-    'TABLE',
-    'ALTER',
-    'DROP',
-    'INDEX',
-    'JOIN',
-    'INNER',
-    'LEFT',
-    'RIGHT',
-    'FULL',
-    'OUTER',
-    'ON',
-    'GROUP',
-    'BY',
-    'ORDER',
-    'HAVING',
-    'LIMIT',
-    'OFFSET',
-    'UNION',
-    'ALL',
-    'DISTINCT',
-    'COUNT',
-    'SUM',
-    'AVG',
-    'MIN',
-    'MAX',
-    'AS',
-    'LIKE',
-    'IN',
-    'BETWEEN',
-    'IS',
-    'NULL',
-    'TRUE',
-    'FALSE',
-    'ASC',
-    'DESC',
-    'EXISTS',
-    'CASE',
-    'WHEN',
-    'THEN',
-    'ELSE',
-    'END',
-    'IF',
-    'WHILE',
-    'FOR',
-    'FOREIGN',
-    'KEY',
-    'PRIMARY',
-    'REFERENCES',
-    'DEFAULT',
-    'AUTO_INCREMENT',
-    'UNIQUE',
-    'DATABASE',
-    'SHOW',
-    'TABLES',
-    'COLUMNS',
-    'DESCRIBE',
-    'EXPLAIN',
-  ];
+  Timer? _enrichDebounce;
 
   @override
   void initState() {
     super.initState();
-    _sqlContextAnalyzer = SQLContextAnalyzer(_schemaService);
-
+    _autocompleteEngine = SqlAutocompleteEngine(_schemaService);
     _controller = CodeLineEditingController();
-
-    _setupAutocomplete();
-
     _controller.addListener(_onTextChange);
 
-    // Preload schema info after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = Provider.of<DashboardProvider>(context, listen: false);
       if (provider.tables.isNotEmpty) {
@@ -146,7 +65,7 @@ class _QueryTabState extends State<QueryTab> {
   void dispose() {
     _focusNode.dispose();
     _controller.removeListener(_onTextChange);
-    _autocompleteDebounce?.cancel();
+    _enrichDebounce?.cancel();
     super.dispose();
   }
 
@@ -177,68 +96,28 @@ class _QueryTabState extends State<QueryTab> {
     }
   }
 
-  void _setupAutocomplete() {
-    _autocompleteWords = List.from(_sqlKeywords);
-  }
-
   void _onTextChange() {
-    _autocompleteDebounce?.cancel();
-
-    _autocompleteDebounce = Timer(const Duration(milliseconds: 200), () {
-      if (mounted) {
-        _updateContextAwareAutocomplete();
-      }
+    _enrichDebounce?.cancel();
+    _enrichDebounce = Timer(const Duration(milliseconds: 150), () {
+      _enrichSuggestions();
     });
   }
 
-  Future<void> _updateContextAwareAutocomplete() async {
+  Future<void> _enrichSuggestions() async {
     if (!mounted) return;
-
     final provider = Provider.of<DashboardProvider>(context, listen: false);
     final database = provider.selectedDatabase;
-
     if (database == null) return;
 
     final query = _controller.text;
-    final cursorPosition = _getCursorGlobalOffset();
+    final cursorPos = _getCursorGlobalOffset();
 
-    final textBeforeCursor = query.substring(0, cursorPosition);
-    final wordMatch = RegExp(r'\w+$').firstMatch(textBeforeCursor);
-    final currentWord = wordMatch?.group(0) ?? '';
-
-    // Get current SQL context
-    final sqlContext = _sqlContextAnalyzer.getContext(query, cursorPosition);
-
-    // Only update if context changed significantly
-    if (sqlContext == _lastContext && currentWord.isEmpty) return;
-
-    _lastContext = sqlContext;
-
-    // Get appropriate suggestions based on context
-    if (sqlContext == SQLContext.none) {
-      setState(() {
-        _autocompleteWords = List.from(_sqlKeywords);
-      });
-    } else {
-      final driver = provider.driver;
-
-      final suggestions = await _sqlContextAnalyzer.getSuggestions(
-        sqlContext,
-        database,
-        query,
-        cursorPosition,
-        driver: driver,
-      );
-
-      final filteredSuggestions = await _sqlContextAnalyzer
-          .getFilteredSuggestions(suggestions, currentWord);
-
-      final allSuggestions = [..._sqlKeywords, ...filteredSuggestions];
-
-      setState(() {
-        _autocompleteWords = allSuggestions;
-      });
-    }
+    await _autocompleteEngine.enrichSuggestions(
+      text: query,
+      cursorPosition: cursorPos,
+      databaseName: database,
+      driver: provider.driver,
+    );
   }
 
   Future<void> _reloadSchemaOnDatabaseChange() async {
@@ -247,28 +126,18 @@ class _QueryTabState extends State<QueryTab> {
     final database = provider.selectedDatabase;
 
     if (driver != null && database != null) {
-      // Clear cache for previous database and load new one
+      final tables = provider.tables;
+      if (tables.isEmpty) return;
+
       _schemaService.clearCache(database);
       _schemaService.clearTableNamesCache(database);
-
-      // Wait for tables to be loaded, then cache them
-      final tables = provider.tables;
-      if (tables.isEmpty) {
-        // Tables not loaded yet, they'll be cached when loaded via didChangeDependencies
-        return;
-      }
-
-      // Cache table names in SchemaService
       _schemaService.setTableNames(database, tables);
 
-      _autocompleteWords = List.from(_sqlKeywords);
+      _autocompleteEngine.onDatabaseChanged(database, tables, driver);
 
-      // Preload columns for all tables in background
       await _schemaService.preloadColumns(driver, database, tables);
 
-      // Trigger context-aware autocomplete update
-      _lastContext = SQLContext.none;
-      _updateContextAwareAutocomplete();
+      _enrichSuggestions();
     }
   }
 
@@ -278,16 +147,14 @@ class _QueryTabState extends State<QueryTab> {
     final database = provider.selectedDatabase;
 
     if (driver != null && database != null) {
-      // Cache table names in SchemaService
       final tables = provider.tables;
       _schemaService.setTableNames(database, tables);
 
-      // Preload columns for all tables in background
+      _autocompleteEngine.onDatabaseChanged(database, tables, driver);
+
       await _schemaService.preloadColumns(driver, database, tables);
 
-      // Trigger initial autocomplete update
-      _lastContext = SQLContext.none;
-      _updateContextAwareAutocomplete();
+      _enrichSuggestions();
     }
   }
 
@@ -323,14 +190,12 @@ class _QueryTabState extends State<QueryTab> {
         throw Exception('Not connected to database');
       }
 
-      // Split multiple queries by semicolon
       final queries = query
           .split(';')
           .map((q) => q.trim())
           .where((q) => q.isNotEmpty)
           .toList();
 
-      // Check query protection settings
       final settingsProvider = context.read<SettingsProvider>();
       final settings = settingsProvider.settings;
 
@@ -433,7 +298,6 @@ class _QueryTabState extends State<QueryTab> {
             }
           }
 
-          // Format values based on detected types
           final rows = rawRows.map((rowMap) {
             final formattedRow = <String, dynamic>{};
             for (final col in columns) {
@@ -482,7 +346,6 @@ class _QueryTabState extends State<QueryTab> {
             ),
           );
 
-          // Add to history
           await storageService.addToHistory(
             QueryHistoryEntry(
               id: _uuid.v4(),
@@ -512,7 +375,6 @@ class _QueryTabState extends State<QueryTab> {
             ),
           );
 
-          // Add failed query to history
           await storageService.addToHistory(
             QueryHistoryEntry(
               id: _uuid.v4(),
@@ -529,7 +391,6 @@ class _QueryTabState extends State<QueryTab> {
         }
       }
 
-      // Navigate to results page
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => QueryResultsPage(results: results)),
@@ -947,7 +808,6 @@ class _QueryTabState extends State<QueryTab> {
                         setDialogState(() => isGenerating = true);
 
                         try {
-                          // Gather schema
                           final tables = provider.tables;
                           final schemaBuffer = StringBuffer();
 
@@ -1097,7 +957,6 @@ class _QueryTabState extends State<QueryTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Toolbar
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Wrap(
@@ -1132,8 +991,6 @@ class _QueryTabState extends State<QueryTab> {
             ],
           ),
         ),
-
-        // Code editor with card styling
         Expanded(
           child: Container(
             margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -1159,15 +1016,16 @@ class _QueryTabState extends State<QueryTab> {
                 child: CodeAutocomplete(
                   promptsBuilder: SqlAutocompletePromptsBuilder(
                     controller: _controller,
-                    currentSuggestions: _autocompleteWords,
+                    engine: _autocompleteEngine,
                   ),
                   viewBuilder: (context, notifier, onSelected) {
                     return SqlAutocompleteListView(
                       notifier: notifier,
                       onSelected: onSelected,
+                      engine: _autocompleteEngine,
                     );
                   },
-                    child: CodeEditor(
+                  child: CodeEditor(
                     controller: _controller,
                     focusNode: _focusNode,
                     padding: const EdgeInsets.all(16),
@@ -1190,8 +1048,6 @@ class _QueryTabState extends State<QueryTab> {
             ),
           ),
         ),
-
-
       ],
     );
   }
@@ -1239,7 +1095,6 @@ class _QueryTabState extends State<QueryTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Panel header with elevated card styling
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1271,7 +1126,6 @@ class _QueryTabState extends State<QueryTab> {
             ),
           ),
           const SizedBox(height: 12),
-          // Results content area with card styling
           Expanded(
             child: Container(
               decoration: BoxDecoration(
