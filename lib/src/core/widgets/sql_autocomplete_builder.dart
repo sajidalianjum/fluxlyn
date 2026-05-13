@@ -40,7 +40,33 @@ class SqlAutocompletePromptsBuilder extends CodeAutocompletePromptsBuilder {
 
     if (words.isEmpty) return null;
 
-    final matchedPrompts = words.map((word) => CodeKeywordPrompt(word: word)).toList();
+    final items = engine.lastSuggestions;
+    final wordToItem = <String, CompletionItem>{};
+    for (final item in items) {
+      wordToItem[item.word] = item;
+    }
+
+    // Group words by section priority so the flat prompt order matches visual layout
+    final sectionOrder = [
+      CompletionKind.table,
+      CompletionKind.column,
+      CompletionKind.function_,
+      CompletionKind.keyword,
+    ];
+    final grouped = <CompletionKind, List<String>>{};
+    for (final word in words) {
+      final kind = wordToItem[word]?.kind ?? CompletionKind.keyword;
+      grouped.putIfAbsent(kind, () => []).add(word);
+    }
+
+    final orderedWords = <String>[];
+    for (final kind in sectionOrder) {
+      if (grouped.containsKey(kind)) {
+        orderedWords.addAll(grouped[kind]!);
+      }
+    }
+
+    final matchedPrompts = orderedWords.map((word) => CodeKeywordPrompt(word: word)).toList();
 
     return CodeAutocompleteEditingValue(
       input: input,
@@ -50,7 +76,15 @@ class SqlAutocompletePromptsBuilder extends CodeAutocompletePromptsBuilder {
   }
 }
 
-class SqlAutocompleteListView extends StatelessWidget implements PreferredSizeWidget {
+class _SectionData {
+  final _Section section;
+  final int startFlatIndex;
+  final List<int> flatIndices;
+
+  _SectionData(this.section, this.startFlatIndex, this.flatIndices);
+}
+
+class SqlAutocompleteListView extends StatefulWidget implements PreferredSizeWidget {
   final ValueNotifier<CodeAutocompleteEditingValue> notifier;
   final ValueChanged<CodeAutocompleteResult> onSelected;
   final SqlAutocompleteEngine engine;
@@ -70,63 +104,122 @@ class SqlAutocompleteListView extends StatelessWidget implements PreferredSizeWi
   });
 
   @override
+  State<SqlAutocompleteListView> createState() => _SqlAutocompleteListViewState();
+}
+
+class _SqlAutocompleteListViewState extends State<SqlAutocompleteListView> {
+  final ScrollController _scrollController = ScrollController();
+  int _lastSelectedFlatIndex = -1;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _autoScrollToSelected(int flatIndex) {
+    if (flatIndex == _lastSelectedFlatIndex) return;
+    _lastSelectedFlatIndex = flatIndex;
+    if (!_scrollController.hasClients) return;
+
+    final scrollOffset = flatIndex * SqlAutocompleteListView.kItemHeight;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final clampedOffset = scrollOffset.clamp(0.0, maxScroll);
+    _scrollController.animateTo(
+      clampedOffset,
+      duration: const Duration(milliseconds: 80),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final prompts = notifier.value.prompts;
-    if (prompts.isEmpty) return const SizedBox.shrink();
+    return ValueListenableBuilder<CodeAutocompleteEditingValue>(
+      valueListenable: widget.notifier,
+      builder: (context, value, child) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final prompts = value.prompts;
+        if (prompts.isEmpty) return const SizedBox.shrink();
 
-    final items = engine.lastSuggestions;
-    final wordsToItems = <String, CompletionItem>{};
-    for (final item in items) {
-      wordsToItems[item.word] = item;
-    }
+        final engineItems = widget.engine.lastSuggestions;
+        final wordsToItems = <String, CompletionItem>{};
+        for (final item in engineItems) {
+          wordsToItems[item.word] = item;
+        }
 
-    final sections = _buildSections(prompts, wordsToItems);
-    final rowCount = sections.fold<int>(0, (sum, s) => sum + 1 + s.items.length);
-    final effectiveHeight = (rowCount * kItemHeight).clamp(0.0, kMaxHeight);
-    final totalHeight = effectiveHeight + 2;
+        final sections = _buildSections(prompts, wordsToItems);
 
-    return Container(
-      width: 280,
-      constraints: BoxConstraints(maxHeight: totalHeight),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+        int flatIdx = 0;
+        final sectionData = <_SectionData>[];
+        for (final section in sections) {
+          final indices = <int>[];
+          final start = flatIdx;
+          for (int j = 0; j < section.items.length; j++) {
+            indices.add(flatIdx);
+            flatIdx++;
+          }
+          sectionData.add(_SectionData(section, start, indices));
+        }
+
+        final rowCount = sections.fold<int>(0, (sum, s) => sum + 1 + s.items.length);
+        final effectiveHeight = (rowCount * SqlAutocompleteListView.kItemHeight).clamp(0.0, SqlAutocompleteListView.kMaxHeight);
+        final totalHeight = effectiveHeight + 2;
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _autoScrollToSelected(value.index);
+        });
+
+        return Container(
+          width: 280,
+          constraints: BoxConstraints(maxHeight: totalHeight),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: ListView.builder(
-          padding: EdgeInsets.zero,
-          itemCount: rowCount,
-          itemBuilder: (context, index) {
-            var currentIdx = 0;
-            for (final section in sections) {
-              if (index == currentIdx) {
-                return _buildSectionHeader(section.label, isDark);
-              }
-              currentIdx++;
-              final sectionStart = currentIdx;
-              currentIdx += section.items.length;
-              if (index < currentIdx) {
-                final itemIndex = index - sectionStart;
-                return _buildItem(section.items[itemIndex], isDark, theme);
-              }
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-      ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: EdgeInsets.zero,
+              itemCount: rowCount,
+              itemBuilder: (context, index) {
+                int cursor = 0;
+                for (final section in sectionData) {
+                  if (index == cursor) {
+                    return _buildSectionHeader(section.section.label, isDark);
+                  }
+                  cursor++;
+                  final sectionStart = cursor;
+                  cursor += section.flatIndices.length;
+                  if (index < cursor) {
+                    final itemIndex = index - sectionStart;
+                    final itemFlatIdx = section.flatIndices[itemIndex];
+                    return _buildItem(
+                      section.section.items[itemIndex],
+                      isDark,
+                      theme,
+                      value,
+                      itemFlatIdx,
+                    );
+                  }
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -171,7 +264,7 @@ class SqlAutocompleteListView extends StatelessWidget implements PreferredSizeWi
 
   Widget _buildSectionHeader(String label, bool isDark) {
     return Container(
-      height: kSectionHeaderHeight,
+      height: SqlAutocompleteListView.kSectionHeaderHeight,
       alignment: Alignment.centerLeft,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
@@ -187,18 +280,21 @@ class SqlAutocompleteListView extends StatelessWidget implements PreferredSizeWi
     );
   }
 
-  Widget _buildItem(CompletionItem item, bool isDark, ThemeData theme) {
-    final notifierValue = notifier.value;
-    final promptIndex = notifierValue.prompts.indexWhere((p) => p.word == item.word);
-    final isSelected = promptIndex == notifierValue.index;
+  Widget _buildItem(
+    CompletionItem item,
+    bool isDark,
+    ThemeData theme,
+    CodeAutocompleteEditingValue value,
+    int flatIndex,
+  ) {
+    final isSelected = flatIndex == value.index;
 
     return InkWell(
       onTap: () {
-        final idx = promptIndex >= 0 ? promptIndex : 0;
-        onSelected(notifierValue.copyWith(index: idx).autocomplete);
+        widget.onSelected(value.copyWith(index: flatIndex).autocomplete);
       },
       child: Container(
-        height: kItemHeight,
+        height: SqlAutocompleteListView.kItemHeight,
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         color: isSelected
